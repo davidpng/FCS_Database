@@ -10,8 +10,9 @@ the FCS header and text information and scrapping FCS metadata
 import numpy as np
 import pandas as pd
 """Built in packages"""
-from re import compile
-from time import datetime
+from os.path import basename
+from re import compile, findall
+from datetime import datetime
 from warnings import warn
 from struct import calcsize, unpack
 
@@ -46,11 +47,74 @@ class loadFCS(object):
                 self.data = self.__parse_data()
                 
         self.date = self.__py_export_time()
-        self.filename = self.text['fil']
-        self.cytometer = self.text['cyt']
-        self.cytnum = self.text['cytnum']
+        self.filename = self.__get_filename(filename)
+        self.cytometer, self.cytnum = self.__get_cytometer_info()
+        self.case_number = self.__get_case_number(filename)
+        
         self.num_events = self.text['tot']
         self.fh.close() #not included in FCM package, without it, it leads to a memory leak
+
+    def __get_case_number(self, filename):
+        """
+        Gets the HP database number (i.e. ##-#####) from the filename and experiment name
+        Will ValueError if:
+            Filename does not contain schema
+            Filename schema does not match experiment name schema
+        otherwise it will return a database number from either the filename or experiment name
+        """
+        file_number = findall(r"\d+.-\d{5}",basename(filename))
+        print file_number
+        if self.text.has_key('experiment name'):
+            casenum = self.text['experiment name']
+            casenum = findall(r"\d+.-\d{5}",casenum) # clean things up to standard
+            print casenum
+        else:
+            casenum = ["Unknown"]
+        # at this point casenum is defined in a list or is empty          
+        if not file_number:
+            print filename
+            raise ValueError("Filename does not match contain ##-##### schema")
+        elif casenum[0] == file_number[0]:
+            return casenum
+        elif casenum == "Unknown":
+            return file_number
+        else:
+            print filename
+            print casenum
+            raise ValueError("Filename and Experiment Name do not match")
+            
+    def __get_filename(self, filename):
+        """Provides error handling in case parameter is undefined"""
+        if self.text.has_key('fil'):
+            output = self.text['fil']
+        else:
+            output = basename(filename)
+        return output
+
+    def __get_cytometer_info(self):
+        """Provides error handling in case parameter is undefined"""
+        if self.text.has_key('cyt'):
+            cytometer = self.text['cyt']
+        else:
+            cytometer = "Unknown"
+        if self.text.has_key('cytnum'):
+            cytnum = self.text['cytnum']
+        else:
+            cytnum = "Unknown"
+        return cytometer,cytnum
+    
+    def __get_num_events(self):
+        """if 'tot' is undefined, try to get total number of events from
+        __parse_data()
+        """
+        if self.text.has_key('tot'):
+            output = int(self.text['tot'])
+        else:
+            try:
+                output = int(len(self.__parse_data()))
+            except:
+                raise ValueError("FCS file is corrupted beyond repair: tot and data undefined")
+        return output
         
     def __parse_header(self):
         """
@@ -107,7 +171,12 @@ class loadFCS(object):
         return np.array(tmp).reshape((num_events, len(tmp) / num_events))
         
     def __py_export_time(self):
-        export_time = self.text['date']+'-'+self.text['etim']
+        if self.text.has_key('export time'):
+            export_time = self.text['export time']
+        elif self.text.has_key('date') and self.text.has_key('etim'):
+            export_time = self.text['date']+'-'+self.text['etim']
+        else:
+            export_time = '31-DEC-2014-12:00:00'
         return datetime.strptime(export_time,'%d-%b-%Y-%H:%M:%S')
         
     def __parameter_header(self):
@@ -173,10 +242,10 @@ class loadFCS(object):
         return dict(zip([ x.lower() for x in tmp[::2]], tmp[1::2]))
 
 if __name__ == '__main__':
-    filename = '/home/ngdavid/Desktop/MDS_Plates/Inference_Testing/Normal BM backbone_#1.fcs'
+    filename = "/home/ngdavid/Desktop/MDS_Plates/Hodgkin_Cases_2008_2013/10-06255/10-06255_Hodgkins.fcs"
     temp = loadFCS(filename)
     print temp.date
     print temp.num_events
     print temp.cytometer
     print temp.channels
-    print temp.parameters
+    print temp.case_number

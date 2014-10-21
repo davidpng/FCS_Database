@@ -11,17 +11,23 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Finds FCS files in a directory \
                                               and scrapes metadata')
-parser.add_argument('-d', dest = "directory", type = str, required = True,
+parser.add_argument('-d', dest = "directory", type = str, required = False,
                    help='root directory location')
 
 inputs = parser.parse_args()
 Dir = inputs.directory
 
-#Dir = "/home/ngdavid/Desktop/Ubuntu_Dropbox/Myeloid_Data/Myeloid"
+Dir = "/home/ngdavid/Desktop/MDS_Plates/Hodgkin_Cases_2008_2013"
 
-Finder = Find_Clinical_FCS_Files(Dir)
+#Finder = Find_Clinical_FCS_Files(Dir)
 
 FCS_metadata = []
 for f in Finder.filenames:
-    FCS_metadata.append( loadFCS(f) )
-    print FCS_metadata
+    try:
+        FCS_metadata.append( loadFCS(f) )
+    except ValueError:
+        print f
+    #print f
+
+caselist = [i.case_number for i in FCS_metadata]
+
