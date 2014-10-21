@@ -13,6 +13,8 @@ from FCS_Database.HEADER_Find_FCS_files import Find_Clinical_FCS_Files
 from FCS_Database.HEADER_loadFCS import loadFCS
 from FCS_Database.FCS_db import FCSdatabase
 
+import pprint
+
 log = logging.getLogger(__name__)
 
 # Capture arguments
@@ -37,6 +39,9 @@ db = FCSdatabase(db=args.db)
 # # Process files/dirs
 FCS_metadata = []
 for f in Finder.filenames:
-    FCS_metadata.append(loadFCS(f))
-
-print FCS_metadata[1].text
+    try:
+        FCS_metadata.append(loadFCS(f))
+    except:
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint(FCS_metadata[len(FCS_metadata)-1].text)
+        raise

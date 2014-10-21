@@ -108,8 +108,8 @@ class loadFCS(object):
         return np.array(tmp).reshape((num_events, len(tmp) / num_events))
 
     def __py_export_time(self):
-        export_time = self.text['date']+'-'+self.text['etim']
-        return datetime.strptime(export_time,'%d-%b-%Y-%H:%M:%S')
+            export_time = self.text['date']+'-'+self.text['etim']
+            return datetime.strptime(export_time,'%d-%b-%Y-%H:%M:%S')
 
     def __parameter_header(self):
         par = int(self.text['par'])  # number of parameters
