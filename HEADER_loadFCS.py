@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 """Built in packages"""
 from re import compile
-from datetime import datetime
+from time import datetime
 from warnings import warn
 from struct import calcsize, unpack
 
@@ -27,7 +27,7 @@ class loadFCS(object):
     channels - <str list> - list of channel names
     parameters - <pandas dataframe> - dataframe containing per channel metainfo
     """
-    def __init__(self,filename,**kwargs):
+    def __init__(self, filename, **kwargs):
         """
         Takes filename, 
         import_dataframe = True to import listmode as a dataframe
@@ -41,7 +41,7 @@ class loadFCS(object):
         self.channels = self.parameters.loc['Channel Name'].tolist()
         if 'import_dataframe' in kwargs:
             if kwargs['import_dataframe']:            
-                self.data = pd.DataFrame(self.__parse_data(),columns = self.channels)
+                self.data = pd.DataFrame(self.__parse_data(), columns = self.channels)
             else:
                 self.data = self.__parse_data()
                 
@@ -87,7 +87,7 @@ class loadFCS(object):
         num_events = int(self.text['tot'])
         byteorder = self.text['byteord']
         byteorder_translation = {'4,3,2,1': '>',
-                                 '1,2,3,4': '<'}
+                                 '1,2,3,4': '<'} # dictionary to choose byteorder
         if byteorder in byteorder_translation:
             byteorder = byteorder_translation[byteorder]
 
@@ -111,6 +111,10 @@ class loadFCS(object):
         return datetime.strptime(export_time,'%d-%b-%Y-%H:%M:%S')
         
     def __parameter_header(self):
+        """
+        Generates a dataframe with rows equal to framework and columns
+        equal to the number of parameters
+        """
         par = int(self.text['par'])  # number of parameters
         framework = [['s','Channel Name'],
                      ['i','Channel Number'],
