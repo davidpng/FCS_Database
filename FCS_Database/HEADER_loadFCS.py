@@ -15,6 +15,7 @@ from datetime import datetime
 from warnings import warn
 from struct import calcsize, unpack
 
+
 class loadFCS(object):
     """
     This class will import an FCS file to a pandas datatable \n
@@ -27,34 +28,34 @@ class loadFCS(object):
     channels - <str list> - list of channel names
     parameters - <pandas dataframe> - dataframe containing per channel metainfo
     """
-    def __init__(self,filename,**kwargs):
+    def __init__(self, filename, **kwargs):
         """
-        Takes filename, 
+        Takes filename,
         import_dataframe = True to import listmode as a dataframe
         import_dataframe = False to import listmode as a numpy array
         import_dataframe not included, will just read the header
         """
-        self.fh = open(filename,'rb')
+        self.fh = open(filename, 'rb')
         self.header = self.__parse_header()
         self.text = self.__parse_text()
         self.parameters = self.__parameter_header()
         self.channels = self.parameters.loc['Channel Name'].tolist()
         if 'import_dataframe' in kwargs:
-            if kwargs['import_dataframe']:            
-                self.data = pd.DataFrame(self.__parse_data(),columns = self.channels)
+            if kwargs['import_dataframe']:
+                self.data = pd.DataFrame(self.__parse_data(), columns=self.channels)
             else:
                 self.data = self.__parse_data()
-                
+
         self.date = self.__py_export_time()
         self.filename = self.text['fil']
         self.cytometer = self.text['cyt']
         self.cytnum = self.text['cytnum']
         self.num_events = self.text['tot']
-        self.fh.close() #not included in FCM package, without it, it leads to a memory leak
-        
+        self.fh.close() # not included in FCM package, without it, it leads to a memory leak
+
     def __parse_header(self):
         """
-        Parse the FCM data in fcs file at the offset (supporting multiple 
+        Parse the FCM data in fcs file at the offset (supporting multiple
         data segments in a file
         """
         header = {}
@@ -72,12 +73,12 @@ class loadFCS(object):
         except ValueError:
             header['analysis_end'] = -1
         return header
-         
+
     def __get_block(self, start, stop):
         """Read in bytes from start to stop inclusive."""
         self.fh.seek(start)
         return self.fh.read(stop - start + 1)
-        
+
     def __parse_data(self):
         """parses the data structure, only listmode float support"""
         start = self.header['data_start']
@@ -94,9 +95,9 @@ class loadFCS(object):
         if mode != 'l' or datatype != 'f':
             raise ValueError('unsupported mode or datatype')
         else:
-            return self._float_parsing(start,end,datatype,byteorder,num_events)
-            
-    def __float_parsing(self,start,end,datatype,byteorder,num_events):
+            return self._float_parsing(start, end, datatype, byteorder, num_events)
+
+    def __float_parsing(self, start, end, datatype, byteorder, num_events):
         """
         Parses floating point data given the byte coordinates
         """
@@ -105,11 +106,11 @@ class loadFCS(object):
         if len(tmp) % num_events != 0:
             raise IndexError('the byte stream mismatch with number of events')
         return np.array(tmp).reshape((num_events, len(tmp) / num_events))
-        
+
     def __py_export_time(self):
         export_time = self.text['date']+'-'+self.text['etim']
         return datetime.strptime(export_time,'%d-%b-%Y-%H:%M:%S')
-        
+
     def __parameter_header(self):
         par = int(self.text['par'])  # number of parameters
         framework = [['s','Channel Name'],
@@ -130,7 +131,7 @@ class loadFCS(object):
         columns = []
         for i in range(1,par+1):
             columns.append(self.text['p{}n'.format(i)])
-        header_df = pd.DataFrame(data=None, index=framework[:,1] ,columns=columns)        
+        header_df = pd.DataFrame(data=None, index=framework[:,1] ,columns=columns)
         for i in range(1,par+1):
             for j in range(depth):
                 x = columns[i-1]
@@ -147,9 +148,9 @@ class loadFCS(object):
             x = columns[i-1]
             if pd.isnull(header_df[x]['Channel Name']):
                 header_df[x]['Channel Name'] = header_df[x]['Short name']
-        
+
         return header_df
-        
+
     def __parse_text(self):
         """return parsed text segment of fcs file"""
         start = self.header['text_start']

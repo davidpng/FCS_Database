@@ -11,7 +11,7 @@ from fnmatch import filter
 
 class Find_Clinical_FCS_Files(object):
     """
-    Finds all FCS files matching a pattern NN-NNNNN in a given director
+    Finds all FCS files matching a pattern NN-NNNNN in a given directory
     """
     def __init__(self, directory):
         self.directory = directory
