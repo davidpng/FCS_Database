@@ -26,8 +26,29 @@ for f in Finder.filenames:
     try:
         FCS_metadata.append( loadFCS(f) )
     except ValueError:
-        print f
-    #print f
+        print "Error Occured"
+ 
 
-caselist = [i.case_number for i in FCS_metadata]
+caselist = [i.case_number[0] for i in FCS_metadata]
+sizelist = [i.num_events for i in FCS_metadata]
+dates = [i.date for i in FCS_metadata]
+"""
+import matplotlib.pyplot as plt
+from matplotlib.dates import YearLocator, MonthLocator, DateFormatter
 
+years = YearLocator()   # every year
+months = MonthLocator()  # every month
+yearsFmt = DateFormatter('%Y')
+
+d = dates
+v = sizelist
+MonthLocator()
+
+fig, ax = plt.subplots()
+ax.plot_date(d, v, 'x')
+
+# format the ticks
+ax.xaxis.set_major_locator(years)
+ax.xaxis.set_major_formatter(yearsFmt)
+ax.xaxis.set_minor_locator(months)
+"""

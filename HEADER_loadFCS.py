@@ -51,7 +51,7 @@ class loadFCS(object):
         self.cytometer, self.cytnum = self.__get_cytometer_info()
         self.case_number = self.__get_case_number(filename)
         
-        self.num_events = self.text['tot']
+        self.num_events = self.__get_num_events()
         self.fh.close() #not included in FCM package, without it, it leads to a memory leak
 
     def __get_case_number(self, filename):
@@ -63,20 +63,19 @@ class loadFCS(object):
         otherwise it will return a database number from either the filename or experiment name
         """
         file_number = findall(r"\d+.-\d{5}",basename(filename))
-        print file_number
         if self.text.has_key('experiment name'):
             casenum = self.text['experiment name']
             casenum = findall(r"\d+.-\d{5}",casenum) # clean things up to standard
-            print casenum
         else:
             casenum = ["Unknown"]
-        # at this point casenum is defined in a list or is empty          
+        
         if not file_number:
-            print filename
             raise ValueError("Filename does not match contain ##-##### schema")
+        if not casenum:
+            return file_number[0]
         elif casenum[0] == file_number[0]:
             return casenum
-        elif casenum == "Unknown":
+        elif casenum == ["Unknown"]:
             return file_number
         else:
             print filename
