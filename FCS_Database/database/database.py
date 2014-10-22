@@ -7,8 +7,8 @@ import pandas as pd
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.schema import MetaData, Index
 
-from . import package_data
-from .exceptions import OperationalError
+from FCS_Database import package_data
+from FCS_Database.exceptions import OperationalError
 
 log = logging.getLogger(__name__)
 

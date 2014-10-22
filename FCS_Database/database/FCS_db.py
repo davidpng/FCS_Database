@@ -1,7 +1,7 @@
 """ Class for FCS database """
 
 import logging
-from FCS_Database.database import SqliteConnection
+from database import SqliteConnection
 
 log = logging.getLogger(__name__)
 
