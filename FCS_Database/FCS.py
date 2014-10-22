@@ -10,7 +10,8 @@ the FCS header and text information and scrapping FCS metadata
 import numpy as np
 import pandas as pd
 """Built in packages"""
-from re import compile
+from os.path import basename
+from re import compile, findall
 from datetime import datetime
 from warnings import warn
 from struct import calcsize, unpack
@@ -47,12 +48,74 @@ class FCS(object):
                 self.data = self.__parse_data()
 
         self.date = self.__py_export_time()
-        self.filename = self.text['fil']
-        self.cytometer = self.text['cyt']
-        self.cytnum = self.text['cytnum']
-        self.num_events = self.text['tot']
-        self.fh.close() # not included in FCM package, without it, it leads to a memory leak
+        self.filename = self.__get_filename(filename)
+        self.cytometer, self.cytnum = self.__get_cytometer_info()
+        self.case_number = self.__get_case_number(filename)
+
+        self.num_events = self.__get_num_events()
+        self.fh.close() #not included in FCM package, without it, it leads to a memory leak
         self.out_db = out_db
+
+    def __get_case_number(self, filename):
+        """
+        Gets the HP database number (i.e. ##-#####) from the filename and experiment name
+        Will ValueError if:
+            Filename does not contain schema
+            Filename schema does not match experiment name schema
+        otherwise it will return a database number from either the filename or experiment name
+        """
+        file_number = findall(r"\d+.-\d{5}",basename(filename))
+        if self.text.has_key('experiment name'):
+            casenum = self.text['experiment name']
+            casenum = findall(r"\d+.-\d{5}",casenum) # clean things up to standard
+        else:
+            casenum = ["Unknown"]
+
+        if not file_number:
+            raise ValueError("Filename does not match contain ##-##### schema")
+        if not casenum:
+            return file_number[0]
+        elif casenum[0] == file_number[0]:
+            return casenum
+        elif casenum == ["Unknown"]:
+            return file_number
+        else:
+            print filename
+            print casenum
+            raise ValueError("Filename and Experiment Name do not match")
+
+    def __get_filename(self, filename):
+        """Provides error handling in case parameter is undefined"""
+        if self.text.has_key('fil'):
+            output = self.text['fil']
+        else:
+            output = basename(filename)
+        return output
+
+    def __get_cytometer_info(self):
+        """Provides error handling in case parameter is undefined"""
+        if self.text.has_key('cyt'):
+            cytometer = self.text['cyt']
+        else:
+            cytometer = "Unknown"
+        if self.text.has_key('cytnum'):
+            cytnum = self.text['cytnum']
+        else:
+            cytnum = "Unknown"
+        return cytometer,cytnum
+
+    def __get_num_events(self):
+        """if 'tot' is undefined, try to get total number of events from
+        __parse_data()
+        """
+        if self.text.has_key('tot'):
+            output = int(self.text['tot'])
+        else:
+            try:
+                output = int(len(self.__parse_data()))
+            except:
+                raise ValueError("FCS file is corrupted beyond repair: tot and data undefined")
+        return output
 
     def __parse_header(self):
         """
@@ -89,7 +152,7 @@ class FCS(object):
         num_events = int(self.text['tot'])
         byteorder = self.text['byteord']
         byteorder_translation = {'4,3,2,1': '>',
-                                 '1,2,3,4': '<'}
+                                 '1,2,3,4': '<'} # dictionary to choose byteorder
         if byteorder in byteorder_translation:
             byteorder = byteorder_translation[byteorder]
 
@@ -109,12 +172,23 @@ class FCS(object):
         return np.array(tmp).reshape((num_events, len(tmp) / num_events))
 
     def __py_export_time(self):
+        if self.text.has_key('export time'):
+            export_time = self.text['export time']
+        elif self.text.has_key('date') and self.text.has_key('etim'):
             export_time = self.text['date']+'-'+self.text['etim']
-            return datetime.strptime(export_time,'%d-%b-%Y-%H:%M:%S')
+        else:
+            export_time = '31-DEC-2014-12:00:00'
+        return datetime.strptime(export_time,'%d-%b-%Y-%H:%M:%S')
 
     def __parameter_header(self):
+        """
+        Generates a dataframe with rows equal to framework and columns
+        equal to the number of parameters
+        """
         par = int(self.text['par'])  # number of parameters
         framework = [['s','Channel Name'],
+                     ['a','Antigen'],
+                     ['p','Fluorophore'],
                      ['i','Channel Number'],
                      ['n','Short name'],
                      ['b','Bits'],
@@ -133,8 +207,8 @@ class FCS(object):
         for i in range(1,par+1):
             columns.append(self.text['p{}n'.format(i)])
         header_df = pd.DataFrame(data=None, index=framework[:,1] ,columns=columns)
-        for i in range(1,par+1):
-            for j in range(depth):
+        for i in range(1,par+1): #iterate over columns
+            for j in range(depth): #iterate over rows
                 x = columns[i-1]
                 y = framework[j,1]
                 if 'p{}{}'.format(i,framework[j,0]) in self.text:
@@ -142,13 +216,23 @@ class FCS(object):
                         header_df[x][y] = int(self.text['p{}{}'.format(i,framework[j,0])])
                     else:
                         temp = self.text['p{}{}'.format(i,framework[j,0])]
-                        header_df[x][y] = temp.replace('CD ','CD')
+                        header_df[x][y] = temp.replace('CD ','CD') #handles space after 'CD '
                 elif framework[j,0] == 'i':
                     header_df[x][y] = i  # allowance to number the channels
         for i in range(1,par+1):
             x = columns[i-1]
             if pd.isnull(header_df[x]['Channel Name']):
                 header_df[x]['Channel Name'] = header_df[x]['Short name']
+            parsed_name = header_df[x]['Channel Name'].split(" ", 1)
+            if len(parsed_name) == 2:
+                header_df[x]['Antigen'] = parsed_name[0]
+                header_df[x]['Fluorophore'] = parsed_name[1]
+            elif len(parsed_name) == 1:
+                header_df[x]['Antigen'] = parsed_name[0]
+                header_df[x]['Fluorophore'] = "Unknown"
+            else:
+                header_df[x]['Antigen'] = "Unknown"
+                header_df[x]['Fluorophore'] = "Unknown"
 
         return header_df
 
@@ -182,10 +266,11 @@ class FCS(object):
 
 
 if __name__ == '__main__':
-    filename = '/home/ngdavid/Desktop/MDS_Plates/Inference_Testing/Normal BM backbone_#1.fcs'
-    temp = FCS(filename, 'db/test.db')
+    filename = "/home/ngdavid/Desktop/MDS_Plates/Hodgkin_Cases_2008_2013/10-06255/10-06255_Hodgkins.fcs"
+    filename = "/home/ngdavid/Desktop/MDS_Plates/12-02814/Plate 3/12-02814_C11_C11.fcs"
+    temp = loadFCS(filename)
     print temp.date
     print temp.num_events
     print temp.cytometer
-    print temp.channels
     print temp.parameters
+    print temp.case_number
