@@ -84,6 +84,11 @@ class Connection(object):
             t = self.meta.tables[table]
             t.drop()
 
+    def drop_all(self):
+        """ Drop table """
+        if self.meta.bind:
+            self.meta.drop_all()
+
 
 class SqliteConnection(Connection):
 
@@ -107,13 +112,13 @@ class SqliteConnection(Connection):
         self.table_names = tables
         self.load_sqlalchemy()
 
-    def run_sql_file(self, sql_file):
+    def run_sql_file(self, sql_file, **kwargs):
         """
         Create the database, dropping existing tables if exists
         """
 
         try:
-            with open(package_data(sql_file)) as f:
+            with open(package_data(sql_file, **kwargs)) as f:
                 self.cur.executescript(f.read())
         except sqlite3.OperationalError, e:
             raise OperationalError(e)
@@ -173,6 +178,27 @@ class SqliteConnection(Connection):
         """
         Return a list of column names for the named table.
         """
-
         self.cur.execute('PRAGMA table_info(%s)' % (table,))
         return [d['name'] for d in self.cur.fetchall()]
+
+    def update_db_table(self, df, table):
+        """    Update db>table with df """
+        cols = ['"' + x + '"' for x in df.columns.values]
+        try:
+            cmd = 'insert or replace into ' + table + ' (%s)' % \
+                  ', '.join(cols) + \
+                  ' values (%s)' % ', '.join(['?'] * len(cols))
+            for i in range(0, df.shape[0]):
+                self.cur.execute(cmd, tuple(df.iloc[i].values))
+        except:
+            self.conn.rollback()
+            raise
+        else:
+            self.conn.commit()
+            log.debug("Successively imported to %s" % table)
+
+    def add_df(self, df, table):
+        """ Add pandas df to database table """
+        colnames = [col for col in self.get_colnames(table) if col in list(df.columns.values)]
+        df_o = df[colnames].drop_duplicates()
+        self.update_db_table(df=df_o, table=table)

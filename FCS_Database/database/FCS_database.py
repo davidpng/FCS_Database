@@ -13,7 +13,15 @@ class FCSdatabase(SqliteConnection):
     SqliteConnection
     """
 
-    def __init__(self, db, interrupt=5):
+    def __init__(self, db, interrupt=5, rebuild=False):
         log.debug('initializing FCSdatabase')
-        self.tables = None
+        self.tables = ['PmtTubeExps', 'TubeExps', 'Exps', 'TubeTypesInstances',
+                       'Antigens', 'Fluorophores']
         super(FCSdatabase, self).__init__(db=db, tables=self.tables)
+
+        if rebuild:
+            self.create()
+
+    def create(self):
+        self.drop_all()
+        self.run_sql_file('setup_hpmeta.sql', dir='database/sqlite')

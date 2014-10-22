@@ -10,8 +10,8 @@ import argparse
 import logging
 
 from FCS_Database.HEADER_Find_FCS_files import Find_Clinical_FCS_Files
-from FCS_Database.HEADER_loadFCS import loadFCS
-from database.FCS_db import FCSdatabase
+from FCS import FCS
+from database.FCS_database import FCSdatabase
 
 import pprint
 log = logging.getLogger(__name__)
@@ -24,6 +24,8 @@ parser.add_argument('-dir', '--dir', help='Directory with Flow FCS files',
                     default="$HOME/Desktop/Ubuntu_Dropbox/Myeloid_Data/Myeloid", type=str)
 parser.add_argument('-db', '--db', help='Sqlite db for Flow meta data',
                     default="db/fcs.db", type=str)
+parser.add_argument('-rebuilddb', '--rebuilddb', help='Drop db and rebuild',
+                    action="store_true")
 parser.add_argument("-v", "--verbose", dest="verbose_count",
                     action="count", default=0,
                     help="increases log verbosity for each occurence.")
@@ -34,11 +36,11 @@ log.setLevel(max(3 - args.verbose_count, 0) * 10)
 Finder = Find_Clinical_FCS_Files(args.dir)
 
 # Connect to database
-db = FCSdatabase(db=args.db)
+db = FCSdatabase(db=args.db, rebuild=args.rebuilddb)
 
 # # Process files/dirs
 FCS_metadata = []
 for f in Finder.filenames:
-        FCS_metadata.append(loadFCS(f))
-        pp.pprint(FCS_metadata[len(FCS_metadata)-1].parameters)
+        fFCS = FCS(f, out_db=db)
+        fFCS.meta_to_db()
         quit()

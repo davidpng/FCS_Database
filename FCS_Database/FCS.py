@@ -16,9 +16,9 @@ from warnings import warn
 from struct import calcsize, unpack
 
 
-class loadFCS(object):
+class FCS(object):
     """
-    This class will import an FCS file to a pandas datatable \n
+    This class encapsulates the information of an FCS file \n
     Internal Variables: \n
     date - <datetime> - Data and time in a python datetime object \n
     filename - <str> - filename \n
@@ -28,7 +28,7 @@ class loadFCS(object):
     channels - <str list> - list of channel names
     parameters - <pandas dataframe> - dataframe containing per channel metainfo
     """
-    def __init__(self, filename, **kwargs):
+    def __init__(self, filename, out_db, **kwargs):
         """
         Takes filename,
         import_dataframe = True to import listmode as a dataframe
@@ -52,6 +52,7 @@ class loadFCS(object):
         self.cytnum = self.text['cytnum']
         self.num_events = self.text['tot']
         self.fh.close() # not included in FCM package, without it, it leads to a memory leak
+        self.out_db = out_db
 
     def __parse_header(self):
         """
@@ -169,9 +170,20 @@ class loadFCS(object):
         tmp = regex.split(tmp)
         return dict(zip([ x.lower() for x in tmp[::2]], tmp[1::2]))
 
+    def meta_to_db(self):
+        """ Export meta data to out_db """
+        self.export_PmtTubeExp()
+
+    def export_PmtTubeExp(self):
+        """ Collect PMT/Tube/Exp specific meta data and send to db """
+        d = self.parameters.T
+        d['Filename'] = self.filename[:-4]
+        self.out_db.add_df(df=d, table='PmtTubeExps')
+
+
 if __name__ == '__main__':
     filename = '/home/ngdavid/Desktop/MDS_Plates/Inference_Testing/Normal BM backbone_#1.fcs'
-    temp = loadFCS(filename)
+    temp = FCS(filename, 'db/test.db')
     print temp.date
     print temp.num_events
     print temp.cytometer

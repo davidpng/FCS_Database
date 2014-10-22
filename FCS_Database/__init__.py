@@ -13,7 +13,6 @@ def package_data(fname, pattern=None, dir=None):
     data (ignoring `fname`). If directory is listed, look specifically in that directory
 
     """
-
     # Pick directory
     if dir:
         _data = path.join(path.dirname(__file__), dir)
