@@ -40,5 +40,5 @@ db = FCSdatabase(db=args.db)
 FCS_metadata = []
 for f in Finder.filenames:
         FCS_metadata.append(loadFCS(f))
-        pp.pprint(FCS_metadata[len(FCS_metadata)-1].text)
+        pp.pprint(FCS_metadata[len(FCS_metadata)-1].parameters)
         quit()
