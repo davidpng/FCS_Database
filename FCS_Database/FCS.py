@@ -23,6 +23,7 @@ class FCS(object):
     Internal Variables: \n
     date - <datetime> - Data and time in a python datetime object \n
     filename - <str> - filename \n
+    case_number - <str> - case number in ##-##### format extracted from the filename or experiment name \n
     cytometer - <str> - cytometer name \n
     cytnum - <str> - cytometer ID number \n
     num_events - <int> - number of events \n
@@ -256,12 +257,12 @@ class FCS(object):
 
     def meta_to_db(self):
         """ Export meta data to out_db """
-        self.export_PmtTubeExp()
+        self.export_PmtTubeExp() 
 
     def export_PmtTubeExp(self):
         """ Collect PMT/Tube/Exp specific meta data and send to db """
         d = self.parameters.T
-        d['Filename'] = self.filename[:-4]
+        d['Filename'] = self.case_number #selecting the first 5 elements might not always work (i.e. self.filename[:-4]
         self.out_db.add_df(df=d, table='PmtTubeExps')
 
 
