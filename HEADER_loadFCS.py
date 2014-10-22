@@ -185,6 +185,8 @@ class loadFCS(object):
         """
         par = int(self.text['par'])  # number of parameters
         framework = [['s','Channel Name'],
+                     ['a','Antigen'],
+                     ['p','Fluorophore'],
                      ['i','Channel Number'],
                      ['n','Short name'],
                      ['b','Bits'],
@@ -203,8 +205,8 @@ class loadFCS(object):
         for i in range(1,par+1):
             columns.append(self.text['p{}n'.format(i)])
         header_df = pd.DataFrame(data=None, index=framework[:,1] ,columns=columns)        
-        for i in range(1,par+1):
-            for j in range(depth):
+        for i in range(1,par+1): #iterate over columns
+            for j in range(depth): #iterate over rows
                 x = columns[i-1]
                 y = framework[j,1]
                 if 'p{}{}'.format(i,framework[j,0]) in self.text:
@@ -212,14 +214,25 @@ class loadFCS(object):
                         header_df[x][y] = int(self.text['p{}{}'.format(i,framework[j,0])])
                     else:
                         temp = self.text['p{}{}'.format(i,framework[j,0])]
-                        header_df[x][y] = temp.replace('CD ','CD')
+                        header_df[x][y] = temp.replace('CD ','CD') #handles space after 'CD '
                 elif framework[j,0] == 'i':
                     header_df[x][y] = i  # allowance to number the channels
         for i in range(1,par+1):
             x = columns[i-1]
             if pd.isnull(header_df[x]['Channel Name']):
                 header_df[x]['Channel Name'] = header_df[x]['Short name']
-        
+            parsed_name = header_df[x]['Channel Name'].split(" ", 1)
+            if len(parsed_name) == 2:
+                header_df[x]['Antigen'] = parsed_name[0]
+                header_df[x]['Fluorophore'] = parsed_name[1]
+            elif len(parsed_name) == 1:
+                header_df[x]['Antigen'] = parsed_name[0]
+                header_df[x]['Fluorophore'] = "Unknown"
+            else:
+                header_df[x]['Antigen'] = "Unknown"
+                header_df[x]['Fluorophore'] = "Unknown"
+                    
+                
         return header_df
         
     def __parse_text(self):
@@ -242,9 +255,10 @@ class loadFCS(object):
 
 if __name__ == '__main__':
     filename = "/home/ngdavid/Desktop/MDS_Plates/Hodgkin_Cases_2008_2013/10-06255/10-06255_Hodgkins.fcs"
+    filename = "/home/ngdavid/Desktop/MDS_Plates/12-02814/Plate 3/12-02814_C11_C11.fcs"
     temp = loadFCS(filename)
     print temp.date
     print temp.num_events
     print temp.cytometer
-    print temp.channels
+    print temp.parameters
     print temp.case_number

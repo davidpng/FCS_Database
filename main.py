@@ -25,6 +25,8 @@ FCS_metadata = []
 for f in Finder.filenames:
     try:
         FCS_metadata.append( loadFCS(f) )
+        h = loadFCS(f)
+        (h.date,
     except ValueError:
         print "Error Occured"
  
