@@ -98,7 +98,7 @@ class SqliteConnection(Connection):
     copied locally.
     """
 
-    def __init__(self, db, tables, interrupt=5):
+    def __init__(self, db, tables, enforce_foreign_keys=False, interrupt=5):
         super(SqliteConnection, self).__init__()
         log.debug('initializing SqliteConnection')
         self.conn = sqlite3.connect(db)
@@ -109,8 +109,15 @@ class SqliteConnection(Connection):
         self.sqlalchemy = 'sqlite:///' + os.path.abspath(db)
         self.engine = create_engine(self.sqlalchemy)
         self.engine.conn = self.engine.connect()
+        if enforce_foreign_keys:
+            self.enforce_foreign_keys()
         self.table_names = tables
         self.load_sqlalchemy()
+
+    def enforce_foreign_keys(self):
+        """ Turn Sqlite enforcement of foreign keys """
+        self.conn.execute("PRAGMA foreign_keys=ON")
+        self.engine.conn.execute("PRAGMA foreign_keys=ON")
 
     def run_sql_file(self, sql_file, **kwargs):
         """
@@ -231,7 +238,7 @@ class SqliteConnection(Connection):
             raise
         else:
             self.conn.commit()
-            log.debug("Successiely imported to %s" % table)
+            log.debug("Successively imported to %s" % table)
 
     def add_df(self, df, table):
         """ Add pandas df to database table """
