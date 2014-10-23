@@ -22,6 +22,8 @@ class FCSdatabase(SqliteConnection):
         if rebuild:
             self.create()
 
-    def create(self):
+    def create(self, files=['setup_hpmeta.sql']):
+        """ Drop and recreate FCS database """
         self.drop_all()
-        self.run_sql_file('setup_hpmeta.sql', dir='database/sqlite')
+        for file in files:
+            self.run_sql_file(file, dir='database/sqlite')

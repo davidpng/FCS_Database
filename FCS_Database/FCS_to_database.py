@@ -1,5 +1,5 @@
 """
-Classes and functions through which database and py HP data interact
+Classes and functions through which database and py FCS data and database interact
 """
 
 import os
@@ -17,26 +17,27 @@ class FCSmeta_to_DB(object):
         if add_lists:
             self.push_antigens()
             self.push_fluorophores()
-
         self.push_TubeCase(dir=dir)
         self.push_parameters()
 
     def push_parameters(self):
-        """ Push parameters from FCS object to DB """
+        """ Export Pmt+Tube+Case parameters from FCS object to DB """
         d = self.FCS.parameters.T
         d['case_tube'] = self.FCS.case_tube
         self.db.add_df(df=d, table='PmtTubeCases')
 
     def push_antigens(self):
+        """ Export antigens to DB """
         antigens = self.FCS.parameters.loc['Antigen', :].unique()
         self.db.add_list(x=list(antigens), table='Antigens')
 
     def push_fluorophores(self):
+        """ Export fluorophores to DB """
         fluorophores = self.FCS.parameters.loc['Fluorophore', :].unique()
         self.db.add_list(x=list(fluorophores), table='Fluorophores')
 
     def push_TubeCase(self, dir):
-        """ Push case from FCS object to DB """
+        """ Push tube+case information FCS object to DB """
         meta_data = {'case_tube': self.FCS.case_tube,
                      'filename': self.FCS.filename,
                      'case_number': self.FCS.case_number,

@@ -21,23 +21,27 @@ from FCS_Database.FCS_to_database import FCSmeta_to_DB
 
 class FCS(object):
     """
-    This class represents FCS data
+    This class represents FCS data (Tube+Case information)
     See loadFCS for attribute details
     """
     def __init__(self, filepath=None, db=None):
+        if filepath is not None and db is not None:
+            raise "Must import data from file or db, not both!"
         if filepath is not None:
             self.load_from_file(filepath)
         elif db is not None:
             self.load_from_db(db)
 
     def load_from_file(self, filepath):
+        """ Import FCS data from file at <filepath> """
         loadFCS(FCS=self, filepath=filepath)
 
     def load_from_db(self, db):
+        """ Import FCS data from db <db> """
         raise "Loading FCS object from db is not implemented"
 
     def meta_to_db(self, db, dir=None, add_lists=False):
-        """ Export meta data to out_db """
+        """ Export meta data from FCS object to db """
         FCSmeta_to_DB(FCS=self, db=db, dir=dir, add_lists=add_lists)
 
 
@@ -63,11 +67,13 @@ class loadFCS(object):
         import_dataframe not included, will just read the header
         """
 
-        # Load data
+        # Load raw data
         self.filepath = filepath
         self.fh = open(filepath, 'rb')
         self.header = self.__parse_header()
         self.text = self.__parse_text()
+
+        # Load processed data
         self.parameters = self.__parameter_header()
         self.channels = self.parameters.loc['Channel Name'].tolist()
         if 'import_dataframe' in kwargs:
@@ -75,17 +81,15 @@ class loadFCS(object):
                 self.data = pd.DataFrame(self.__parse_data(), columns=self.channels)
             else:
                 self.data = self.__parse_data()
-
         self.date = self.__py_export_time()
         self.filename = self.__get_filename(filepath)
         self.case_number = self.__get_case_number(filepath)
         self.case_tube = self.filename[:-4]  # If this is not perfect then need function
         self.cytometer, self.cytnum = self.__get_cytometer_info()
-
         self.num_events = self.__get_num_events()
         self.fh.close()  # not included in FCM package, without it, it leads to a memory leak
 
-        # Export to FCS object
+        # Export processed data to FCS object
         self.__export(FCS=FCS)
 
     def __export(self, FCS):
