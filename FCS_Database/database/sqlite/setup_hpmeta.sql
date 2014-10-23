@@ -4,11 +4,11 @@
 
 --PRAGMA foreign_keys = ON;
 
--- Exp_Tube_Pmt
-CREATE TABLE IF NOT EXISTS PmtTubeExps (
-       Filename NVARCHAR(100) NOT NULL,
-       Antigen NVARCHAR(10), -- NOT NULL,
-       Fluorophore NVARCHAR(10), -- NOT NULL,
+-- Case_Tube_Pmt
+CREATE TABLE IF NOT EXISTS PmtTubeCases (
+       case_tube NVARCHAR(100) NOT NULL,
+       Antigen NVARCHAR(10) NOT NULL,
+       Fluorophore NVARCHAR(10) NOT NULL,
        "Channel Name" NVARCHAR(20),
        "Channel Number" INTEGER,
        "Short name" NVARCHAR(20),
@@ -17,42 +17,41 @@ CREATE TABLE IF NOT EXISTS PmtTubeExps (
        "Amp gain" REAL,
        "Range" INTEGER,
        Voltage INTEGER,
-       PRIMARY KEY (Filename, Antigen, Fluorophore)
-       FOREIGN KEY (Filename) REFERENCES TubeExps(Filename),
+       PRIMARY KEY (case_tube, Antigen, Fluorophore)
+       FOREIGN KEY (case_tube) REFERENCES TubeCases(case_tube),
        FOREIGN KEY (Antigen) REFERENCES Antigens(Antigen),
        FOREIGN KEY (Fluorophore) REFERENCES Fluorophores(Fluorophore)
 );
-CREATE INDEX IF NOT EXISTS ix_PmtTubeExps_antigen
-       ON PmtTubeExps (Antigen);
-CREATE INDEX IF NOT EXISTS ix_PmtTubeExps_antigen_fluor
-       ON PmtTubeExps (Antigen, Fluorophore);
-CREATE INDEX IF NOT EXISTS ix_PmtTubeExps_number
-       ON PmtTubeExps ("Channel Number");
-CREATE INDEX IF NOT EXISTS ix_PmtTubeExps_antigen_number
-       ON PmtTubeExps (Antigen, "Channel Number");
+CREATE INDEX IF NOT EXISTS ix_PmtTubeCases_antigen
+       ON PmtTubeCases (Antigen);
+CREATE INDEX IF NOT EXISTS ix_PmtTubeCases_antigen_fluor
+       ON PmtTubeCases (Antigen, Fluorophore);
+CREATE INDEX IF NOT EXISTS ix_PmtTubeCases_number
+       ON PmtTubeCases ("Channel Number");
+CREATE INDEX IF NOT EXISTS ix_PmtTubeCases_antigen_number
+       ON PmtTubeCases (Antigen, "Channel Number");
 
 -- Tube experiment
-CREATE TABLE IF NOT EXISTS TubeExps (
-       Filename NVARCHAR(100) PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS TubeCases (
+       case_tube NVARCHAR(100) PRIMARY KEY,
+       filename NVARCHAR(100) NOT NULL,
        dirname NVARCHAR(255) NOT NULL,
-       case_id NVARCHAR(10) NOT NULL,
+       case_number NVARCHAR(10) NOT NULL,
        tube_type_instance NVARCHAR(20),
        date DATETIME NOT NULL,
        num_events INTEGER,
        cytometer NVARCHAR(10),
        cytnum INTEGER,
-       FOREIGN KEY (case_id) REFERENCES Exps(case_id),
+       FOREIGN KEY (case_number) REFERENCES Cases(case_number),
        FOREIGN KEY (tube_type_instance) REFERENCES TubeTypesInstances(tube_type_instance)
 );
-CREATE INDEX IF NOT EXISTS ix_TubeExps_case_id
-       ON TubeExps (case_id);
-CREATE INDEX IF NOT EXISTS ix_TubeExps_date
-       ON TubeExps (date);
+CREATE INDEX IF NOT EXISTS ix_TubeCases_case_number
+       ON TubeCases (case_number);
+CREATE INDEX IF NOT EXISTS ix_TubeCases_date
+       ON TubeCases (date);
 
--- Experiments
-CREATE TABLE IF NOT EXISTS Exps (
-       case_id NVARCHAR(10) PRIMARY KEY,
-       MRN NVARCHAR(20)
+CREATE TABLE IF NOT EXISTS Cases (
+       case_number NVARCHAR(10) PRIMARY KEY
 );
 
 -- Tube types

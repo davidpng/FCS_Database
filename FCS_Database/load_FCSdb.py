@@ -35,12 +35,10 @@ log.setLevel(max(3 - args.verbose_count, 0) * 10)
 # Collect files/dirs
 Finder = Find_Clinical_FCS_Files(args.dir)
 
-# Connect to database
+# Connect to database (and rebuild if --rebuilddb)
 db = FCSdatabase(db=args.db, rebuild=args.rebuilddb)
 
-# # Process files/dirs
-FCS_metadata = []
+# Process files/dirs
 for f in Finder.filenames:
-        fFCS = FCS(f, out_db=db)
-        fFCS.meta_to_db()
-        quit()
+        fFCS = FCS(filepath=f)
+        fFCS.meta_to_db(db=db, dir=args.dir, add_lists=True)

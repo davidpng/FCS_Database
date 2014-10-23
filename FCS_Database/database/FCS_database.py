@@ -15,7 +15,7 @@ class FCSdatabase(SqliteConnection):
 
     def __init__(self, db, interrupt=5, rebuild=False):
         log.debug('initializing FCSdatabase')
-        self.tables = ['PmtTubeExps', 'TubeExps', 'Exps', 'TubeTypesInstances',
+        self.tables = ['PmtTubeCases', 'TubeCases', 'Cases', 'TubeTypesInstances',
                        'Antigens', 'Fluorophores']
         super(FCSdatabase, self).__init__(db=db, tables=self.tables)
 

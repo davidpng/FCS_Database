@@ -181,15 +181,14 @@ class SqliteConnection(Connection):
         self.cur.execute('PRAGMA table_info(%s)' % (table,))
         return [d['name'] for d in self.cur.fetchall()]
 
-    def update_db_table(self, df, table):
-        """    Update db>table with df """
-        cols = ['"' + x + '"' for x in df.columns.values]
+    def update_db_coltable(self, x, table):
+        """ Update a single column table with x
+        x = tuple of tuples
+        """
+
         try:
-            cmd = 'insert or replace into ' + table + ' (%s)' % \
-                  ', '.join(cols) + \
-                  ' values (%s)' % ', '.join(['?'] * len(cols))
-            for i in range(0, df.shape[0]):
-                self.cur.execute(cmd, tuple(df.iloc[i].values))
+            cmd = 'insert or replace into ' + table + ' values (?)'
+            self.cur.executemany(cmd, x)
         except:
             self.conn.rollback()
             raise
@@ -197,8 +196,57 @@ class SqliteConnection(Connection):
             self.conn.commit()
             log.debug("Successively imported to %s" % table)
 
+    def update_db_table(self, df, table):
+        """    Update db>table with df """
+        cols = ['"' + x + '"' for x in df.columns.values]
+        try:
+            cmd = 'insert or replace into ' + table + ' (%s)' % \
+                  ', '.join(cols) + \
+                  ' values (%s)' % ', '.join(['?'] * len(cols))
+            self.cur.executemany(cmd, tuple(df.itertuples(index=False)))
+        except:
+            self.conn.rollback()
+            raise
+        else:
+            self.conn.commit()
+            log.debug("Successively imported to %s" % table)
+
+    def add_dict(self, d, table):
+        """ Add dict to database table """
+
+        table_cols = self.get_colnames(table)
+        colnames = [col for col in table_cols if col in d]
+
+        # Fill in missing
+        for k in table_cols:
+            if k not in colnames:
+                d[k] = None
+
+        try:
+            col_string = ', '.join([':' + c for c in table_cols])
+            cmd = 'insert or replace into ' + table + ' values (%s)' % col_string
+            self.cur.execute(cmd, d)
+        except:
+            self.conn.rollback()
+            raise
+        else:
+            self.conn.commit()
+            log.debug("Successiely imported to %s" % table)
+
     def add_df(self, df, table):
         """ Add pandas df to database table """
+
+        # Restrict to common columns
         colnames = [col for col in self.get_colnames(table) if col in list(df.columns.values)]
         df_o = df[colnames].drop_duplicates()
+
+        # Update db
         self.update_db_table(df=df_o, table=table)
+
+    def add_list(self, x, table):
+        """ Add a list to a database column
+        x = <list>
+        """
+
+        # Pass tuple of tuples
+        self.update_db_coltable(x=tuple(zip(x)), table=table)
