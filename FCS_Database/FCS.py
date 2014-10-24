@@ -10,13 +10,11 @@ the FCS header and text information and scrapping FCS metadata
 import numpy as np
 import pandas as pd
 """Built in packages"""
-from os.path import basename
 from re import compile, findall
 from datetime import datetime
 from warnings import warn
 from struct import calcsize, unpack
-"""Local packages"""
-from FCS_Database.FCS_to_database import FCSmeta_to_DB
+from os.path import basename, relpath, dirname
 
 
 class FCS(object):
@@ -42,7 +40,56 @@ class FCS(object):
 
     def meta_to_db(self, db, dir=None, add_lists=False):
         """ Export meta data from FCS object to db """
-        FCSmeta_to_DB(FCS=self, db=db, dir=dir, add_lists=add_lists)
+        FCSmeta_to_database(FCS=self, db=db, dir=dir, add_lists=add_lists)
+
+
+class FCSmeta_to_database(object):
+    """
+    This class includes methods to export FCS meta data to DB
+    """
+    def __init__(self, FCS, db, dir=None, add_lists=False):
+        self.FCS = FCS
+        self.db = db
+
+        # Transfer data
+        if add_lists:
+            self.push_antigens()
+            self.push_fluorophores()
+        self.push_TubeCase(dir=dir)
+        self.push_parameters()
+
+    def push_parameters(self):
+        """ Export Pmt+Tube+Case parameters from FCS object to DB """
+        d = self.FCS.parameters.T
+        d['case_tube'] = self.FCS.case_tube
+        self.db.add_df(df=d, table='PmtTubeCases')
+
+    def push_antigens(self):
+        """ Export antigens to DB """
+        antigens = self.FCS.parameters.loc['Antigen', :].unique()
+        self.db.add_list(x=list(antigens), table='Antigens')
+
+    def push_fluorophores(self):
+        """ Export fluorophores to DB """
+        fluorophores = self.FCS.parameters.loc['Fluorophore', :].unique()
+        self.db.add_list(x=list(fluorophores), table='Fluorophores')
+
+    def push_TubeCase(self, dir):
+        """ Push tube+case information FCS object to DB """
+        meta_data = {'case_tube': self.FCS.case_tube,
+                     'filename': self.FCS.filename,
+                     'case_number': self.FCS.case_number,
+                     'date': self.FCS.date,
+                     'num_events': self.FCS.num_events,
+                     'cytometer': self.FCS.cytometer,
+                     'cytnum': self.FCS.cytnum}
+        meta_data['dirname'] = relpath(dirname(self.FCS.filepath), start=dir)
+
+        # Push case+tube meta information
+        self.db.add_dict(meta_data, table='TubeCases')
+
+        # Push case
+        self.db.add_list(x=[self.FCS.case_number], table='Cases')
 
 
 class loadFCS(object):
@@ -84,7 +131,7 @@ class loadFCS(object):
         self.date = self.__py_export_time()
         self.filename = self.__get_filename(filepath)
         self.case_number = self.__get_case_number(filepath)
-        self.case_tube = self.filename[:-4]  # If this is not perfect then need function
+        self.case_tube = self.filename.strip('.fcs')
         self.cytometer, self.cytnum = self.__get_cytometer_info()
         self.num_events = self.__get_num_events()
         self.fh.close()  # not included in FCM package, without it, it leads to a memory leak
@@ -115,7 +162,7 @@ class loadFCS(object):
             Filepath schema does not match experiment name schema
         otherwise it will return a database number from either the filepath or experiment name
         """
-        file_number = findall(r"\d+.-\d{5}",basename(filepath))
+        file_number = findall(r"\d+.-\d{5}", basename(filepath))
         if self.text.has_key('experiment name'):
             casenum = self.text['experiment name']
             casenum = findall(r"\d+.-\d{5}",casenum) # clean things up to standard
@@ -131,8 +178,6 @@ class loadFCS(object):
         elif casenum == ["Unknown"]:
             return file_number[0]
         else:
-            print filepath
-            print casenum
             raise ValueError("Filepath and Experiment Name do not match")
 
     def __get_filename(self, filepath):
@@ -304,6 +349,46 @@ class loadFCS(object):
         regex = compile('(?<=[^%s])%s(?!%s)' % (delim, delim, delim))
         tmp = regex.split(tmp)
         return dict(zip([ x.lower() for x in tmp[::2]], tmp[1::2]))
+
+
+class empty_FCS(object):
+    """
+    Case to represent and export FCS object meta data for
+    files that FCS(f) cannot handle
+    """
+    def __init__(self, filepath, dirpath):
+        self.filepath = filepath
+        self.filename = basename(filepath)
+        self.case_tube = self.filename.strip('.fcs')
+        self.dirname = relpath(dirname(filepath), start=dirpath)
+        self.case_number = self.filepath_to_case_number()
+
+    def filepath_to_case_number(self):
+        """
+        Gets the HP database number (i.e. ##-#####) from the filepath
+        Will ValueError if:
+            Filepath does not contain schema
+            Filepath schema does not match experiment name schema
+        otherwise it will return a database number from either the filepath or experiment name
+        """
+        file_number = findall(r"\d+.-\d{5}", basename(self.filepath))[0]
+        if not file_number:
+            raise ValueError("Filepath does not match contain ##-##### schema")
+        else:
+            return file_number
+
+    def meta_to_db(self, db):
+        """ Export meta data to db """
+        meta_data = {'filename': self.filename,
+                     'case_tube': self.case_tube,
+                     'dirname': self.dirname,
+                     'case_number': self.case_number}
+
+        # Push case+tube meta information
+        db.add_dict(meta_data, table='TubeCases')
+
+        # Push case
+        db.add_list(x=[self.case_number], table='Cases')
 
 
 if __name__ == '__main__':

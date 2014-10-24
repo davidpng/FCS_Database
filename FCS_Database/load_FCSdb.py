@@ -10,7 +10,7 @@ import argparse
 import logging
 
 from FCS_Database.HEADER_Find_FCS_files import Find_Clinical_FCS_Files
-from FCS import FCS
+from FCS import FCS, empty_FCS
 from database.FCS_database import FCSdatabase
 
 import pprint
@@ -40,5 +40,10 @@ db = FCSdatabase(db=args.db, rebuild=args.rebuilddb)
 
 # Process files/dirs
 for f in Finder.filenames:
-        fFCS = FCS(filepath=f)
-        fFCS.meta_to_db(db=db, dir=args.dir, add_lists=True)
+        try:
+                fFCS = FCS(filepath=f)
+        except:
+                empty_FCS(filepath=f, dirpath=args.dir).meta_to_db(db=db)
+        else:
+                fFCS.meta_to_db(db=db, dir=args.dir, add_lists=True)
+

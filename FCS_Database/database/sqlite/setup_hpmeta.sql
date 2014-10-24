@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS TubeCases (
        dirname NVARCHAR(255) NOT NULL,
        case_number NVARCHAR(10) NOT NULL,
        tube_type_instance NVARCHAR(20),
-       date DATETIME NOT NULL,
+       date DATETIME,
        num_events INTEGER,
        cytometer NVARCHAR(10),
        cytnum INTEGER,

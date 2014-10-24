@@ -192,7 +192,6 @@ class SqliteConnection(Connection):
         """ Update a single column table with x
         x = tuple of tuples
         """
-
         try:
             cmd = 'insert or replace into ' + table + ' values (?)'
             self.cur.executemany(cmd, x)
@@ -254,6 +253,5 @@ class SqliteConnection(Connection):
         """ Add a list to a database column
         x = <list>
         """
-
         # Pass tuple of tuples
         self.update_db_coltable(x=tuple(zip(x)), table=table)
