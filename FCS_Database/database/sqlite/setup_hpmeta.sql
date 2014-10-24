@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS PmtTubeCases (
        "Amp gain" REAL,
        "Range" INTEGER,
        Voltage INTEGER,
+       version CHAR(7) NOT NULL,
        PRIMARY KEY (case_tube, Antigen, Fluorophore)
        FOREIGN KEY (case_tube) REFERENCES TubeCases(case_tube),
        FOREIGN KEY (Antigen) REFERENCES Antigens(Antigen),
@@ -42,6 +43,7 @@ CREATE TABLE IF NOT EXISTS TubeCases (
        num_events INTEGER,
        cytometer NVARCHAR(10),
        cytnum INTEGER,
+       version CHAR(7) NOT NULL,
        FOREIGN KEY (case_number) REFERENCES Cases(case_number),
        FOREIGN KEY (tube_type_instance) REFERENCES TubeTypesInstances(tube_type_instance)
 );

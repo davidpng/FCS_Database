@@ -12,6 +12,7 @@ import logging
 from FCS_Database.HEADER_Find_FCS_files import Find_Clinical_FCS_Files
 from FCS import FCS, empty_FCS
 from database.FCS_database import FCSdatabase
+from FCS_Database.utils import GetVersion
 
 import pprint
 log = logging.getLogger(__name__)
@@ -38,12 +39,16 @@ Finder = Find_Clinical_FCS_Files(args.dir)
 # Connect to database (and rebuild if --rebuilddb)
 db = FCSdatabase(db=args.db, rebuild=args.rebuilddb)
 
+# Collect version
+version = GetVersion().version
+
 # Process files/dirs
 for f in Finder.filenames:
         try:
-                fFCS = FCS(filepath=f)
+                fFCS = FCS(filepath=f, version=version)
         except:
-                empty_FCS(filepath=f, dirpath=args.dir).meta_to_db(db=db)
+                log.debug("Loading empty FCS for %s" % f)
+                empty_FCS(filepath=f, dirpath=args.dir, version=version).meta_to_db(db=db)
         else:
                 fFCS.meta_to_db(db=db, dir=args.dir, add_lists=True)
 

@@ -22,21 +22,21 @@ class FCS(object):
     This class represents FCS data (Tube+Case information)
     See loadFCS for attribute details
     """
-    def __init__(self, filepath=None, db=None):
+    def __init__(self, version, filepath=None, db=None):
         if filepath is not None and db is not None:
             raise "Must import data from file or db, not both!"
         if filepath is not None:
-            self.load_from_file(filepath)
+            self.load_from_file(filepath, version)
         elif db is not None:
             self.load_from_db(db)
 
-    def load_from_file(self, filepath):
+    def load_from_file(self, filepath, version):
         """ Import FCS data from file at <filepath> """
-        loadFCS(FCS=self, filepath=filepath)
+        loadFCS(FCS=self, filepath=filepath, version=version)
 
-    def load_from_db(self, db):
+    def load_from_db(db):
         """ Import FCS data from db <db> """
-        raise "Loading FCS object from db is not implemented"
+        raise "Not implemented"
 
     def meta_to_db(self, db, dir=None, add_lists=False):
         """ Export meta data from FCS object to db """
@@ -61,6 +61,7 @@ class FCSmeta_to_database(object):
     def push_parameters(self):
         """ Export Pmt+Tube+Case parameters from FCS object to DB """
         d = self.FCS.parameters.T
+        d['version'] = self.FCS.version
         d['case_tube'] = self.FCS.case_tube
         self.db.add_df(df=d, table='PmtTubeCases')
 
@@ -82,7 +83,8 @@ class FCSmeta_to_database(object):
                      'date': self.FCS.date,
                      'num_events': self.FCS.num_events,
                      'cytometer': self.FCS.cytometer,
-                     'cytnum': self.FCS.cytnum}
+                     'cytnum': self.FCS.cytnum,
+                     'version': self.FCS.version}
         meta_data['dirname'] = relpath(dirname(self.FCS.filepath), start=dir)
 
         # Push case+tube meta information
@@ -106,7 +108,7 @@ class loadFCS(object):
     channels - <str list> - list of channel names
     parameters - <pandas dataframe> - dataframe containing per channel metainfo
     """
-    def __init__(self, FCS, filepath, **kwargs):
+    def __init__(self, FCS, filepath, version, **kwargs):
         """
         Takes filename,
         import_dataframe = True to import listmode as a dataframe
@@ -119,6 +121,7 @@ class loadFCS(object):
         self.fh = open(filepath, 'rb')
         self.header = self.__parse_header()
         self.text = self.__parse_text()
+        self.version = version
 
         # Load processed data
         self.parameters = self.__parameter_header()
@@ -153,6 +156,7 @@ class loadFCS(object):
         FCS.num_events = self.num_events
         if hasattr(self, 'data'):
             FCS.data = self.data
+        FCS.version = self.version
 
     def __get_case_number(self, filepath):
         """
@@ -356,12 +360,13 @@ class empty_FCS(object):
     Case to represent and export FCS object meta data for
     files that FCS(f) cannot handle
     """
-    def __init__(self, filepath, dirpath):
+    def __init__(self, filepath, dirpath, version):
         self.filepath = filepath
         self.filename = basename(filepath)
         self.case_tube = self.filename.strip('.fcs')
         self.dirname = relpath(dirname(filepath), start=dirpath)
         self.case_number = self.filepath_to_case_number()
+        self.version = version
 
     def filepath_to_case_number(self):
         """
@@ -382,7 +387,8 @@ class empty_FCS(object):
         meta_data = {'filename': self.filename,
                      'case_tube': self.case_tube,
                      'dirname': self.dirname,
-                     'case_number': self.case_number}
+                     'case_number': self.case_number,
+                     'version': self.version}
 
         # Push case+tube meta information
         db.add_dict(meta_data, table='TubeCases')
