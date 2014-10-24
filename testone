@@ -1,0 +1,27 @@
+#!/bin/bash
+
+if [ "$1" = "" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    echo "Run unit tests in modules contained in directory tests/"
+    echo ""
+    echo "usage:"
+    echo "./testone [-v] [module[.class[.method]]]"
+    echo ""
+    echo "examples: "
+    echo "./testone test_database"
+    echo "./testone test_database.TestSqliteConnection"
+    echo "./testone test_database.TestSqliteConnection.testInstances"
+    exit 1
+fi
+
+verbosity=""
+target=""
+if [[ $1 == -v* ]]; then
+    verbosity="$1"
+    target="$2"
+else
+    target="$1"
+fi
+
+
+python -m unittest $verbosity tests.$target
+
