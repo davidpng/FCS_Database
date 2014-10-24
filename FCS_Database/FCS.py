@@ -34,7 +34,7 @@ class FCS(object):
         """ Import FCS data from file at <filepath> """
         loadFCS(FCS=self, filepath=filepath, version=version)
 
-    def load_from_db(db):
+    def load_from_db(self, db):
         """ Import FCS data from db <db> """
         raise "Not implemented"
 
