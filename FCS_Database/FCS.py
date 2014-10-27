@@ -10,84 +10,186 @@ the FCS header and text information and scrapping FCS metadata
 import numpy as np
 import pandas as pd
 """Built in packages"""
-from os.path import basename
 from re import compile, findall
 from datetime import datetime
 from warnings import warn
 from struct import calcsize, unpack
+from os.path import basename, relpath, dirname
+
+
+class FCS(object):
+    """
+    This class represents FCS data (Tube+Case information)
+    See loadFCS for attribute details
+    """
+    def __init__(self, version, filepath=None, db=None):
+        if filepath is not None and db is not None:
+            raise "Must import data from file or db, not both!"
+        if filepath is not None:
+            self.load_from_file(filepath, version)
+        elif db is not None:
+            self.load_from_db(db)
+
+    def load_from_file(self, filepath, version):
+        """ Import FCS data from file at <filepath> """
+        loadFCS(FCS=self, filepath=filepath, version=version)
+
+    def load_from_db(self, db):
+        """ Import FCS data from db <db> """
+        raise "Not implemented"
+
+    def meta_to_db(self, db, dir=None, add_lists=False):
+        """ Export meta data from FCS object to db """
+        FCSmeta_to_database(FCS=self, db=db, dir=dir, add_lists=add_lists)
+
+
+class FCSmeta_to_database(object):
+    """
+    This class includes methods to export FCS meta data to DB
+    """
+    def __init__(self, FCS, db, dir=None, add_lists=False):
+        self.FCS = FCS
+        self.db = db
+
+        # Transfer data
+        if add_lists:
+            self.push_antigens()
+            self.push_fluorophores()
+        self.push_TubeCase(dir=dir)
+        self.push_parameters()
+
+    def push_parameters(self):
+        """ Export Pmt+Tube+Case parameters from FCS object to DB """
+        d = self.FCS.parameters.T
+        d['version'] = self.FCS.version
+        d['case_tube'] = self.FCS.case_tube
+        self.db.add_df(df=d, table='PmtTubeCases')
+
+    def push_antigens(self):
+        """ Export antigens to DB """
+        antigens = self.FCS.parameters.loc['Antigen', :].unique()
+        self.db.add_list(x=list(antigens), table='Antigens')
+
+    def push_fluorophores(self):
+        """ Export fluorophores to DB """
+        fluorophores = self.FCS.parameters.loc['Fluorophore', :].unique()
+        self.db.add_list(x=list(fluorophores), table='Fluorophores')
+
+    def push_TubeCase(self, dir):
+        """ Push tube+case information FCS object to DB """
+        meta_data = {'case_tube': self.FCS.case_tube,
+                     'filename': self.FCS.filename,
+                     'case_number': self.FCS.case_number,
+                     'date': self.FCS.date,
+                     'num_events': self.FCS.num_events,
+                     'cytometer': self.FCS.cytometer,
+                     'cytnum': self.FCS.cytnum,
+                     'version': self.FCS.version}
+        meta_data['dirname'] = relpath(dirname(self.FCS.filepath), start=dir)
+
+        # Push case+tube meta information
+        self.db.add_dict(meta_data, table='TubeCases')
+
+        # Push case
+        self.db.add_list(x=[self.FCS.case_number], table='Cases')
+
 
 class loadFCS(object):
     """
-    This class will import an FCS file to a pandas datatable \n
+    This class loads the information of an FCS file \n
     Internal Variables: \n
     date - <datetime> - Data and time in a python datetime object \n
     filename - <str> - filename \n
+    case_number - <str> - case number in ##-##### format extracted from the filepath or \n
+                          experiment name \n
     cytometer - <str> - cytometer name \n
     cytnum - <str> - cytometer ID number \n
     num_events - <int> - number of events \n
     channels - <str list> - list of channel names
     parameters - <pandas dataframe> - dataframe containing per channel metainfo
     """
-    def __init__(self, filename, **kwargs):
+    def __init__(self, FCS, filepath, version, **kwargs):
         """
-        Takes filename, 
+        Takes filename,
         import_dataframe = True to import listmode as a dataframe
         import_dataframe = False to import listmode as a numpy array
         import_dataframe not included, will just read the header
         """
-        self.fh = open(filename,'rb')
+
+        # Load raw data
+        self.filepath = filepath
+        self.fh = open(filepath, 'rb')
         self.header = self.__parse_header()
         self.text = self.__parse_text()
+        self.version = version
+
+        # Load processed data
         self.parameters = self.__parameter_header()
         self.channels = self.parameters.loc['Channel Name'].tolist()
         if 'import_dataframe' in kwargs:
-            if kwargs['import_dataframe']:            
-                self.data = pd.DataFrame(self.__parse_data(), columns = self.channels)
+            if kwargs['import_dataframe']:
+                self.data = pd.DataFrame(self.__parse_data(), columns=self.channels)
             else:
                 self.data = self.__parse_data()
-                
         self.date = self.__py_export_time()
-        self.filename = self.__get_filename(filename)
+        self.filename = self.__get_filename(filepath)
+        self.case_number = self.__get_case_number(filepath)
+        self.case_tube = self.filename.strip('.fcs')
         self.cytometer, self.cytnum = self.__get_cytometer_info()
-        self.case_number = self.__get_case_number(filename)
-        
         self.num_events = self.__get_num_events()
-        self.fh.close() #not included in FCM package, without it, it leads to a memory leak
+        self.fh.close()  # not included in FCM package, without it, it leads to a memory leak
 
-    def __get_case_number(self, filename):
+        # Export processed data to FCS object
+        self.__export(FCS=FCS)
+
+    def __export(self, FCS):
+        """ Export loaded parameters to FCS object """
+
+        FCS.parameters = self.parameters
+        FCS.date = self.date
+        FCS.filepath = self.filepath
+        FCS.filename = self.filename
+        FCS.cytometer = self.cytometer
+        FCS.case_number = self.case_number
+        FCS.case_tube = self.case_tube
+        FCS.cytnum = self.cytnum
+        FCS.num_events = self.num_events
+        if hasattr(self, 'data'):
+            FCS.data = self.data
+        FCS.version = self.version
+
+    def __get_case_number(self, filepath):
         """
-        Gets the HP database number (i.e. ##-#####) from the filename and experiment name
+        Gets the HP database number (i.e. ##-#####) from the filepath and experiment name
         Will ValueError if:
-            Filename does not contain schema
-            Filename schema does not match experiment name schema
-        otherwise it will return a database number from either the filename or experiment name
+            Filepath does not contain schema
+            Filepath schema does not match experiment name schema
+        otherwise it will return a database number from either the filepath or experiment name
         """
-        file_number = findall(r"\d+.-\d{5}",basename(filename))
+        file_number = findall(r"\d+.-\d{5}", basename(filepath))
         if self.text.has_key('experiment name'):
             casenum = self.text['experiment name']
             casenum = findall(r"\d+.-\d{5}",casenum) # clean things up to standard
         else:
             casenum = ["Unknown"]
-        
+
         if not file_number:
-            raise ValueError("Filename does not match contain ##-##### schema")
+            raise ValueError("Filepath does not match contain ##-##### schema")
         if not casenum:
             return file_number[0]
         elif casenum[0] == file_number[0]:
-            return casenum
+            return casenum[0]
         elif casenum == ["Unknown"]:
-            return file_number
+            return file_number[0]
         else:
-            print filename
-            print casenum
-            raise ValueError("Filename and Experiment Name do not match")
-            
-    def __get_filename(self, filename):
+            raise ValueError("Filepath and Experiment Name do not match")
+
+    def __get_filename(self, filepath):
         """Provides error handling in case parameter is undefined"""
         if self.text.has_key('fil'):
             output = self.text['fil']
         else:
-            output = basename(filename)
+            output = basename(filepath)
         return output
 
     def __get_cytometer_info(self):
@@ -101,7 +203,7 @@ class loadFCS(object):
         else:
             cytnum = "Unknown"
         return cytometer,cytnum
-    
+
     def __get_num_events(self):
         """if 'tot' is undefined, try to get total number of events from
         __parse_data()
@@ -114,10 +216,10 @@ class loadFCS(object):
             except:
                 raise ValueError("FCS file is corrupted beyond repair: tot and data undefined")
         return output
-        
+
     def __parse_header(self):
         """
-        Parse the FCM data in fcs file at the offset (supporting multiple 
+        Parse the FCM data in fcs file at the offset (supporting multiple
         data segments in a file
         """
         header = {}
@@ -135,12 +237,12 @@ class loadFCS(object):
         except ValueError:
             header['analysis_end'] = -1
         return header
-         
+
     def __get_block(self, start, stop):
         """Read in bytes from start to stop inclusive."""
         self.fh.seek(start)
         return self.fh.read(stop - start + 1)
-        
+
     def __parse_data(self):
         """parses the data structure, only listmode float support"""
         start = self.header['data_start']
@@ -157,9 +259,9 @@ class loadFCS(object):
         if mode != 'l' or datatype != 'f':
             raise ValueError('unsupported mode or datatype')
         else:
-            return self.__float_parsing(start,end,datatype,byteorder,num_events)
-            
-    def __float_parsing(self,start,end,datatype,byteorder,num_events):
+            return self.__float_parsing(start, end, datatype, byteorder, num_events)
+
+    def __float_parsing(self, start, end, datatype, byteorder, num_events):
         """
         Parses floating point data given the byte coordinates
         """
@@ -168,7 +270,7 @@ class loadFCS(object):
         if len(tmp) % num_events != 0:
             raise IndexError('the byte stream mismatch with number of events')
         return np.array(tmp).reshape((num_events, len(tmp) / num_events))
-        
+
     def __py_export_time(self):
         if self.text.has_key('export time'):
             export_time = self.text['export time']
@@ -177,7 +279,7 @@ class loadFCS(object):
         else:
             export_time = '31-DEC-2014-12:00:00'
         return datetime.strptime(export_time,'%d-%b-%Y-%H:%M:%S')
-        
+
     def __parameter_header(self):
         """
         Generates a dataframe with rows equal to framework and columns
@@ -204,7 +306,7 @@ class loadFCS(object):
         columns = []
         for i in range(1,par+1):
             columns.append(self.text['p{}n'.format(i)])
-        header_df = pd.DataFrame(data=None, index=framework[:,1] ,columns=columns)        
+        header_df = pd.DataFrame(data=None, index=framework[:,1] ,columns=columns)
         for i in range(1,par+1): #iterate over columns
             for j in range(depth): #iterate over rows
                 x = columns[i-1]
@@ -231,10 +333,9 @@ class loadFCS(object):
             else:
                 header_df[x]['Antigen'] = "Unknown"
                 header_df[x]['Fluorophore'] = "Unknown"
-                    
-                
+
         return header_df
-        
+
     def __parse_text(self):
         """return parsed text segment of fcs file"""
         start = self.header['text_start']
@@ -252,6 +353,49 @@ class loadFCS(object):
         regex = compile('(?<=[^%s])%s(?!%s)' % (delim, delim, delim))
         tmp = regex.split(tmp)
         return dict(zip([ x.lower() for x in tmp[::2]], tmp[1::2]))
+
+
+class empty_FCS(object):
+    """
+    Case to represent and export FCS object meta data for
+    files that FCS(f) cannot handle
+    """
+    def __init__(self, filepath, dirpath, version):
+        self.filepath = filepath
+        self.filename = basename(filepath)
+        self.case_tube = self.filename.strip('.fcs')
+        self.dirname = relpath(dirname(filepath), start=dirpath)
+        self.case_number = self.filepath_to_case_number()
+        self.version = version
+
+    def filepath_to_case_number(self):
+        """
+        Gets the HP database number (i.e. ##-#####) from the filepath
+        Will ValueError if:
+            Filepath does not contain schema
+            Filepath schema does not match experiment name schema
+        otherwise it will return a database number from either the filepath or experiment name
+        """
+        file_number = findall(r"\d+.-\d{5}", basename(self.filepath))[0]
+        if not file_number:
+            raise ValueError("Filepath does not match contain ##-##### schema")
+        else:
+            return file_number
+
+    def meta_to_db(self, db):
+        """ Export meta data to db """
+        meta_data = {'filename': self.filename,
+                     'case_tube': self.case_tube,
+                     'dirname': self.dirname,
+                     'case_number': self.case_number,
+                     'version': self.version}
+
+        # Push case+tube meta information
+        db.add_dict(meta_data, table='TubeCases')
+
+        # Push case
+        db.add_list(x=[self.case_number], table='Cases')
+
 
 if __name__ == '__main__':
     filename = "/home/ngdavid/Desktop/MDS_Plates/Hodgkin_Cases_2008_2013/10-06255/10-06255_Hodgkins.fcs"
