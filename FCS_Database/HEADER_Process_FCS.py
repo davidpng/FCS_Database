@@ -305,8 +305,8 @@ if __name__ == "__main__":
             'viable': [ (0.358,0.174), (0.609,0.241), (0.822,0.132), (0.989,0.298),
                         (1.0,1.0),(0.5,1.0),(0.358,0.174)]}
     filename='/home/ngdavid/Desktop/Ubuntu_Dropbox/Myeloid_Data/Myeloid/12-00004/12-00004_Myeloid 2.fcs'
-    comp_file={'H0152':'/home/ngdavid/Desktop/Ubuntu_Dropbox/Comp_Libs/Spectral_Overlap_Lib_LSRA.txt',
-               '2':'/home/ngdavid/Desktop/Ubuntu_Dropbox/Comp_Libs/Spectral_Overlap_Lib_LSRB.txt'}
+    comp_file={'H0152':'/home/ngdavid/Desktop/PYTHON/FCS_File_Database/FCS_Database/data/Spectral_Overlap_Lib_LSRA.txt',
+               '2':'/home/ngdavid/Desktop/PYTHON/FCS_File_Database/FCS_Database/data/Spectral_Overlap_Lib_LSRB.txt'}
     #comp_file='/home/ngdavid/Desktop/Ubuntu_Dropbox/Comp_Libs/M1_Comp_Lib_LSRA.txt'
     FCS = loadFCS(filename,import_dataframe = True)
     test = Process_FCS_Data(FCS,comp_file,gate_coords=coords,limits=True)
