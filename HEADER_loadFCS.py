@@ -157,14 +157,14 @@ class loadFCS(object):
         if mode != 'l' or datatype != 'f':
             raise ValueError('unsupported mode or datatype')
         else:
-            return self._float_parsing(start,end,datatype,byteorder,num_events)
+            return self.__float_parsing(start,end,datatype,byteorder,num_events)
             
     def __float_parsing(self,start,end,datatype,byteorder,num_events):
         """
         Parses floating point data given the byte coordinates
         """
         num_items = (end - start + 1) / calcsize(datatype)
-        tmp = unpack('%s%d%s' % (byteorder, num_items, datatype), self._get_block(start, end))
+        tmp = unpack('%s%d%s' % (byteorder, num_items, datatype), self.__get_block(start, end))
         if len(tmp) % num_events != 0:
             raise IndexError('the byte stream mismatch with number of events')
         return np.array(tmp).reshape((num_events, len(tmp) / num_events))
@@ -259,6 +259,6 @@ if __name__ == '__main__':
     temp = loadFCS(filename)
     print temp.date
     print temp.num_events
-    print temp.cytometer
+    print temp.cytnum
     print temp.parameters
     print temp.case_number

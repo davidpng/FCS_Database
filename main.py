@@ -19,14 +19,14 @@ Dir = inputs.directory
 
 Dir = "/home/ngdavid/Desktop/MDS_Plates/Hodgkin_Cases_2008_2013"
 
-#Finder = Find_Clinical_FCS_Files(Dir)
+Finder = Find_Clinical_FCS_Files(Dir)
 
 FCS_metadata = []
 for f in Finder.filenames:
     try:
         FCS_metadata.append( loadFCS(f) )
         h = loadFCS(f)
-        (h.date,
+        
     except ValueError:
         print "Error Occured"
  
