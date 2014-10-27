@@ -24,7 +24,7 @@ class Connection(object):
         log.debug('initializing Connection')
 
     def close(self):
-        self.conn.close()
+        self.engine.close()
 
     def common_colnames(self, table_a, table_b):
         """
@@ -35,14 +35,6 @@ class Connection(object):
         cols_b = self.get_colnames(table_b)
 
         return [x for x in cols_a if x in cols_b]
-
-    def load_sqlalchemy(self):
-        """
-        Load sql data into sqlalchemy framework
-        """
-        self.meta = MetaData()
-        self.meta.reflect(bind=self.engine)
-        self.insp = inspect(self.engine)
 
     def sql2pd(self, table, verbose=False):
         """ Retrieve sqlite table as pandas dataframe """
@@ -101,37 +93,32 @@ class SqliteConnection(Connection):
     def __init__(self, db, tables, enforce_foreign_keys=False, interrupt=5):
         super(SqliteConnection, self).__init__()
         log.debug('initializing SqliteConnection')
-        self.conn = sqlite3.connect(db)
-        self.conn.row_factory = sqlite3.Row
-        self.cur = self.conn.cursor()
-        self.interrupt = interrupt
-        self.filename = db
-        self.sqlalchemy = 'sqlite:///' + os.path.abspath(db)
-        self.engine = create_engine(self.sqlalchemy)
-        self.engine.conn = self.engine.connect()
-        if enforce_foreign_keys:
-            self.enforce_foreign_keys()
         self.table_names = tables
-        self.load_sqlalchemy()
+        self.db_file = db
+
+        self.sqlalchemy = 'sqlite:///' + os.path.abspath(db)
+        self.enforce_foreign_keys = enforce_foreign_keys
+        self.engine = create_engine(self.sqlalchemy)
+        self.connect_via_sqlalchemy()
+        self.meta = MetaData()
+        self.meta.reflect(bind=self.engine)
+        self.insp = inspect(self.engine)
+
+    def reset_sqlchemy(self):
+        self.engine.conn.close()
+        self.setup_sqlalchemy()
+
+    def connect_via_sqlalchemy(self):
+        self.engine.conn = self.engine.connect()
+        if self.enforce_foreign_keys:
+            self.enforce_foreign_keys()
 
     def enforce_foreign_keys(self):
         """ Turn Sqlite enforcement of foreign keys """
-        self.conn.execute("PRAGMA foreign_keys=ON")
         self.engine.conn.execute("PRAGMA foreign_keys=ON")
 
-    def run_sql_file(self, sql_file, **kwargs):
-        """
-        Create the database, dropping existing tables if exists
-        """
-
-        try:
-            with open(package_data(sql_file, **kwargs)) as f:
-                self.cur.executescript(f.read())
-        except sqlite3.OperationalError, e:
-            raise OperationalError(e)
-
     def import_febrl_csv(self, table, file):
-        """ Import csv """
+        """ Import csv using external csvsql tool """
 
         # Import into sqlite db
         cmd = 'csvsql --db %s --insert --snifflimit 100000 \
@@ -145,7 +132,7 @@ class SqliteConnection(Connection):
             raise
 
     def import_amalga_csv(self, table, prefix='db/raw/dsh_CVDq_'):
-        """ Import csv from amalga """
+        """ Import csv from amalga using external csvsql tool"""
         file = prefix + table + '.csv'
         cmd = 'csvsql -d, -u3 -v --db %s --insert --snifflimit 100000 \
         --table %s %s' % (self.sqlalchemy,
@@ -157,6 +144,26 @@ class SqliteConnection(Connection):
         except:
             raise
 
+    def run_sql_file(self, sql_file, **kwargs):
+        """
+        Create the database, dropping existing tables if exists
+        Using pysqlite because sqlalchemy does not support this
+        """
+
+        self.engine.conn.close()  # close sqlalchemy connetion
+
+        # Use pysqlite to run .sql script
+        dbcon = sqlite3.connect(self.db_file)
+        dbcur = dbcon.cursor()
+        try:
+            with open(package_data(sql_file, **kwargs)) as f:
+                dbcur.executescript(f.read())
+        except sqlite3.OperationalError, e:
+            raise OperationalError(e)
+        dbcon.close()
+
+        self.connect_via_sqlalchemy()  # reset sqlchemy connection
+
     def import_amalga_tables(self, constraint_sql='setup_sqlite.sql'):
         """
         Load amalga data into sqldb
@@ -166,56 +173,44 @@ class SqliteConnection(Connection):
 
         self.run_sql_file(constraint_sql)
 
-    def import_LIS_tables(self, constraint_sql):
-        pass
-
-    def get_attrs(self, name='table'):
-        """
-        Return a list of database attribute names. `name` can be one
-        of 'table', 'index', ...
-        """
-
-        assert name in {'table', 'index'}
-
-        cmd = "SELECT name FROM sqlite_master WHERE type = ?"
-        self.cur.execute(cmd, (name,))
-        return [x[0] for x in self.cur.fetchall()]
-
     def get_colnames(self, table):
         """
         Return a list of column names for the named table.
         """
-        self.cur.execute('PRAGMA table_info(%s)' % (table,))
-        return [d['name'] for d in self.cur.fetchall()]
+        columns = self.insp.get_columns(table)
+        colnames = [col['name'] for col in columns]
+        return colnames
 
     def update_db_coltable(self, x, table):
         """ Update a single column table with x
         x = tuple of tuples
         """
+        trans = self.engine.conn.begin()
         try:
             cmd = 'insert or replace into ' + table + ' values (?)'
-            self.cur.executemany(cmd, x)
-        except:
-            self.conn.rollback()
-            raise
-        else:
-            self.conn.commit()
+            self.engine.conn.execute(cmd, x)
+            trans.commit()
             log.debug("Successively imported to %s" % table)
+        except:
+            trans.rollback()
+            raise
 
     def update_db_table(self, df, table):
         """    Update db>table with df """
         cols = ['"' + x + '"' for x in df.columns.values]
+        dat = tuple(df.itertuples(index=False))
+
+        trans = self.engine.conn.begin()
         try:
             cmd = 'insert or replace into ' + table + ' (%s)' % \
                   ', '.join(cols) + \
                   ' values (%s)' % ', '.join(['?'] * len(cols))
-            self.cur.executemany(cmd, tuple(df.itertuples(index=False)))
-        except:
-            self.conn.rollback()
-            raise
-        else:
-            self.conn.commit()
+            self.engine.conn.execute(cmd, dat)
+            trans.commit()
             log.debug("Successively imported to %s" % table)
+        except:
+            trans.rollback()
+            raise
 
     def add_dict(self, d, table):
         """ Add dict to database table """
@@ -228,16 +223,16 @@ class SqliteConnection(Connection):
             if k not in colnames:
                 d[k] = None
 
+        trans = self.engine.conn.begin()
         try:
             col_string = ', '.join([':' + c for c in table_cols])
             cmd = 'insert or replace into ' + table + ' values (%s)' % col_string
-            self.cur.execute(cmd, d)
-        except:
-            self.conn.rollback()
-            raise
-        else:
-            self.conn.commit()
+            self.engine.conn.execute(cmd, d)
+            trans.commit()
             log.debug("Successively imported to %s" % table)
+        except:
+            trans.rollback()
+            raise
 
     def add_df(self, df, table):
         """ Add pandas df to database table """
