@@ -133,8 +133,9 @@ class Process_FCS_Data(object):
             else:  #try to fix by replacing with defaults (be careful!, these spillovers might not work well)
                 Defaults = ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'FL01', 'FL02', 'FL03',\
                         'FL04', 'FL05', 'FL06', 'FL07', 'FL08', 'FL09', 'FL10', 'Time']
-                i = columns.index(Undescribed.pop())
-                columns[i] = Defaults[i]
+                for ukn in Undescribed:
+                    i = columns.index(ukn)
+                    columns[i] = Defaults[i]
         else:
             pass    # Undescribed is an empty set and we can use columns directly
 
@@ -309,20 +310,40 @@ if __name__ == "__main__":
                          (0.456,0.379),(0.05,0.0),(0.0,0.0)],
             'viable': [ (0.358,0.174), (0.609,0.241), (0.822,0.132), (0.989,0.298),
                         (1.0,1.0),(0.5,1.0),(0.358,0.174)]}
-    filename='/home/ngdavid/Desktop/Ubuntu_Dropbox/Myeloid_Data/Myeloid/12-00004/12-00004_Myeloid 2.fcs'
     
     comp_file={'H0152':root+'/FCS_Database/data/Spectral_Overlap_Lib_LSRA.txt',
                '2':root+'/FCS_Database/data/Spectral_Overlap_Lib_LSRB.txt'}
 
-    FCS = FCS(version = '1.2',filepath=filename,import_dataframe=True)
+    filename = root + "/FCS_Database/data/12-00031_Myeloid 1.fcs"
+
+    FCS_obj = FCS(version = '1.2',filepath=filename,import_dataframe=True)
     
-    FCS.comp_scale_FCS_data(compensation_file=comp_file)
+    FCS_obj.comp_scale_FCS_data(compensation_file=comp_file,
+                            gate_coords=coords,
+                            strict=False)
     
     figure()
-    ax=['CD34 APC','CD45 APC-H7']
-    plot(FCS.data[ax[0]],FCS.data[ax[1]],'r,')
-    title(FCS.case_tube)
+    ax=['SSC-H','CD45 APC-H7']
+    plot(FCS_obj.data[ax[0]],FCS_obj.data[ax[1]],'b,')
+    title(FCS_obj.case_tube)
     xlim(0,1)
     ylim(0,1)
     xlabel(ax[0])
     ylabel(ax[1])
+    
+    filename = root + "/FCS_Database/data/12-00005_Bone Marrow WBC.fcs"
+    FCS_obj = FCS(version = '1.2',filepath=filename,import_dataframe=True)
+    
+    FCS_obj.comp_scale_FCS_data(compensation_file=comp_file,
+                            gate_coords=coords,
+                            strict=False)
+   
+    figure()
+    ax=['SSC-H','CD45 V450']
+    plot(FCS_obj.data[ax[0]],FCS_obj.data[ax[1]],'b,')
+    title(FCS_obj.case_tube)
+    xlim(0,1)
+    ylim(0,1)
+    xlabel(ax[0])
+    ylabel(ax[1])
+    
