@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Oct 24 15:03:23 2014
-Provides Compensation
+Provides Compensation and scaling functionality
 @author: ngdavid
 """
 
@@ -17,7 +17,6 @@ import re
 import pandas as pd
 import numpy as np
 from scipy.interpolate import interp1d
-from HEADER_loadFCS import loadFCS
 from matplotlib.path import Path
 
 class Process_FCS_Data(object):
@@ -51,11 +50,7 @@ class Process_FCS_Data(object):
         self.FCS = FCS_object
         self.columns = self.__Clean_up_columns(self.FCS.channels)         # save columns because data is redfined after comp
         self.total_events = self.FCS.data.shape[0]      #initial number of events before gating
-        self.export_time = self.FCS.text['export time']       # export time stored as a string
-        self.cytometer_name = self.FCS.text['cyt']            #
-        self.cytometer_num = self.FCS.text['cytnum']
         pattern = re.compile("new", re.IGNORECASE)
-        self.tube_name = pattern.sub("", self.FCS.text['tube name']).strip()
         self.comp_matrix = self._load_comp_matrix(compensation_file)    # load compensation matrix
         self.data = np.dot(self.FCS.data, self.comp_matrix)             # apply compensation (returns a numpy array)
         self.data = pd.DataFrame(data=self.data[:,:], \
@@ -300,15 +295,19 @@ class Process_FCS_Data(object):
 
 
 if __name__ == "__main__":
+    import os
+    import FCS
+   
+    cwd = os.getcwd()
     coords={'singlet': [ (0.01,0.06), (0.60,0.75), (0.93,0.977), (0.988,0.86),
                          (0.456,0.379),(0.05,0.0),(0.0,0.0)],
             'viable': [ (0.358,0.174), (0.609,0.241), (0.822,0.132), (0.989,0.298),
                         (1.0,1.0),(0.5,1.0),(0.358,0.174)]}
     filename='/home/ngdavid/Desktop/Ubuntu_Dropbox/Myeloid_Data/Myeloid/12-00004/12-00004_Myeloid 2.fcs'
-    comp_file={'H0152':'/home/ngdavid/Desktop/PYTHON/FCS_File_Database/FCS_Database/data/Spectral_Overlap_Lib_LSRA.txt',
+    comp_file={'H0152':cwd+'/data/Spectral_Overlap_Lib_LSRA.txt',
                '2':'/home/ngdavid/Desktop/PYTHON/FCS_File_Database/FCS_Database/data/Spectral_Overlap_Lib_LSRB.txt'}
     #comp_file='/home/ngdavid/Desktop/Ubuntu_Dropbox/Comp_Libs/M1_Comp_Lib_LSRA.txt'
-    FCS = loadFCS(filename,import_dataframe = True)
+    FCS = FCS(filename,version = '123',)
     test = Process_FCS_Data(FCS,comp_file,gate_coords=coords,limits=True)
     figure()
     ax=['SSC-H','CD45 APC-H7']
