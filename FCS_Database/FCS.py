@@ -50,9 +50,19 @@ class FCS(object):
         """ Export meta data from FCS object to db """
         FCSmeta_to_database(FCS=self, db=db, dir=dir, add_lists=add_lists)
 
-    def comp_scale_FCS_data(self,compensation_file, saturation_upper_range=1000,
-                 rescale_lim=(-0.15, 1), limits=False, strict=True, **kwargs):
-        Process_FCS_Data(self.data,compensation_file)
+    def comp_scale_FCS_data(self,compensation_file,
+                            saturation_upper_range=1000,
+                            rescale_lim=(-0.15, 1), 
+                            limits=False, 
+                            strict=True, 
+                            **kwargs):
+        """calls Process_FCS_Data on self (i.e. an FCS object)"""
+        Process_FCS_Data(FCS = self, compensation_file = compensation_file, 
+                         saturation_upper_range = saturation_upper_range,
+                         rescale_lim = rescale_lim,
+                         limits = limits,
+                         strict = strict,
+                         **kwargs)
 
 
 

@@ -48,7 +48,7 @@ class Process_FCS_Data(object):
         """
         self.strict = strict
         self.FCS = FCS
-        self.columns = self.__Clean_up_columns(self.FCS.channels)         # save columns because data is redfined after comp
+        self.columns = self.__Clean_up_columns(self.FCS.parameters.loc['Channel Name'])         # save columns because data is redfined after comp
         self.total_events = self.FCS.data.shape[0]      #initial number of events before gating
         pattern = re.compile("new", re.IGNORECASE)
         self.comp_matrix = self._load_comp_matrix(compensation_file)    # load compensation matrix
@@ -56,15 +56,17 @@ class Process_FCS_Data(object):
         self.data = pd.DataFrame(data=self.data[:,:], \
                                  columns=self.columns, \
                                  dtype=np.float32) # create a dataframe with columns
-        #sat_mask = self._SaturationGate(self.data,saturation_upper_range) # not needed for logicle
-        #self.data = self.data[sat_mask]
+        
         self.data = self._LogicleRescale(self.data, T=2**18, M=4, W=0.5, A=0)
+        self.FCS.data = self.data # update FCS.data
+        
         if limits==True:
             limit_mask = self.__limit_gate(self.data,high=rescale_lim[1], low=rescale_lim[0])
             self.data = self.data[limit_mask]
             self.__Rescale(self.data, high=rescale_lim[0], low=rescale_lim[1]) #self.data is modified
-
-        if kwargs.has_key('gate_coords'):
+            self.FCS.data = self.data # update FCS.data
+            
+        if kwargs.has_key('gate_coords'):   # if gate coord dictionary provided, do initial cleanup
             coords = kwargs['gate_coords']
             self.coords = coords
             if coords.has_key('viable'):
@@ -75,8 +77,8 @@ class Process_FCS_Data(object):
                 self.data = self.data[singlet_mask]
         else:
             self.coords = None
-
-        self.gated_events = self.data.shape[0]
+        self.FCS.data = self.data # update FCS.dat
+        
 
     def __Clean_up_columns(self, columns):
         """
@@ -115,8 +117,8 @@ class Process_FCS_Data(object):
         if isinstance(compensation_file,str):
             spectral_overlap_file = compensation_file
         elif isinstance(compensation_file,dict):
-            if self.cytometer_num in compensation_file.keys():
-                spectral_overlap_file = compensation_file[self.cytometer_num]
+            if self.FCS.cytnum in compensation_file.keys():
+                spectral_overlap_file = compensation_file[self.FCS.cytnum]
             else:
                 raise ValueError('Cytometer '+ self.cytometer_num + \
                                  'is not seen in the compensation dictionary')
@@ -297,25 +299,29 @@ class Process_FCS_Data(object):
 if __name__ == "__main__":
     import os
     import sys
-    from .FCS import FCS
-    
-    cwd = os.getcwd()
-    sys.path.append(cwd)
+   
+    cwd = os.path.dirname(__file__)
+    parent =  os.path.realpath('..')
+    root = os.path.realpath('../..')
+    sys.path.insert(0,parent)
+    from FCS import FCS
     coords={'singlet': [ (0.01,0.06), (0.60,0.75), (0.93,0.977), (0.988,0.86),
                          (0.456,0.379),(0.05,0.0),(0.0,0.0)],
             'viable': [ (0.358,0.174), (0.609,0.241), (0.822,0.132), (0.989,0.298),
                         (1.0,1.0),(0.5,1.0),(0.358,0.174)]}
     filename='/home/ngdavid/Desktop/Ubuntu_Dropbox/Myeloid_Data/Myeloid/12-00004/12-00004_Myeloid 2.fcs'
-    comp_file={'H0152':cwd+'/data/Spectral_Overlap_Lib_LSRA.txt',
-               '2':'/home/ngdavid/Desktop/PYTHON/FCS_File_Database/FCS_Database/data/Spectral_Overlap_Lib_LSRB.txt'}
-    #comp_file='/home/ngdavid/Desktop/Ubuntu_Dropbox/Comp_Libs/M1_Comp_Lib_LSRA.txt'
-    FCS = FCS(filename,version = '123',import_dataframe=True)
     
-    test = Process_FCS_Data(FCS,comp_file,gate_coords=coords,limits=True)
+    comp_file={'H0152':root+'/FCS_Database/data/Spectral_Overlap_Lib_LSRA.txt',
+               '2':root+'/FCS_Database/data/Spectral_Overlap_Lib_LSRB.txt'}
+
+    FCS = FCS(version = '1.2',filepath=filename,import_dataframe=True)
+    
+    FCS.comp_scale_FCS_data(compensation_file=comp_file)
+    
     figure()
-    ax=['SSC-H','CD45 APC-H7']
-    plot(test.data[ax[0]],test.data[ax[1]],'r,')
-    title(test.tube_name)
+    ax=['CD34 APC','CD45 APC-H7']
+    plot(FCS.data[ax[0]],FCS.data[ax[1]],'r,')
+    title(FCS.case_tube)
     xlim(0,1)
     ylim(0,1)
     xlabel(ax[0])
