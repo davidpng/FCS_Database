@@ -38,7 +38,10 @@ class loadFCS(object):
     """
     def __init__(self, FCS, filepath, version, **kwargs):
         """
-        Takes filename,
+        Takes an FCS object
+        Takes filepath/name
+        Takes verion
+        
         import_dataframe = True to import listmode as a dataframe
         import_dataframe = False to import listmode as a numpy array
         import_dataframe not included, will just read the header

@@ -33,7 +33,7 @@ class Process_FCS_Data(object):
 
     """
 
-    def __init__(self, FCS_object, compensation_file, saturation_upper_range=1000,
+    def __init__(self, FCS, compensation_file, saturation_upper_range=1000,
                  rescale_lim=(-0.15, 1), limits=False, strict=True, **kwargs):
         """
         Takes an FCS_object, and a spillover library. \n
@@ -47,7 +47,7 @@ class Process_FCS_Data(object):
 
         """
         self.strict = strict
-        self.FCS = FCS_object
+        self.FCS = FCS
         self.columns = self.__Clean_up_columns(self.FCS.channels)         # save columns because data is redfined after comp
         self.total_events = self.FCS.data.shape[0]      #initial number of events before gating
         pattern = re.compile("new", re.IGNORECASE)
@@ -296,9 +296,11 @@ class Process_FCS_Data(object):
 
 if __name__ == "__main__":
     import os
-    import FCS
-   
+    import sys
+    from .FCS import FCS
+    
     cwd = os.getcwd()
+    sys.path.append(cwd)
     coords={'singlet': [ (0.01,0.06), (0.60,0.75), (0.93,0.977), (0.988,0.86),
                          (0.456,0.379),(0.05,0.0),(0.0,0.0)],
             'viable': [ (0.358,0.174), (0.609,0.241), (0.822,0.132), (0.989,0.298),
@@ -307,7 +309,8 @@ if __name__ == "__main__":
     comp_file={'H0152':cwd+'/data/Spectral_Overlap_Lib_LSRA.txt',
                '2':'/home/ngdavid/Desktop/PYTHON/FCS_File_Database/FCS_Database/data/Spectral_Overlap_Lib_LSRB.txt'}
     #comp_file='/home/ngdavid/Desktop/Ubuntu_Dropbox/Comp_Libs/M1_Comp_Lib_LSRA.txt'
-    FCS = FCS(filename,version = '123',)
+    FCS = FCS(filename,version = '123',import_dataframe=True)
+    
     test = Process_FCS_Data(FCS,comp_file,gate_coords=coords,limits=True)
     figure()
     ax=['SSC-H','CD45 APC-H7']

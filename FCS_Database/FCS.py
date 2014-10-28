@@ -26,17 +26,21 @@ class FCS(object):
     This class represents FCS data (Tube+Case information)
     See loadFCS for attribute details
     """
-    def __init__(self, version, filepath=None, db=None):
+    def __init__(self, version, filepath=None, db=None, **kwargs):
         if filepath is not None and db is not None:
             raise "Must import data from file or db, not both!"
         if filepath is not None:
-            self.load_from_file(filepath, version)
+            self.load_from_file(filepath, version, **kwargs)
         elif db is not None:
             self.load_from_db(db)
 
-    def load_from_file(self, filepath, version,**kwargs):
-        """ Import FCS data from file at <filepath> """
-        loadFCS(FCS=self, filepath=filepath, version=version,**kwargs)
+    def load_from_file(self, filepath, version, **kwargs):
+        """ 
+        Import FCS data from file at <filepath>
+        nota bene: import_dataframe needs to be explicitly defined for
+        data to be loaded into FCS object        
+        """
+        loadFCS(FCS=self, filepath=filepath, version=version, **kwargs)
 
     def load_from_db(self, db):
         """ Import FCS data from db <db> """
@@ -46,9 +50,9 @@ class FCS(object):
         """ Export meta data from FCS object to db """
         FCSmeta_to_database(FCS=self, db=db, dir=dir, add_lists=add_lists)
 
-    def Process_FCS(self,compensation_file, saturation_upper_range=1000,
+    def comp_scale_FCS_data(self,compensation_file, saturation_upper_range=1000,
                  rescale_lim=(-0.15, 1), limits=False, strict=True, **kwargs):
-        Process_FCS_Data(self.FCS.data,compensation_file)
+        Process_FCS_Data(self.data,compensation_file)
 
 
 
