@@ -120,7 +120,7 @@ class Process_FCS_Data(object):
             if self.FCS.cytnum in compensation_file.keys():
                 spectral_overlap_file = compensation_file[self.FCS.cytnum]
             else:
-                raise ValueError('Cytometer '+ self.cytometer_num + \
+                raise ValueError('Cytometer '+ self.cytnum + \
                                  'is not seen in the compensation dictionary')
         else:
             raise TypeError('Provided compensation_file is not of type str or dict')

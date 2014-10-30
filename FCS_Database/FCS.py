@@ -71,3 +71,4 @@ if __name__ == '__main__':
     filename = "/home/ngdavid/Desktop/MDS_Plates/12-02814/Plate 3/12-02814_C11_C11.fcs"
     temp = FCS(version = '1')
     temp.load_from_file(filename, version=1, import_dataframe=True)
+    temp.comp_scale_FCS_data(comp_file)
