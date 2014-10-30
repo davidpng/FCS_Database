@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon Oct 20 13:56:55 2014
-
+Main Function 
 @author: ngdavid
 """
-from HEADER_Find_FCS_Files import Find_Clinical_FCS_Files
-from HEADER_loadFCS import loadFCS
+from Find_Clinical_FCS_Files import Find_Clinical_FCS_Files
+from FCS import FCS
 
 import argparse
 
@@ -24,8 +24,8 @@ Finder = Find_Clinical_FCS_Files(Dir)
 FCS_metadata = []
 for f in Finder.filenames:
     try:
-        FCS_metadata.append( loadFCS(f) )
-        h = loadFCS(f)
+        FCS_obj = FCS(version=1,filepath=f)
+        FCS_obj.comp_scale_FCS_data(comp_file)
         
     except ValueError:
         print "Error Occured"
