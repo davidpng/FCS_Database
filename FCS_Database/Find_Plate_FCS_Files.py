@@ -4,6 +4,15 @@ Created on Wed Sep 17 08:58:06 2014
 Finds all fcs files in a given directory and returns the pathnames
 @author: ngdavid
 """
+
+__author__ = "David Ng, MD"
+__copyright__ = "Copyright 2014, David Ng"
+__license__ = "GPL v3"
+__version__ = "0.5"
+__maintainer__ = "David Ng"
+__email__ = "ngdavid@uw.edu"
+__status__ = "Production"
+
 import os
 import re
 from fnmatch import filter
@@ -25,7 +34,7 @@ class Find_Plate_FCS_Files(object):
 
     def __get_base_folder_name(self, root):
         """
-        Performs regex extraction to a XX-XXXXX pattern
+        Performs regex extraction to a *.fcs format
         """
         folder_name = os.path.basename(root)
         folder_name = re.findall(r"\d+.-\d{5}", folder_name)

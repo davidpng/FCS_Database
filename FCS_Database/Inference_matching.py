@@ -1,9 +1,19 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Oct  7 13:46:51 2014
-
+This class takes list of tubefile names, load, comps and cleans the files and 
+performs weighted k-nearest neighbor matching using the first given file
 @author: ngdavid
 """
+
+__author__ = "David Ng, MD"
+__copyright__ = "Copyright 2014, David Ng"
+__license__ = "GPL v3"
+__version__ = "0.5"
+__maintainer__ = "David Ng"
+__email__ = "ngdavid@uw.edu"
+__status__ = "Prototyping"
+
 from FCS import FCS
 from scipy.spatial import cKDTree
 import numpy as np
@@ -13,12 +23,16 @@ import matplotlib.pyplot as plt
 
 class inference_matching(object):
     """
-    takes a series of tubes (from class import fcs file)
+    takes a series of tubes filenames
     and finds common parameters to match cells
     """
-    def __init__(self,filelist,comp_file,gate_coords,useless_commons = ['Time','FSC-A','SSC-A','A700-H']):
+    def __init__(self,filelist,comp_file,gate_coords, verbose=False,
+                 useless_commons = ['Time','FSC-A','SSC-A','A700-H'],**kwargs):
         """
-        Take tube filenames as arguements
+        Take a lsit of tube filenames as arguements
+        Needs compensation matrix and gating coordinates
+        TODO: Passing parameters for k - number of nearest neighbors and 
+        w - weight scaling for distances
         """
         self._comp_file = comp_file
         self._gate_coords = gate_coords
@@ -26,8 +40,8 @@ class inference_matching(object):
         self.tube_list = filelist
         
         self.common_antigens = self.__get_common_antigens()  
-        
-        self.data,self.data_header = self.__push_new_tubes()
+                
+        self.data,self.data_header = self.__push_new_tubes(verbose = verbose)
         
     def __get_common_antigens(self):
 
@@ -64,7 +78,7 @@ class inference_matching(object):
         antigen_values = np.array(antigen_values).T
         return pd.DataFrame(data = antigen_values, columns = target_antigens, index = base.data.index)
         
-    def __push_new_tubes(self):
+    def __push_new_tubes(self,verbose):
         """
         appends new synthetic columns to the data object
         comp_file and coords will need to be defined as global varaibles
@@ -88,6 +102,8 @@ class inference_matching(object):
                                      strict=False)
             output_to_append = self.__find_NN_parameters(base,tube)
             columns_to_append = output_to_append.columns.tolist()
+            if verbose:
+                print columns_to_append
             mask = tube.parameters.loc['Channel Name', :].isin(columns_to_append)
             header_to_append = tube.parameters.loc[:, mask]            
             
@@ -134,11 +150,9 @@ class inference_matching(object):
         """
         # find the mean and sd per matched column
         matched_antigens = self.__get_target_antigens(self)
-        print matched_antigens
         if histogram:
             function_hist = lambda x: np.histogram(x,bins=100,range=(0,1),density=True)[0]
             matched_df = np.apply_along_axis(function_hist, 0, self.data[matched_antigens])
-            print matched_df
             matched_df = pd.DataFrame(matched_df,columns=matched_antigens)
         else:
             matched_df = self.data[matched_antigens].describe()
@@ -169,8 +183,8 @@ class inference_matching(object):
         for c in syn_hist.columns:
             plt.figure()
             plt.title(c)
-            plt.plot(np.arange(0,1,0.01),a[c],label="Matched/Synthetic Data")
-            plt.plot(np.arange(0,1,0.01),b[c],label="Real/Input Data")
+            plt.plot(np.arange(0,1,0.01),syn_hist[c],label="Matched/Synthetic Data")
+            plt.plot(np.arange(0,1,0.01),syn_hist[c],label="Real/Input Data")
             plt.legend()
         
         
@@ -190,7 +204,7 @@ if __name__ == "__main__":
                "/home/ngdavid/Desktop/MDS_Plates/12-02814/Plate 1/12-02814_A7_A07.fcs"]
     
     
-    temp = inference_matching(filelist=filenames,comp_file=comp_file,gate_coords=coords)
+    temp = inference_matching(filelist=filenames,comp_file=comp_file,gate_coords=coords,verbose=True)
     print temp.data.columns
     #plot(temp.data['CD1a A647'],temp.data['CD1b A647'],'b,')
 
