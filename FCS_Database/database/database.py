@@ -6,6 +6,7 @@ import sqlite3
 import pandas as pd
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.schema import MetaData, Index
+from sqlalchemy.orm import sessionmaker
 
 from FCS_Database import package_data
 from FCS_Database.exceptions import OperationalError
@@ -99,19 +100,16 @@ class SqliteConnection(Connection):
         self.sqlalchemy = 'sqlite:///' + os.path.abspath(db)
         self.enforce_foreign_keys = enforce_foreign_keys
         self.engine = create_engine(self.sqlalchemy)
-        self.connect_via_sqlalchemy()
+        self.Session = sessionmaker(bind=self.engine)
         self.meta = MetaData()
-        self.meta.reflect(bind=self.engine)
-        self.insp = inspect(self.engine)
-
-    def reset_sqlchemy(self):
-        self.engine.conn.close()
-        self.setup_sqlalchemy()
+        self.connect_via_sqlalchemy()
 
     def connect_via_sqlalchemy(self):
         self.engine.conn = self.engine.connect()
         if self.enforce_foreign_keys:
             self.enforce_foreign_keys()
+        self.meta.reflect(bind=self.engine)
+        self.insp = inspect(self.engine)
 
     def enforce_foreign_keys(self):
         """ Turn Sqlite enforcement of foreign keys """

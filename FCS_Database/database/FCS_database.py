@@ -1,7 +1,11 @@
 """ Class for FCS database """
 
 import logging
+import pandas as pd
+
 from database import SqliteConnection
+from query_database import queryDB
+from utils import package_data
 
 log = logging.getLogger(__name__)
 
@@ -27,3 +31,46 @@ class FCSdatabase(SqliteConnection):
         self.drop_all()
         for file in files:
             self.run_sql_file(file, dir='database/sqlite')
+        self.engine.conn.execute("ANALYZE")
+
+    def query(self, **kwargs):
+        """ Query database """
+        queryDB(self, **kwargs)
+
+    def exportTubeTypes(self, **kwargs):
+        """ Export TubeTypesInstances to csv (for review) """
+        a = self.sql2pd(table='TubeTypesInstances')
+        out_file = 'FCS_Database/data/tube_types.tmp'
+        if kwargs['file'] is not None:
+            out_file = kwargs['file']
+
+        try:
+            a.to_csv(out_file, index=False)
+            log.info('Exported TubeTypesInstances to data/tube_types.tmp')
+        except:
+            raise 'Failed to export'
+
+    def importTubeTypes(self, **kwargs):
+        """
+        Import TubeTypesInstances from csv and overwrite existing TubeTypeInstances
+        and TubeTypes tables
+        """
+        # Load csv file
+        in_file = package_data(fname='tube_types.csv', dir='data')
+        if kwargs['file'] is not None:
+            in_file = package_data(fname=kwargs['file'])
+        a = pd.read_csv(in_file)
+
+        # Replace tubeTypes
+        s = self.Session()
+        self.meta.tables['TubeTypes'].delete()
+        print "WARNING: deletion of TubeTypes not working currently"
+        s.close()
+        tube_types = list(a.tube_type.unique())
+        self.add_list(tube_types, 'TubeTypes')
+
+        # Replace TubeTypesInstances
+        s = self.Session()
+        self.meta.tables['TubeTypesInstances'].delete()
+        s.close()
+        self.add_df(df=a, table='TubeTypesInstances')

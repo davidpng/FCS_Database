@@ -87,6 +87,28 @@ class FCSmeta_to_database(object):
                      'version': self.FCS.version}
         meta_data['dirname'] = relpath(dirname(self.FCS.filepath), start=dir)
 
+        # Pull/push tube_type_instance
+        ## Capture antigen list
+        antigens = self.FCS.parameters.loc['Antigen', :].unique()
+        antigens.sort()
+        antigens_string = ';'.join(antigens)
+
+        s = self.db.Session()
+        TubeTypesInstances = self.db.meta.tables['TubeTypesInstances']
+
+        try:
+            meta_data['tube_type_instance'] = s.query(TubeTypesInstances.c.tube_type_instance).\
+                                              filter(TubeTypesInstances.c.Antigens == unicode(antigens_string)).one()[0]
+        except:
+            # Generate TubeTypesInstance and TubeType
+            tube_type = {'tube_type': self.FCS.case_tube.split('_')[1],
+                         'Antigens': antigens_string}
+            self.db.add_list(x=[tube_type['tube_type']], table='TubeTypes')
+            self.db.add_dict(tube_type, table='TubeTypesInstances')
+            meta_data['tube_type_instance'] = s.query(TubeTypesInstances.c.tube_type_instance).\
+                                 filter(TubeTypesInstances.c.Antigens == unicode(antigens_string)).one()[0]
+        s.close()
+
         # Push case+tube meta information
         self.db.add_dict(meta_data, table='TubeCases')
 
