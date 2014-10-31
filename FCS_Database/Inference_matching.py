@@ -26,7 +26,7 @@ class inference_matching(object):
     takes a series of tubes filenames
     and finds common parameters to match cells
     """
-    def __init__(self,filelist,comp_file,gate_coords, verbose=False,
+    def __init__(self,FCS, filelist,comp_file,gate_coords, verbose=False,
                  useless_commons = ['Time','FSC-A','SSC-A','A700-H'],**kwargs):
         """
         Take a lsit of tube filenames as arguements
@@ -34,6 +34,7 @@ class inference_matching(object):
         TODO: Passing parameters for k - number of nearest neighbors and 
         w - weight scaling for distances
         """
+        
         self._comp_file = comp_file
         self._gate_coords = gate_coords
         self._useless_commons = useless_commons
@@ -41,7 +42,8 @@ class inference_matching(object):
         
         self.common_antigens = self.__get_common_antigens()  
                 
-        self.data,self.data_header = self.__push_new_tubes(verbose = verbose)
+        self.data,self.parameters = self.__push_new_tubes(verbose = verbose)
+        FCS = self
         
     def __get_common_antigens(self):
 
@@ -176,17 +178,29 @@ class inference_matching(object):
         input_df = pd.concat(input_df,axis=1)
         return matched_df, input_df
     
-    def PlotInferenceQuality(self,SavetoPDF=False):
+    def PlotInferenceQuality(self,format='pdf',**kwargs):
+        """
+        If SaveDir provided; will save plots to pdf in that directory
+        """
         syn_hist,real_hist = self.InferenceQuality(histogram=True,density=True)
         if not set(syn_hist.columns) == set(real_hist.columns):
             raise ValueError("Synthetic and Real data columns do not match")
+            
         for c in syn_hist.columns:
-            plt.figure()
-            plt.title(c)
-            plt.plot(np.arange(0,1,0.01),syn_hist[c],label="Matched/Synthetic Data")
-            plt.plot(np.arange(0,1,0.01),syn_hist[c],label="Real/Input Data")
-            plt.legend()
-        
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.set_title(c,fontsize=25)
+            ax.plot(np.arange(0,1,0.01),syn_hist[c],label="Matched/Synthetic Data")
+            ax.plot(np.arange(0,1,0.01),real_hist[c],label="Real/Input Data")
+            ax.legend(loc='upper left')
+            ax.set_xlabel("Intensity (biexponential)",fontsize=25)
+            ax.set_ylabel("Normalized Count",fontsize=25)
+            if "SaveDir" in kwargs:
+                Save_Directory=kwargs['SaveDir']
+                fig.savefig(Save_Directory+c+"."+format,dpi=600,format=format,transparent=True,bbox_inches='tight')
+                plt.clf()                
+            else:
+                fig.show()
         
 if __name__ == "__main__":
     comp_file = "/home/ngdavid/Desktop/PYTHON/New_Erythroid_Maturation/Erythroid_Maturation/Data/MDSPlateCompLib.txt"
@@ -196,7 +210,7 @@ if __name__ == "__main__":
         'viable': [ (0.358,0.174), (0.609,0.241), (0.822,0.132), (0.989,0.298),
                     (1.0,1.0),(0.5,1.0),(0.358,0.174)]}
     filenames=["/home/ngdavid/Desktop/MDS_Plates/12-02814/Plate 1/12-02814_A1_A01.fcs",
-               "/home/ngdavid/Desktop/MDS_Plates/12-02814/Plate 1/12-02814_A2_A02.fcs",
+               "/home/ngdavid/Desktop/MDS_Plates/12-02814/Plate 1/12-02814_A9_A09.fcs",
                "/home/ngdavid/Desktop/MDS_Plates/12-02814/Plate 1/12-02814_A3_A03.fcs",
                "/home/ngdavid/Desktop/MDS_Plates/12-02814/Plate 1/12-02814_A4_A04.fcs",
                "/home/ngdavid/Desktop/MDS_Plates/12-02814/Plate 1/12-02814_A5_A05.fcs",
@@ -206,6 +220,5 @@ if __name__ == "__main__":
     
     temp = inference_matching(filelist=filenames,comp_file=comp_file,gate_coords=coords,verbose=True)
     print temp.data.columns
-    #plot(temp.data['CD1a A647'],temp.data['CD1b A647'],'b,')
 
-    temp.PlotInferenceQuality()
+    temp.PlotInferenceQuality(SaveDir="/home/ngdavid/Desktop/HistogramOutput/")
