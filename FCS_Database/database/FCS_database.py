@@ -33,9 +33,18 @@ class FCSdatabase(SqliteConnection):
             self.run_sql_file(file, dir='database/sqlite')
         self.engine.conn.execute("ANALYZE")
 
-    def query(self, **kwargs):
-        """ Query database """
-        queryDB(self, **kwargs)
+    def query(self, out_file=None, exporttype='dict_dict', **kwargs):
+        """
+        Query database based passed arguments
+        If outfile is defined query and write out pandas dataframe
+        Else query db and return result
+        """
+        if out_file:
+            q = queryDB(self, exporttype='df', **kwargs)
+            q.results.to_csv(out_file, index=False, index_label=None, encoding='utf-8')
+            return 0
+        else:
+            return queryDB(self, exporttype=exporttype, **kwargs)
 
     def exportTubeTypes(self, **kwargs):
         """ Export TubeTypesInstances to csv (for review) """
