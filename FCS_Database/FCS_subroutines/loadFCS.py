@@ -287,29 +287,11 @@ class loadFCS(object):
 
 
 if __name__ == "__main__":
-    filename = "/home/ngdavid/Desktop/Ubuntu_Dropbox/Myeloid_Data/Myeloid/10-13469/10-13469_Myeloid 1.fcs"
+    filepath = "/home/ngdavid/Desktop/Ubuntu_Dropbox/Myeloid_Data/Myeloid/10-13469/10-13469_Myeloid 1.fcs"
 
-    class FCS_object(object):
-        """
-        Yes, an ass backward way to test this class in isolation but herman
-        made me do it
-        """
-        def __init__(self):
-            self.parameters = 1
-            self.date = 1
-            self.filepath = 1
-            self.filename = 1
-            self.cytometer = 1
-            self.case_number = 1
-            self.case_tube = 1
-            self.cytnum = 1
-            self.num_events = 1
-            if hasattr(self, 'data'):
-                self.data = 1
-            self.version = 1
-
-    FCSobject = FCS_object()
-    loadFCS(FCSobject, filename, version = '1a',import_dataframe = False)
+    from FCS_Database.FCS import FCS
+    a = FCS()
+    FCSobject = loadFCS(FCS=a, filepath=filepath, version='test', import_dataframe=False)
 
     print FCSobject.date
     print FCSobject.case_tube
