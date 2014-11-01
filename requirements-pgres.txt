@@ -3,3 +3,5 @@ sqlalchemy==0.9.7
 pysqlite==2.6.0
 psycopg2==2.5.4
 GitPython==0.3.2.RC
+scipy==0.14.0
+matplotlib==1.4.2

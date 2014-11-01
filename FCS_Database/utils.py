@@ -34,6 +34,7 @@ def package_data(fname, dir=None, pattern=None):
     raising ValueError if no such file exists. If
     `pattern` is provided, return a list of matching files in package
     data (ignoring `fname`). If directory is listed, look specifically in that directory
+    TODO: Make this a little more flexible
 
     """
     # Pick directory

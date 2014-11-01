@@ -5,7 +5,7 @@ from os import path
 import logging
 import pandas as pd
 
-from utils import Vividict
+from FCS_Database.utils import Vividict
 
 log = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ class queryDB(object):
                 data.append(row)
             df = pd.DataFrame(data=data, columns=columns)
             df['filepath'] = df.apply(lambda x: path.join(x.dirname, x.filename),
-                                   axis=1)
+                                      axis=1)
             df.drop(['filename', 'dirname'], axis=1, inplace=True)
             df.sort(['case_number', 'tube_type'], inplace=True)
             return df

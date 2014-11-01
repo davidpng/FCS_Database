@@ -5,7 +5,7 @@ import pandas as pd
 
 from database import SqliteConnection
 from query_database import queryDB
-from utils import package_data
+from FCS_Database.utils import package_data
 
 log = logging.getLogger(__name__)
 
