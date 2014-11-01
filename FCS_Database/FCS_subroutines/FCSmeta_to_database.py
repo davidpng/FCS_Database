@@ -13,6 +13,8 @@ __maintainer__ = "David Ng"
 __email__ = "hermands@uw.edu"
 __status__ = "Subroutine - prototype"
 
+from os.path import relpath, dirname
+
 
 class FCSmeta_to_database(object):
     """
@@ -21,13 +23,34 @@ class FCSmeta_to_database(object):
     def __init__(self, FCS, db, dir=None, add_lists=False):
         self.FCS = FCS
         self.db = db
+        self.meta = self.make_meta(dir=dir)
 
         # Transfer data
-        if add_lists:
-            self.push_antigens()
-            self.push_fluorophores()
-        self.push_TubeCase(dir=dir)
-        self.push_parameters()
+        if self.FCS.empty is False:
+            if add_lists:
+                self.push_antigens()
+                self.push_fluorophores()
+            self.push_TubeCase(dir=dir, meta=self.meta)
+            self.push_parameters()
+        else:  # empty FCS push
+            self.push_TubeCase(dir=dir, meta=self.meta)
+
+    def make_meta(self, dir):
+        """ Make meta information and return dict """
+
+        meta_data = {'case_tube': self.FCS.case_tube,
+                     'filename': self.FCS.filename,
+                     'case_number': self.FCS.case_number,
+                     'version': self.FCS.version,
+                     'dirname': relpath(dirname(self.FCS.filepath), start=dir)}
+
+        if self.FCS.empty is False:
+            meta_data['date'] = self.FCS.date
+            meta_data['num_events'] = self.FCS.num_events
+            meta_data['cytometer'] = self.FCS.cytometer
+            meta_data['cytnum'] = self.FCS.cytnum
+
+        return meta_data
 
     def push_parameters(self):
         """ Export Pmt+Tube+Case parameters from FCS object to DB """
@@ -46,20 +69,11 @@ class FCSmeta_to_database(object):
         fluorophores = self.FCS.parameters.loc['Fluorophore', :].unique()
         self.db.add_list(x=list(fluorophores), table='Fluorophores')
 
-    def push_TubeCase(self, dir):
+    def push_TubeCase(self, dir, meta):
         """ Push tube+case information FCS object to DB """
-        meta_data = {'case_tube': self.FCS.case_tube,
-                     'filename': self.FCS.filename,
-                     'case_number': self.FCS.case_number,
-                     'date': self.FCS.date,
-                     'num_events': self.FCS.num_events,
-                     'cytometer': self.FCS.cytometer,
-                     'cytnum': self.FCS.cytnum,
-                     'version': self.FCS.version}
-        meta_data['dirname'] = relpath(dirname(self.FCS.filepath), start=dir)
 
         # Push case+tube meta information
-        self.db.add_dict(meta_data, table='TubeCases')
+        self.db.add_dict(meta, table='TubeCases')
 
         # Push case
         self.db.add_list(x=[self.FCS.case_number], table='Cases')

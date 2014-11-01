@@ -10,20 +10,33 @@ __maintainer__ = "David Ng"
 __email__ = "hermands@uw.edu"
 __status__ = "Subroutine - prototype"
 
+from os.path import basename
+from re import findall
+
+
 class empty_FCS(object):
     """
     Case to represent and export FCS object meta data for
     files that FCS(f) cannot handle
     """
-    def __init__(self, filepath, dirpath, version):
+    def __init__(self, FCS, filepath, version, **kwargs):
         self.filepath = filepath
         self.filename = basename(filepath)
         self.case_tube = self.filename.strip('.fcs')
-        self.dirname = relpath(dirname(filepath), start=dirpath)
-        self.case_number = self.filepath_to_case_number()
+        self.case_number = self.__filepath_to_case_number()
         self.version = version
+        self.__export(FCS=FCS)
 
-    def filepath_to_case_number(self):
+    def __export(self, FCS):
+        """ Export loaded parameters to FCS object """
+        FCS.filepath = self.filepath
+        FCS.filename = self.filename
+        FCS.case_number = self.case_number
+        FCS.case_tube = self.case_tube
+        FCS.version = self.version
+        FCS.empty = True
+
+    def __filepath_to_case_number(self):
         """
         Gets the HP database number (i.e. ##-#####) from the filepath
         Will ValueError if:
@@ -36,17 +49,3 @@ class empty_FCS(object):
             raise ValueError("Filepath does not match contain ##-##### schema")
         else:
             return file_number
-
-    def meta_to_db(self, db):
-        """ Export meta data to db """
-        meta_data = {'filename': self.filename,
-                     'case_tube': self.case_tube,
-                     'dirname': self.dirname,
-                     'case_number': self.case_number,
-                     'version': self.version}
-
-        # Push case+tube meta information
-        db.add_dict(meta_data, table='TubeCases')
-
-        # Push case
-        db.add_list(x=[self.case_number], table='Cases')

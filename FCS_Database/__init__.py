@@ -4,7 +4,7 @@ Framework for the FCS_Database
 
 import glob
 from os import path
-from FCS import FCS
+
 
 def package_data(fname, pattern=None, dir=None):
     """Return the absolute path to a file included in package data,

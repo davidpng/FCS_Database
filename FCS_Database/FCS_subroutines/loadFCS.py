@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Oct 27 18:49:11 PDT 2014 
+Created on Mon Oct 27 18:49:11 PDT 2014
 Subroutine to FCS that loads an FCS into memory
 @author: ngdavid
 """
@@ -22,6 +22,7 @@ from warnings import warn
 from struct import calcsize, unpack
 from os.path import basename
 
+
 class loadFCS(object):
     """
     This class loads the information of an FCS file \n
@@ -41,7 +42,7 @@ class loadFCS(object):
         Takes an FCS object
         Takes filepath/name
         Takes verion
-        
+
         import_dataframe = True to import listmode as a dataframe
         import_dataframe = False to import listmode as a numpy array
         import_dataframe not included, will just read the header
@@ -87,8 +88,8 @@ class loadFCS(object):
         if hasattr(self, 'data'):
             FCS.data = self.data
         FCS.version = self.version
-        return FCS
-        
+        FCS.empty = False
+
     def __get_case_number(self, filepath):
         """
         Gets the HP database number (i.e. ##-#####) from the filepath and experiment name
@@ -100,10 +101,9 @@ class loadFCS(object):
         file_number = findall(r"\d+.-\d{5}", basename(filepath))
         if self.text.has_key('experiment name'):
             casenum = self.text['experiment name']
-            casenum = findall(r"\d+.-\d{5}",casenum) # clean things up to standard
+            casenum = findall(r"\d+.-\d{5}", casenum)  # clean things up to standard
         else:
             casenum = ["Unknown"]
-
         if not file_number:
             raise ValueError("Filepath does not match contain ##-##### schema")
         if not casenum:
@@ -288,10 +288,10 @@ class loadFCS(object):
 
 if __name__ == "__main__":
     filename = "/home/ngdavid/Desktop/Ubuntu_Dropbox/Myeloid_Data/Myeloid/10-13469/10-13469_Myeloid 1.fcs"
-    
-    class FCS_object(object): 
+
+    class FCS_object(object):
         """
-        Yes, an ass backward way to test this class in isolation but herman 
+        Yes, an ass backward way to test this class in isolation but herman
         made me do it
         """
         def __init__(self):
@@ -307,10 +307,10 @@ if __name__ == "__main__":
             if hasattr(self, 'data'):
                 self.data = 1
             self.version = 1
-            
+
     FCSobject = FCS_object()
     loadFCS(FCSobject, filename, version = '1a',import_dataframe = False)
-    
+
     print FCSobject.date
     print FCSobject.case_tube
     print FCSobject.data

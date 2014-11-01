@@ -19,6 +19,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 from matplotlib.path import Path
 
+
 class Process_FCS_Data(object):
     """
     This class will compensate and scale an FCS file given an FCSobject and
@@ -53,20 +54,20 @@ class Process_FCS_Data(object):
         pattern = re.compile("new", re.IGNORECASE)
         self.comp_matrix = self._load_comp_matrix(compensation_file)    # load compensation matrix
         self.data = np.dot(self.FCS.data, self.comp_matrix)             # apply compensation (returns a numpy array)
-        self.data = pd.DataFrame(data=self.data[:,:], \
-                                 columns=self.columns, \
-                                 dtype=np.float32) # create a dataframe with columns
-        
+        self.data = pd.DataFrame(data=self.data[:, :],
+                                 columns=self.columns,
+                                 dtype=np.float32)  # create a dataframe with columns
+
         self.data = self._LogicleRescale(self.data, T=2**18, M=4, W=0.5, A=0)
-        self.FCS.data = self.data # update FCS.data
-        
-        if limits==True:
-            limit_mask = self.__limit_gate(self.data,high=rescale_lim[1], low=rescale_lim[0])
+        self.FCS.data = self.data  # update FCS.data
+
+        if limits:
+            limit_mask = self.__limit_gate(self.data, high=rescale_lim[1], low=rescale_lim[0])
             self.data = self.data[limit_mask]
-            self.__Rescale(self.data, high=rescale_lim[0], low=rescale_lim[1]) #self.data is modified
-            self.FCS.data = self.data # update FCS.data
-            
-        if kwargs.has_key('gate_coords'):   # if gate coord dictionary provided, do initial cleanup
+            self.__Rescale(self.data, high=rescale_lim[0], low=rescale_lim[1])  # self.data is modified
+            self.FCS.data = self.data  # update FCS.data
+
+        if 'gate_coords' in kwargs:   # if gate coord dictionary provided, do initial cleanup
             coords = kwargs['gate_coords']
             self.coords = coords
             if coords.has_key('viable'):
@@ -77,25 +78,24 @@ class Process_FCS_Data(object):
                 self.data = self.data[singlet_mask]
         else:
             self.coords = None
-        self.FCS.data = self.data # update FCS.dat
-        
+        self.FCS.data = self.data  # update FCS.dat
 
     def __Clean_up_columns(self, columns):
         """
         Provides error handling and clean up for manually entered parameter names
         """
-        output = [c.replace('CD ','CD') for c in columns]
+        output = [c.replace('CD ', 'CD') for c in columns]
         return output
 
-    def __Rescale(self, X_input, high=1, low=-0.15, \
-                  exclude=['FSC-A','FSC-H','SSC-A','SSC-H','Time']):
+    def __Rescale(self, X_input, high=1, low=-0.15,
+                  exclude=['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'Time']):
         """This function only modifies a subset of X_input[mask], therefore
         it is better to pass X_input by reference
         """
         mask = [x for x in X_input.columns.values if x not in exclude]
         X_input[mask] = (X_input[mask]-low)/(high-low)
 
-    def __limit_gate(self,X_input,high,low):
+    def __limit_gate(self, X_input, high, low):
         """
         limits X_input to all events between 0 and 1
         """
@@ -124,8 +124,8 @@ class Process_FCS_Data(object):
                                  'is not seen in the compensation dictionary')
         else:
             raise TypeError('Provided compensation_file is not of type str or dict')
-        spectral_overlap_library = pd.read_table(spectral_overlap_file,comment='#',sep='\t',
-                                             header=0,index_col=0).dropna(axis=0,how='all')
+        spectral_overlap_library = pd.read_table(spectral_overlap_file, comment='#', sep='\t',
+                                                 header=0, index_col=0).dropna(axis=0, how='all')
         Undescribed = set(columns)-set(spectral_overlap_library.columns)
         if Undescribed:
             if self.strict: #if strict == true, then error out with Undescrbied antigens
@@ -300,7 +300,7 @@ class Process_FCS_Data(object):
 if __name__ == "__main__":
     import os
     import sys
-   
+
     cwd = os.path.dirname(__file__)
     parent =  os.path.realpath('..')
     root = os.path.realpath('../..')
@@ -310,18 +310,18 @@ if __name__ == "__main__":
                          (0.456,0.379),(0.05,0.0),(0.0,0.0)],
             'viable': [ (0.358,0.174), (0.609,0.241), (0.822,0.132), (0.989,0.298),
                         (1.0,1.0),(0.5,1.0),(0.358,0.174)]}
-    
+
     comp_file={'H0152':root+'/FCS_Database/data/Spectral_Overlap_Lib_LSRA.txt',
                '2':root+'/FCS_Database/data/Spectral_Overlap_Lib_LSRB.txt'}
 
     filename = root + "/FCS_Database/data/12-00031_Myeloid 1.fcs"
 
     FCS_obj = FCS(version = '1.2',filepath=filename,import_dataframe=True)
-    
+
     FCS_obj.comp_scale_FCS_data(compensation_file=comp_file,
                             gate_coords=coords,
                             strict=False)
-    
+
     figure()
     ax=['SSC-H','CD45 APC-H7']
     plot(FCS_obj.data[ax[0]],FCS_obj.data[ax[1]],'b,')
@@ -330,14 +330,14 @@ if __name__ == "__main__":
     ylim(0,1)
     xlabel(ax[0])
     ylabel(ax[1])
-    
+
     filename = root + "/FCS_Database/data/12-00005_Bone Marrow WBC.fcs"
     FCS_obj = FCS(version = '1.2',filepath=filename,import_dataframe=True)
-    
+
     FCS_obj.comp_scale_FCS_data(compensation_file=comp_file,
                             gate_coords=coords,
                             strict=False)
-   
+
     figure()
     ax=['SSC-H','CD45 V450']
     plot(FCS_obj.data[ax[0]],FCS_obj.data[ax[1]],'b,')
@@ -346,4 +346,4 @@ if __name__ == "__main__":
     ylim(0,1)
     xlabel(ax[0])
     ylabel(ax[1])
-    
+
