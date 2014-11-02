@@ -5,7 +5,7 @@ import pandas as pd
 
 from database import SqliteConnection
 from query_database import queryDB
-from FCS_Database.utils import package_data
+from FCS_Database.__init__ import package_data
 
 log = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class FCSdatabase(SqliteConnection):
         """ Drop and recreate FCS database """
         self.drop_all()
         for file in files:
-            self.run_sql_file(file, dir='database/sqlite')
+            self.run_sql_file(file, dir='FCS_Database/database/sqlite')
         self.engine.conn.execute("ANALYZE")
 
     def query(self, out_file=None, exporttype='dict_dict', **kwargs):
@@ -65,9 +65,9 @@ class FCSdatabase(SqliteConnection):
         and TubeTypes tables
         """
         # Load csv file
-        in_file = package_data(fname='tube_types.csv', dir='data')
+        in_file = package_data(fname='tube_types.csv')
         if kwargs['file'] is not None:
-            in_file = package_data(fname=kwargs['file'])
+            in_file = kwargs['file']
         a = pd.read_csv(in_file)
 
         # Replace tubeTypes

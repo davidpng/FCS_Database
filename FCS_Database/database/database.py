@@ -8,7 +8,6 @@ from sqlalchemy import create_engine, inspect
 from sqlalchemy.schema import MetaData, Index
 from sqlalchemy.orm import sessionmaker
 
-from FCS_Database import package_data
 from FCS_Database.exceptions import OperationalError
 
 log = logging.getLogger(__name__)
@@ -142,7 +141,7 @@ class SqliteConnection(Connection):
         except:
             raise
 
-    def run_sql_file(self, sql_file, **kwargs):
+    def run_sql_file(self, sql_file, dir):
         """
         Create the database, dropping existing tables if exists
         Using pysqlite because sqlalchemy does not support this
@@ -154,7 +153,7 @@ class SqliteConnection(Connection):
         dbcon = sqlite3.connect(self.db_file)
         dbcur = dbcon.cursor()
         try:
-            with open(package_data(sql_file, **kwargs)) as f:
+            with open(os.path.join(dir, sql_file)) as f:
                 dbcur.executescript(f.read())
         except sqlite3.OperationalError, e:
             raise OperationalError(e)

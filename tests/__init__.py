@@ -24,7 +24,7 @@ logging.basicConfig(file=sys.stdout, format=logformat, level=loglevel)
 log = logging.getLogger(__name__)
 
 # module data
-datadir = 'test_data'
+datadir = 'testfiles'
 outputdir = 'test_output'
 
 

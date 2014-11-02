@@ -12,7 +12,7 @@ import logging
 from FCS_Database.Find_Clinical_FCS_Files import Find_Clinical_FCS_Files
 from FCS import FCS
 from database.FCS_database import FCSdatabase
-from FCS_Database.utils import GetVersion
+from __init__ import __version__
 
 import pprint
 log = logging.getLogger(__name__)
@@ -39,11 +39,8 @@ Finder = Find_Clinical_FCS_Files(args.dir)
 # Connect to database (and rebuild if --rebuilddb)
 db = FCSdatabase(db=args.db, rebuild=args.rebuilddb)
 
-# Collect version
-version = GetVersion().version
-
 # Process files/dirs
 for f in Finder.filenames:
-        fFCS = FCS(filepath=f, version=version)
+        fFCS = FCS(filepath=f, version=__version__)
         fFCS.meta_to_db(db=db, dir=args.dir, add_lists=True)
 
