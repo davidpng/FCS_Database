@@ -1,7 +1,7 @@
 FCS_Database
 ============
 
-Program to scrape an FCS directory of metadata
+Program to analyze flow cytometry .fcs files
 
 
 DEV setup
@@ -13,14 +13,17 @@ Load HP database meta information (example)
 FCS_Database-env/bin/activate
 
 # Make FCS db
-./FCS_Database/load_FCSdb.py --dir /home/local/AMC/ngdavid/clinical_cHL_cases --rebuilddb
+./flowanal.py make_FCSmeta_db --dir /home/local/AMC/ngdavid/clinical_cHL_cases/
 
 # Export Tube types data
-./FCS_Database/tube_types.py -export -file data/tube_types.tmp
+./flowanal.py tube_types -export
 
 # Import Tube types data
-./FCS_Database/tube_types.py -load -file data/tube_types.csv
+<edit> db/tube_types.tmp
+./flowanal.py tube_types -load
 
 # Query FCS db for Hodgkins tubes
-./FCS_Database/query_db.py -tubes Hodgkins -exporttype dict_dict
+./flowanal.py query_db --tubes Hodgkins --exporttype df --outfile db/tubetypes.tmp
 
+# Update package version
+python setup.py -h
