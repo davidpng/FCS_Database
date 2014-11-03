@@ -5,7 +5,7 @@ import pandas as pd
 
 from database import SqliteConnection
 from query_database import queryDB
-from FCS_Database.__init__ import package_data
+from FlowAnal.__init__ import package_data
 
 log = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class FCSdatabase(SqliteConnection):
         """ Drop and recreate FCS database """
         self.drop_all()
         for file in files:
-            self.run_sql_file(file, dir='FCS_Database/database/sqlite')
+            self.run_sql_file(file, dir='FlowAnal/database/sqlite')
         self.engine.conn.execute("ANALYZE")
 
     def query(self, out_file=None, exporttype='dict_dict', **kwargs):
@@ -49,7 +49,7 @@ class FCSdatabase(SqliteConnection):
     def exportTubeTypes(self, **kwargs):
         """ Export TubeTypesInstances to csv (for review) """
         a = self.sql2pd(table='TubeTypesInstances')
-        out_file = 'FCS_Database/data/tube_types.tmp'
+        out_file = 'FlowAnal/data/tube_types.tmp'
         if kwargs['file'] is not None:
             out_file = kwargs['file']
 

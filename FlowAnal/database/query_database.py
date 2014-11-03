@@ -5,14 +5,14 @@ from os import path
 import logging
 import pandas as pd
 
-from FCS_Database.utils import Vividict
+from FlowAnal.utils import Vividict
 
 log = logging.getLogger(__name__)
 
 
 class queryDB(object):
     """
-    Constructs query of FCS_Database object
+    Constructs query of FCS Query object
     """
 
     def __init__(self, fcsdb, **kwargs):

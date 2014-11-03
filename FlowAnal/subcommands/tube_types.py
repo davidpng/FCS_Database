@@ -4,7 +4,7 @@
 """
 import logging
 
-from FCS_Database.database.FCS_database import FCSdatabase
+from FlowAnal.database.FCS_database import FCSdatabase
 
 log = logging.getLogger(__name__)
 

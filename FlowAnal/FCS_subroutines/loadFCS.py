@@ -289,7 +289,7 @@ class loadFCS(object):
 if __name__ == "__main__":
     filepath = "/home/ngdavid/Desktop/Ubuntu_Dropbox/Myeloid_Data/Myeloid/10-13469/10-13469_Myeloid 1.fcs"
 
-    from FCS_Database.FCS import FCS
+    from FlowAnal.FCS import FCS
     a = FCS()
     FCSobject = loadFCS(FCS=a, filepath=filepath, version='test', import_dataframe=False)
 

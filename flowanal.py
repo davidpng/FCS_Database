@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from FCS_Database.scripts.main import main
+from FlowAnal.scripts.main import main
 import sys
 
 if __name__ == '__main__':

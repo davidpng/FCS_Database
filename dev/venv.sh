@@ -17,7 +17,7 @@ abspath(){
 # defaults for options configurable from the command line
 GREP_OPTIONS=--color=never
 VENV=$(basename $(pwd))-env
-# VENV=FCS_Database-env
+# VENV=FlowAnal-env
 PYTHON=$(which python)
 PY_VERSION=$($PYTHON -c 'import sys; print "{}.{}.{}".format(*sys.version_info[:3])')
 WHEELSTREET=/usr/local/share/python/wheels

@@ -85,7 +85,7 @@ class FCS(object):
 if __name__ == '__main__':
     import os
     import sys
-    filename = "/home/ngdavid/Desktop/PYTHON/FCS_File_Database/FCS_Database/data/12-00031_Myeloid 1.fcs"
+    filename = "/home/ngdavid/Desktop/PYTHON/FCS_File_Database/FlowAnal/data/12-00031_Myeloid 1.fcs"
 
     cwd = os.path.dirname(__file__)
     parent =  os.path.realpath('..')
@@ -96,8 +96,8 @@ if __name__ == '__main__':
             'viable': [ (0.358,0.174), (0.609,0.241), (0.822,0.132), (0.989,0.298),
                         (1.0,1.0),(0.5,1.0),(0.358,0.174)]}
 
-    comp_file={'H0152':root+'/FCS_Database/data/Spectral_Overlap_Lib_LSRA.txt',
-               '2':root+'/FCS_Database/data/Spectral_Overlap_Lib_LSRB.txt'}
+    comp_file={'H0152':root+'/FlowAnal/data/Spectral_Overlap_Lib_LSRA.txt',
+               '2':root+'/FlowAnal/data/Spectral_Overlap_Lib_LSRB.txt'}
     temp = FCS(filepath=filename)
     temp.load_from_file(import_dataframe=True)
 

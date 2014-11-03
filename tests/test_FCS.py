@@ -9,8 +9,8 @@ import datetime
 import numpy as np
 
 from __init__ import TestBase, datadir
-from FCS_Database.FCS import FCS
-from FCS_Database.database.FCS_database import FCSdatabase
+from FlowAnal.FCS import FCS
+from FlowAnal.database.FCS_database import FCSdatabase
 
 log = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ class Test_FCS(TestBase):
 
         a = FCS(filepath=filepath)
 
-        # from FCS_Database.database.FCS_database import FCSdatabase
+        # from FlowAnal.database.FCS_database import FCSdatabase
         db = FCSdatabase(db=outfile, rebuild=True)
 
         a.meta_to_db(db=db, dir=root_dir)

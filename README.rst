@@ -1,4 +1,4 @@
-FCS_Database
+FlowAnal
 ============
 
 Program to analyze flow cytometry .fcs files

@@ -8,7 +8,7 @@ from sqlalchemy import create_engine, inspect
 from sqlalchemy.schema import MetaData, Index
 from sqlalchemy.orm import sessionmaker
 
-from FCS_Database.exceptions import OperationalError
+from FlowAnal.exceptions import OperationalError
 
 log = logging.getLogger(__name__)
 

@@ -27,25 +27,25 @@ class CheckVersion(Command):
         print 'the current version is', stored_version
 
 subprocess.call(
-    ('git describe --tags --dirty > FCS_Database/data/ver.tmp'
-     '&& mv FCS_Database/data/ver.tmp FCS_Database/data/ver '
-     '|| rm -f FCS_Database/data/ver.tmp'),
+    ('git describe --tags --dirty > FlowAnal/data/ver.tmp'
+     '&& mv FlowAnal/data/ver.tmp FlowAnal/data/ver '
+     '|| rm -f FlowAnal/data/ver.tmp'),
     shell=True, stderr=open(os.devnull, "w"))
 
-from FCS_Database import __version__
+from FlowAnal import __version__
 package_data = glob.glob('data/*')
 
 params = {'author': ['David Ng', 'Daniel Herman'],
           'author_email': ['ngdavid@uw.edu', 'hermands@uw.edu'],
           'description': 'Analysis of clinical flow cytometry designed for hematopathology',
-          'name': 'FCS_Database',
+          'name': 'FlowAnal',
           'packages': find_packages(),
-          'package_dir': {'FCS_Database': 'FCS_Database'},
+          'package_dir': {'FlowAnal': 'FlowAnal'},
           'entry_points': {
-              'console_scripts': ['runme = FCS_Database.scripts.main:main']
+              'console_scripts': ['runme = FlowAnal.scripts.main:main']
           },
           'version': __version__,
-          'package_data': {'FCS_Database': package_data},
+          'package_data': {'FlowAnal': package_data},
           'test_suite': 'tests',
           'cmdclass': {'check_version': CheckVersion}
           }

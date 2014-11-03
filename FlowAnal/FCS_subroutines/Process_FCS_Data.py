@@ -22,7 +22,7 @@ from matplotlib.path import Path
 
 class Process_FCS_Data(object):
     """
-    This class will compensate and scale an FCS file given an FCSobject and
+    This class will compensate and scale data from an .fcs file given an FCSobject and
     spillover library
     Stores a pandas dataframe in data
     Also stores the export_time, cytometer_name, cytometer_num, comp_matrix and tube_name
@@ -311,10 +311,10 @@ if __name__ == "__main__":
             'viable': [ (0.358,0.174), (0.609,0.241), (0.822,0.132), (0.989,0.298),
                         (1.0,1.0),(0.5,1.0),(0.358,0.174)]}
 
-    comp_file={'H0152':root+'/FCS_Database/data/Spectral_Overlap_Lib_LSRA.txt',
-               '2':root+'/FCS_Database/data/Spectral_Overlap_Lib_LSRB.txt'}
+    comp_file={'H0152':root+'/FlowAnal/data/Spectral_Overlap_Lib_LSRA.txt',
+               '2':root+'/FlowAnal/data/Spectral_Overlap_Lib_LSRB.txt'}
 
-    filename = root + "/FCS_Database/data/12-00031_Myeloid 1.fcs"
+    filename = root + "/FlowAnal/data/12-00031_Myeloid 1.fcs"
 
     FCS_obj = FCS(version = '1.2',filepath=filename,import_dataframe=True)
 
@@ -331,7 +331,7 @@ if __name__ == "__main__":
     xlabel(ax[0])
     ylabel(ax[1])
 
-    filename = root + "/FCS_Database/data/12-00005_Bone Marrow WBC.fcs"
+    filename = root + "/FlowAnal/data/12-00005_Bone Marrow WBC.fcs"
     FCS_obj = FCS(version = '1.2',filepath=filename,import_dataframe=True)
 
     FCS_obj.comp_scale_FCS_data(compensation_file=comp_file,

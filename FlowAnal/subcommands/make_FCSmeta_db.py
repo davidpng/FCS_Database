@@ -5,10 +5,10 @@
 """
 import logging
 
-from FCS_Database.Find_Clinical_FCS_Files import Find_Clinical_FCS_Files
-from FCS_Database.FCS import FCS
-from FCS_Database.database.FCS_database import FCSdatabase
-from FCS_Database.__init__ import __version__
+from FlowAnal.Find_Clinical_FCS_Files import Find_Clinical_FCS_Files
+from FlowAnal.FCS import FCS
+from FlowAnal.database.FCS_database import FCSdatabase
+from FlowAnal.__init__ import __version__
 
 log = logging.getLogger(__name__)
 

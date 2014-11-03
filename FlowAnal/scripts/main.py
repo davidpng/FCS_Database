@@ -8,8 +8,8 @@ import logging
 import pkgutil
 import sys
 from importlib import import_module
-from FCS_Database import subcommands, __version__ as version, __doc__ as docstring
-from FCS_Database.utils import Opener
+from FlowAnal import subcommands, __version__ as version, __doc__ as docstring
+from FlowAnal.utils import Opener
 
 
 def parse_arguments(argv):
