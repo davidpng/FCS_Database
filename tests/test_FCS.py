@@ -7,11 +7,12 @@ import warnings
 from os import path
 import datetime
 import numpy as np
+import pandas as pd
 
 from __init__ import TestBase, datadir
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
-from FlowAnal.__init__ import package_data
+from FlowAnal.__init__ import package_data, __version__
 
 log = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ class Test_FCS(TestBase):
         self.assertEqual(a.date, datetime.datetime(2012, 1, 3, 12, 0, 15))
         self.assertEqual(a.case_tube, '12-00031_Myeloid 1')
         self.assertEqual(a.num_events, 160480)
-        self.assertEqual(a.version, 'Blank')
+        self.assertEqual(a.version, __version__)
 
         parameters = {'Optical Filter Name': np.nan, 'Excitation Wavelength': np.nan,
                       'Amp type': '0,0', 'Excitation Power': np.nan, 'Antigen': 'CD15',
@@ -63,7 +64,10 @@ class Test_FCS(TestBase):
         self.assertFalse(hasattr(a, 'num_events'))
 
     def test_meta_to_db(self):
-        """ Make sure that the push of meta data to db 'runs' """
+        """ Make sure that the push of meta data to db 'runs'
+
+        NOTE: not explicitly checking what is in the db
+        """
 
         root_dir = path.abspath('.')
         outfile = path.join(self.mkoutdir(), 'test.db')
@@ -78,7 +82,11 @@ class Test_FCS(TestBase):
         a.meta_to_db(db=db, dir=root_dir)
 
     def test_process(self):
-        """ Test running processing """
+        """ Test running processing
+
+        Looking at small set of events (100:105) and FSC and CD15 channel and making sure \
+        that result is the same as when this function was initially setup
+        """
 
         coords = {'singlet': [(0.01, 0.06), (0.60, 0.75), (0.93, 0.977), (0.988, 0.86),
                               (0.456, 0.379), (0.05, 0.0), (0.0, 0.0)],
@@ -95,5 +103,10 @@ class Test_FCS(TestBase):
                               gate_coords=coords,
                               strict=False)
 
-        # Need to add relevant asserts
-        # self.assertEqual(...)
+        cols = ['FSC-H', 'CD15 FITC']
+        b = a.data.ix[100:105, cols]
+        b_expect = pd.DataFrame({'FSC-H': {105: 0.25751877, 100: 0.29451752, 101: 0.32627106,
+                                           102: 0.42173004},
+                                 'CD15 FITC': {105: 0.76076823, 100: 0.76459664,
+                                               101: 0.36573732, 102: 0.883313}}, dtype='float32')
+        np.testing.assert_array_equal(b.loc[:, cols].values, b_expect.loc[:, cols].values)

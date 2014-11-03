@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-""" Template for selecting a set of .fcs files and operate on them one-by-one
+""" Template for selecting a set of .fcs files and operating on them one-by-one
 
 NOTE: There are some files that are not found because of discordance of filename \
 and filename internal to .fcs file (meta info)
@@ -20,6 +20,8 @@ def build_parser(parser):
     parser.add_argument('-tubes', '--tubes', help='List of tubes to select',
                         nargs='+', action='store',
                         default=['Hodgkins'], type=str)
+    parser.add_argument('-dates', '--daterange', help='Start and end dates to bound selection of cases [Year-Month-Date Year-Month-Date]',
+                        nargs=2, action='store', type=str)
     parser.add_argument('-db', '--db', help='Sqlite db for Flow meta data [default: db/fcs.db]',
                         default="db/fcs.db", type=str)
 
@@ -37,8 +39,8 @@ def action(args):
             filepath = path.join(args.dir, relpath)
             a = FCS(filepath=filepath)
 
-            if a.empty:  # TODO: add this to the query
-                next
-
             # DO SOMETHING
+            print a.date
+            print a.case_number
+            print a.case_tube
 

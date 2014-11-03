@@ -4,6 +4,8 @@ Class to query database
 from os import path
 import logging
 import pandas as pd
+from datetime import datetime
+from sqlalchemy.sql import func
 
 from FlowAnal.utils import Vividict
 
@@ -28,20 +30,34 @@ class queryDB(object):
         """
         Collect HP files based on command-line arguments
         ARGUMENTS:
-        - exporttype ['dict_dict', 'df'] (requried)
+        - exporttype ['dict_dict', 'df'] (default: dict_dict)
         OUTPUT: dict of dicts (keyed on <case_number><TubeType>)
         """
         TubeCases = self.db.meta.tables['TubeCases']
         TubeTypesInstances = self.db.meta.tables['TubeTypesInstances']
+
+        # Handle query
         if 'tubes' in kwargs:
             tubes_to_select = [unicode(x) for x in kwargs['tubes']]
             log.info('Looking for tubes: %s' % tubes_to_select)
 
-            q = self.session.query(TubeCases.c.case_number, TubeCases.c.filename,
-                                   TubeCases.c.dirname,
-                                   TubeTypesInstances.c.tube_type).\
-                filter(TubeTypesInstances.c.tube_type.in_(tubes_to_select))
+            if 'daterange' in kwargs:
+                date_start = datetime.strptime(kwargs['daterange'][0], '%Y-%m-%d')
+                date_end = datetime.strptime(kwargs['daterange'][1], '%Y-%m-%d')
+                q = self.session.query(TubeCases.c.case_number, TubeCases.c.filename,
+                                       TubeCases.c.dirname,
+                                       TubeTypesInstances.c.tube_type).\
+                    filter(TubeTypesInstances.c.tube_type.in_(tubes_to_select)).\
+                    filter(~TubeCases.c.empty).\
+                    filter(func.date(TubeCases.c.date).between(date_start, date_end))
+            else:
+                q = self.session.query(TubeCases.c.case_number, TubeCases.c.filename,
+                                       TubeCases.c.dirname,
+                                       TubeTypesInstances.c.tube_type).\
+                    filter(TubeTypesInstances.c.tube_type.in_(tubes_to_select)).\
+                    filter(~TubeCases.c.empty)
 
+        # Handle export data
         if exporttype == 'dict_dict':
             files = Vividict()
             try:
@@ -58,6 +74,7 @@ class queryDB(object):
             for row in q.all():
                 data.append(row)
             df = pd.DataFrame(data=data, columns=columns)
+            df.drop_duplicates(inplace=True)
             df['filepath'] = df.apply(lambda x: path.join(x.dirname, x.filename),
                                       axis=1)
             df.drop(['filename', 'dirname'], axis=1, inplace=True)

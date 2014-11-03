@@ -14,6 +14,8 @@ def build_parser(parser):
     parser.add_argument('-tubes', '--tubes', help='List of tubes to select',
                         nargs='+', action='store',
                         default=['Hodgkins'], type=str)
+    parser.add_argument('-dates', '--daterange', help='Start and end dates to bound selection of cases [Year-Month-Date Year-Month-Date]',
+                        nargs=2, action='store', type=str)
     parser.add_argument('-db', '--db', help='Sqlite db for Flow meta data [default: db/fcs.db]',
                         default="db/fcs.db", type=str)
     parser.add_argument('-o', '--outfile', help='File to export query to',
