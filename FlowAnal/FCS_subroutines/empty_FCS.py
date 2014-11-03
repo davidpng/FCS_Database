@@ -15,9 +15,18 @@ from re import findall
 
 
 class empty_FCS(object):
-    """
-    Case to represent and export FCS object meta data for
-    files that FCS(f) cannot handle
+    """ load FCS object for which loadFCS() fails
+
+    Keyword arguments:
+    FCS -- FCS object to load to
+    filepath -- file to load
+    version -- code version to take note of
+
+    Notable attributes:
+    .filepath
+    .filename
+    .case_tube
+    .version
     """
     def __init__(self, FCS, filepath, version, **kwargs):
         self.filepath = filepath
@@ -37,7 +46,8 @@ class empty_FCS(object):
         FCS.empty = True
 
     def __filepath_to_case_number(self):
-        """
+        """ Capture case number from filepath
+
         Gets the HP database number (i.e. ##-#####) from the filepath
         Will ValueError if:
             Filepath does not contain schema

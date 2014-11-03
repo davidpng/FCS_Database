@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-""" Template for selecting a set of .fcs files and operating on them one-by-one
+""" Template script for selecting a set of .fcs files and operating on them one-by-one
 
 NOTE: There are some files that are not found because of discordance of filename \
 and filename internal to .fcs file (meta info)
@@ -15,14 +15,17 @@ log = logging.getLogger(__name__)
 
 
 def build_parser(parser):
-    parser.add_argument('dir', help='Base directory with .fcs files [required]',
+    parser.add_argument('dir', help='Base directory containing .fcs files',
                         type=str)
-    parser.add_argument('-tubes', '--tubes', help='List of tubes to select',
+    parser.add_argument('-tubes', '--tubes', help='List of tube types to select',
                         nargs='+', action='store',
                         default=['Hodgkins'], type=str)
-    parser.add_argument('-dates', '--daterange', help='Start and end dates to bound selection of cases [Year-Month-Date Year-Month-Date]',
+    parser.add_argument('-dates', '--daterange',
+                        help='Start and end dates to bound selection of cases \
+                        [Year-Month-Date Year-Month-Date]',
                         nargs=2, action='store', type=str)
-    parser.add_argument('-db', '--db', help='Sqlite db for Flow meta data [default: db/fcs.db]',
+    parser.add_argument('-db', '--db', help='Input sqlite db containing flow meta data \
+    [default: db/fcs.db]',
                         default="db/fcs.db", type=str)
 
 

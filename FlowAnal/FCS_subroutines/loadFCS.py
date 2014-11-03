@@ -24,7 +24,8 @@ from os.path import basename
 
 
 class loadFCS(object):
-    """
+    """ Construct FCS object from .fcs file
+
     This class loads the information of an FCS file \n
     Internal Variables: \n
     date - <datetime> - Data and time in a python datetime object \n
@@ -39,9 +40,10 @@ class loadFCS(object):
     """
     def __init__(self, FCS, filepath, version, **kwargs):
         """
-        Takes an FCS object
-        Takes filepath/name
-        Takes verion
+        Keyword arguments:
+        FCS -- FCS object, which is updated
+        filepath -- filepath of file to loaded
+        version -- current version of tools
 
         import_dataframe = True to import listmode as a dataframe
         import_dataframe = False to import listmode as a numpy array

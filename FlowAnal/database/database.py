@@ -66,7 +66,7 @@ class Connection(object):
         i.create(self.engine.conn)
 
     def get_table_names(self):
-        """ List of tables """
+        """ Return list of tables """
         self.load_sqlalchemy()
         return self.meta.tables.keys()
 
@@ -77,7 +77,7 @@ class Connection(object):
             t.drop()
 
     def drop_all(self):
-        """ Drop table """
+        """ Drop all tables """
         if self.meta.bind:
             self.meta.drop_all()
 
@@ -104,6 +104,12 @@ class SqliteConnection(Connection):
         self.connect_via_sqlalchemy()
 
     def connect_via_sqlalchemy(self):
+        """ Setup sqlalchemy connection and reflection
+
+        This should be run prior to accessing database via sqlalchemy and
+        should also be run after a non-sqlalchemy process alters the database
+        """
+
         self.engine.conn = self.engine.connect()
         if self.enforce_foreign_keys:
             self.enforce_foreign_keys()
@@ -111,7 +117,7 @@ class SqliteConnection(Connection):
         self.insp = inspect(self.engine)
 
     def enforce_foreign_keys(self):
-        """ Turn Sqlite enforcement of foreign keys """
+        """ Turn ON Sqlite enforcement of foreign keys  """
         self.engine.conn.execute("PRAGMA foreign_keys=ON")
 
     def import_febrl_csv(self, table, file):
@@ -143,8 +149,8 @@ class SqliteConnection(Connection):
 
     def run_sql_file(self, sql_file, dir):
         """
-        Create the database, dropping existing tables if exists
-        Using pysqlite because sqlalchemy does not support this
+        Create the database, dropping existing tables if exist
+        NOTE: Using pysqlite because sqlalchemy does not support this
         """
 
         self.engine.conn.close()  # close sqlalchemy connetion
@@ -163,7 +169,7 @@ class SqliteConnection(Connection):
 
     def import_amalga_tables(self, constraint_sql='setup_sqlite.sql'):
         """
-        Load amalga data into sqldb
+        Run amalga .sql code to setup database
         """
         for table in self.table_names:
             self.import_amalga_csv(table)
@@ -180,7 +186,10 @@ class SqliteConnection(Connection):
 
     def update_db_coltable(self, x, table):
         """ Update a single column table with x
-        x = tuple of tuples
+
+        Keyword arguments:
+        x -- <tuple of tuples>
+        table -- <str> Table (single column) to add values to
         """
         trans = self.engine.conn.begin()
         try:
@@ -193,7 +202,14 @@ class SqliteConnection(Connection):
             raise
 
     def update_db_table(self, df, table):
-        """    Update db>table with df """
+        """ Update db table with pandas df
+
+        NOTE: df keys and table columns must perfectly match
+
+        Keyword arguments:
+        df -- <pandas dataframe> Data to add
+        table -- <str> table to which to add <df>
+        """
         cols = ['"' + x + '"' for x in df.columns.values]
         dat = tuple(df.itertuples(index=False))
 
@@ -210,7 +226,14 @@ class SqliteConnection(Connection):
             raise
 
     def add_dict(self, d, table):
-        """ Add dict to database table """
+        """ Add dictionary values to database table
+
+        NOTE: <d> can be missing keys in table columns
+
+        Keyword arguments:
+        d -- <dict> Single dict to add
+        table -- <str> table to which to add <d>
+        """
 
         table_cols = self.get_colnames(table)
         colnames = [col for col in table_cols if col in d]
@@ -232,7 +255,14 @@ class SqliteConnection(Connection):
             raise
 
     def add_df(self, df, table):
-        """ Add pandas df to database table """
+        """ Add pandas df to database table
+
+        NOTE: df keys and table columns may not perfectly match, but MUST overlap
+
+        Keyword arguments:
+        df -- <pandas dataframe>
+        table -- <str> Table that should be added to
+        """
 
         # Restrict to common columns
         colnames = [col for col in self.get_colnames(table) if col in list(df.columns.values)]
@@ -243,7 +273,10 @@ class SqliteConnection(Connection):
 
     def add_list(self, x, table):
         """ Add a list to a database column
-        x = <list>
+
+        Keyword arguments:
+        x -- <list> Values to add to single column table
+        table -- <str> Table to add values to
         """
         # Pass tuple of tuples
         self.update_db_coltable(x=tuple(zip(x)), table=table)

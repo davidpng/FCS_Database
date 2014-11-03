@@ -80,6 +80,9 @@ def opener(pth, mode='r', bufsize=-1):
 
 
 class Vividict(dict):
+    """ Class to enable creation of dict objects with missing data \
+    This allows dynamic addition of chains of dictionaries
+    """
     def __missing__(self, key):
         value = self[key] = type(self)()
         return value

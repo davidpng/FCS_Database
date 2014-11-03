@@ -14,7 +14,19 @@ log = logging.getLogger(__name__)
 
 class queryDB(object):
     """
-    Constructs query of FCS Query object
+    Object interface to construct queries of FCS_Database objects (sqlite db) \
+    and return object
+
+    Notable attributes:
+    .results -- stores the result of query; datatype specified by <exporttype>
+
+    Keyword Arguments:
+    fcsdb -- loaded FCS_database object (sqlite db)
+    getfiles -- Use getfiles()
+    exporttype -- ['dict_dict', 'df'] set return filetype (default: 'dict_dict')
+    tubes -- <list> Select set based on tube types
+    daterange -- <list> [X,X] Select set based on date between daterange
+
     """
 
     def __init__(self, fcsdb, **kwargs):
@@ -22,16 +34,23 @@ class queryDB(object):
         self.session = fcsdb.Session()
 
         if ('getfiles' in kwargs):
-            self.results = self.getfiles(**kwargs)
+            self.results = self.__getfiles(**kwargs)
 
         self.session.close()
 
-    def getfiles(self, exporttype='dict_dict', **kwargs):
+    def __getfiles(self, exporttype='dict_dict', **kwargs):
         """
-        Collect HP files based on command-line arguments
-        ARGUMENTS:
-        - exporttype ['dict_dict', 'df'] (default: dict_dict)
-        OUTPUT: dict of dicts (keyed on <case_number><TubeType>)
+        Gets files based on specified criteria, organizes by case+tube and returns
+        object
+
+        Notable attributes:
+        .results -- stores the result of query; datatype specified by <exporttype>
+
+        Keyword arguments:
+        exporttype ['dict_dict', 'df'] (default: dict_dict)
+        tubes -- <list> Select set based on tube types
+        daterange -- <list> [X,X] Select set based on date between daterange
+
         """
         TubeCases = self.db.meta.tables['TubeCases']
         TubeTypesInstances = self.db.meta.tables['TubeTypesInstances']

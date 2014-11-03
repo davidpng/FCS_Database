@@ -17,8 +17,14 @@ from os.path import relpath, dirname
 
 
 class FCSmeta_to_database(object):
-    """
-    This class includes methods to export FCS meta data to DB
+    """ Export the meta information in an FCS object to database
+
+    Keyword arguments:
+    FCS -- FCS object to export
+    db -- database object to write to
+    add_lists -- If true, then Antigens and Fluorophores observed are added \
+                 to lists (no constraint on namespace)
+
     """
     def __init__(self, FCS, db, dir=None, add_lists=False):
         self.FCS = FCS
@@ -72,9 +78,9 @@ class FCSmeta_to_database(object):
         self.db.add_list(x=list(fluorophores), table='Fluorophores')
 
     def push_TubeTypes(self):
-        """ Export TubeTypesInstances and capture TubeType """
+        """ Capture/add TubeTypeInstance """
 
-        # Capture antigen list
+        # Capture antigen in FCS object
         antigens = self.FCS.parameters.loc['Antigen', :].unique()
         antigens.sort()
         antigens_string = ';'.join(antigens)
@@ -82,12 +88,12 @@ class FCSmeta_to_database(object):
         s = self.db.Session()
         TubeTypesInstances = self.db.meta.tables['TubeTypesInstances']
 
-        try:
+        try:    # Assign FCS object tube type based on database listing
             self.meta['tube_type_instance'] = s.query(TubeTypesInstances.c.tube_type_instance).\
                                               filter(TubeTypesInstances.c.Antigens == unicode(antigens_string)).one()[0]
-        except:
-            # Generate TubeTypesInstance and TubeType
-            tube_type = {'tube_type': self.FCS.case_tube.split('_')[1],
+
+        except:  # If tube type is not in the database, then add and then assign
+            tube_type = {'tube_type': self.FCS.case_tube.split('_')[1],  # Make placeholder tube type
                          'Antigens': antigens_string}
             self.db.add_list(x=[tube_type['tube_type']], table='TubeTypes')
             self.db.add_dict(tube_type, table='TubeTypesInstances')

@@ -20,9 +20,22 @@ class FCS(object):
     """
     This class represents FCS data (Tube+Case information)
     See loadFCS for attribute details
-    """
-    def __init__(self, version=__version__, filepaths=None, filepath=None, db=None, **kwargs):
 
+    Defining attributes
+    .data <pandas dataframe | numpy array> Rows correspond to events, columns to specific Pmt
+    .filepath <str> Fullpath of file this represents
+    .version <str> Imported from __init__
+
+    Keyword arguments:
+    filepath -- fullpath of file to loaded
+    filepaths -- list of fullpaths to be loaded for InferenceMatching
+
+    """
+    def __init__(self, version=__version__,
+                 filepaths=None,
+                 filepath=None,
+                 db=None,
+                 **kwargs):
         self.__version = version
         self.__filepath = filepath
 
@@ -41,16 +54,17 @@ class FCS(object):
             log.info("WARNING: did not load any [meta] data")
 
     def load_from_file(self, **kwargs):
-        """
-        Import FCS data from file at <filepath>
-        nota bene: import_dataframe needs to be explicitly defined for
+        """ Import FCS data from filepath
+
+        nota bene: import_dataframe needs to be explicitly defined for \
         data to be loaded into FCS object
         """
         loadFCS(FCS=self, filepath=self.__filepath, version=self.__version, **kwargs)
 
     def make_emptyFCS(self, **kwargs):
-        """
-        Import an "empty" FCS file
+        """ Import an "empty" FCS file
+
+        This function handles creation of FCS objects when loadFCS fails
         """
         empty_FCS(FCS=self, filepath=self.__filepath, version=self.__version, **kwargs)
 
@@ -59,7 +73,15 @@ class FCS(object):
         raise "Not implemented"
 
     def meta_to_db(self, db, dir=None, add_lists=False):
-        """ Export meta data from FCS object to db """
+        """ Export meta data from FCS object to db
+
+        Keyword arguments:
+        dir -- Directory underwhich all loaded files resides (enables formulation of \
+        file relative path)
+        add_lists -- If true then all keywords (Antigens, Fluorophores) are automatically loaded \
+        into the database. If false and database is in strict mode then will require specific \
+        names
+        """
         FCSmeta_to_database(FCS=self, db=db, dir=dir, add_lists=add_lists)
 
     def comp_scale_FCS_data(self, compensation_file,
@@ -68,7 +90,7 @@ class FCS(object):
                             limits=False,
                             strict=True,
                             **kwargs):
-        """calls Process_FCS_Data on self (i.e. an FCS object)"""
+        """ Updates self.data via call of Process_FCS_Data """
         Process_FCS_Data(FCS=self, compensation_file=compensation_file,
                          saturation_upper_range=saturation_upper_range,
                          rescale_lim=rescale_lim,
@@ -80,7 +102,7 @@ class FCS(object):
         """
         filepaths (list)
         """
-        pass
+        raise "Not implemented"
 
 
 if __name__ == '__main__':
