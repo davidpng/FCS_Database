@@ -11,6 +11,7 @@ import numpy as np
 from __init__ import TestBase, datadir
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
+from FlowAnal.__init__ import package_data
 
 log = logging.getLogger(__name__)
 
@@ -75,3 +76,24 @@ class Test_FCS(TestBase):
         db = FCSdatabase(db=outfile, rebuild=True)
 
         a.meta_to_db(db=db, dir=root_dir)
+
+    def test_process(self):
+        """ Test running processing """
+
+        coords = {'singlet': [(0.01, 0.06), (0.60, 0.75), (0.93, 0.977), (0.988, 0.86),
+                              (0.456, 0.379), (0.05, 0.0), (0.0, 0.0)],
+                  'viable': [(0.358, 0.174), (0.609, 0.241), (0.822, 0.132), (0.989, 0.298),
+                             (1.0, 1.0), (0.5, 1.0), (0.358, 0.174)]}
+
+        comp_file = {'H0152': package_data('Spectral_Overlap_Lib_LSRA.txt'),
+                     '2': package_data('Spectral_Overlap_Lib_LSRB.txt')}
+
+        filename = "12-00031_Myeloid 1.fcs"
+        filepath = data(filename)
+        a = FCS(filepath=filepath, import_dataframe=True)
+        a.comp_scale_FCS_data(compensation_file=comp_file,
+                              gate_coords=coords,
+                              strict=False)
+
+        # Need to add relevant asserts
+        # self.assertEqual(...)

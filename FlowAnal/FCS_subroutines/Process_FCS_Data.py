@@ -13,7 +13,7 @@ __maintainer__ = "David Ng"
 __email__ = "ngdavid@uw.edu"
 __status__ = "Production"
 
-import re
+# import re
 import pandas as pd
 import numpy as np
 from scipy.interpolate import interp1d
@@ -49,11 +49,15 @@ class Process_FCS_Data(object):
         """
         self.strict = strict
         self.FCS = FCS
-        self.columns = self.__Clean_up_columns(self.FCS.parameters.loc['Channel Name'])         # save columns because data is redfined after comp
-        self.total_events = self.FCS.data.shape[0]      #initial number of events before gating
-        pattern = re.compile("new", re.IGNORECASE)
+        # pattern = re.compile("new", re.IGNORECASE)
+
+        # save columns because data is redfined after comp
+        self.columns = self.__Clean_up_columns(self.FCS.parameters.loc['Channel Name'])
+
+        self.total_events = self.FCS.data.shape[0]      # initial number of events before gating
+
         self.comp_matrix = self._load_comp_matrix(compensation_file)    # load compensation matrix
-        self.data = np.dot(self.FCS.data, self.comp_matrix)             # apply compensation (returns a numpy array)
+        self.data = np.dot(self.FCS.data, self.comp_matrix)   # apply compensation (returns a numpy array)
         self.data = pd.DataFrame(data=self.data[:, :],
                                  columns=self.columns,
                                  dtype=np.float32)  # create a dataframe with columns
@@ -99,12 +103,13 @@ class Process_FCS_Data(object):
         """
         limits X_input to all events between 0 and 1
         """
-        mask = [x for x in X_input.columns.values if x not in ['FSC-A','FSC-H','SSC-A','SSC-H','Time']]
-        upper = np.all(X_input[mask]<=high,axis=1)
-        lower = np.all(X_input[mask]>=low,axis=1)
-        mask = ['FSC-A','FSC-H','SSC-A','SSC-H']
-        upper1 = np.all(X_input[mask]<=1,axis=1)
-        lower1 = np.all(X_input[mask]>=0,axis=1)
+        mask = [x for x in X_input.columns.values
+                if x not in ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'Time']]
+        upper = np.all(X_input[mask] <= high, axis=1)
+        lower = np.all(X_input[mask] >= low, axis=1)
+        mask = ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H']
+        upper1 = np.all(X_input[mask] <= 1, axis=1)
+        lower1 = np.all(X_input[mask] >= 0, axis=1)
         return upper*lower*upper1*lower1
 
     def _load_comp_matrix(self, compensation_file):
@@ -114,13 +119,13 @@ class Process_FCS_Data(object):
         overlap libaries for difference cytometers
         """
         columns = list(self.columns)
-        if isinstance(compensation_file,str):
+        if isinstance(compensation_file, str):
             spectral_overlap_file = compensation_file
-        elif isinstance(compensation_file,dict):
+        elif isinstance(compensation_file, dict):
             if self.FCS.cytnum in compensation_file.keys():
                 spectral_overlap_file = compensation_file[self.FCS.cytnum]
             else:
-                raise ValueError('Cytometer '+ self.cytnum + \
+                raise ValueError('Cytometer ' + self.cytnum +
                                  'is not seen in the compensation dictionary')
         else:
             raise TypeError('Provided compensation_file is not of type str or dict')
@@ -128,20 +133,20 @@ class Process_FCS_Data(object):
                                                  header=0, index_col=0).dropna(axis=0, how='all')
         Undescribed = set(columns)-set(spectral_overlap_library.columns)
         if Undescribed:
-            if self.strict: #if strict == true, then error out with Undescrbied antigens
-                raise IOError('Antigens: '+','.join(Undescribed)+' are not described in the library')
+            if self.strict:  # if strict == true, then error out with Undescrbied antigens
+                raise IOError('Antigens: ' + ','.join(Undescribed) + ' are not described in the library')
             else:  #try to fix by replacing with defaults (be careful!, these spillovers might not work well)
-                Defaults = ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'FL01', 'FL02', 'FL03',\
-                        'FL04', 'FL05', 'FL06', 'FL07', 'FL08', 'FL09', 'FL10', 'Time']
+                Defaults = ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'FL01', 'FL02', 'FL03',
+                            'FL04', 'FL05', 'FL06', 'FL07', 'FL08', 'FL09', 'FL10', 'Time']
                 for ukn in Undescribed:
                     i = columns.index(ukn)
                     columns[i] = Defaults[i]
         else:
             pass    # Undescribed is an empty set and we can use columns directly
 
-        overlap_matrix = spectral_overlap_library[columns].values   #create a matrix from columns
+        overlap_matrix = spectral_overlap_library[columns].values   # create a matrix from columns
 
-        if overlap_matrix.shape[0] != overlap_matrix.shape[1]:      #check to make sure matrix is invertable
+        if overlap_matrix.shape[0] != overlap_matrix.shape[1]:  # check to make sure matrix is invertable
             raise ValueError('spectral overlap matrix is not square')
         if overlap_matrix.shape[0] != np.trace(overlap_matrix):
             print overlap_matrix
@@ -153,16 +158,16 @@ class Process_FCS_Data(object):
         else:
             return np.linalg.inv(overlap_matrix.T)
 
-    def _SaturationGate(self, X_input, limit, exclude=['Time','time']):
+    def _SaturationGate(self, X_input, limit, exclude=['Time', 'time']):
         """
         Finds values between zero AND greater than 2^18-'limit'
         mask defines the columns where we will look for these values (typically exclude 'time')
         N.B. Best to apply this after compensation
         """
         mask = [x for x in X_input.columns.values if x not in exclude]
-        lower_limit = np.any(X_input[mask]<=-75000, axis=1) #find events with compensated params <=1 (because log10(1)=0)
+        lower_limit = np.any(X_input[mask] <= -75000, axis=1)  # find events with compensated params <=1 (because log10(1)=0)
         lim = 2**18-limit
-        upper_limit = np.any(X_input[mask]>lim, axis=1) #fine events with compensated params >max less 1000
+        upper_limit = np.any(X_input[mask] > lim, axis=1)  # fine events with compensated params >max less 1000
         return np.logical_not(np.logical_or(lower_limit, upper_limit))
 
     def __gating(self, DF_array_data, x_ax, y_ax, coords):
@@ -174,20 +179,20 @@ class Process_FCS_Data(object):
         index = gate.contains_points(projection)
         return index
 
-    def _LogicleRescale(self, X_input,lin=['FSC-A','FSC-H'],
-                        T=2**18, M=4.0, W=1, A=0,**kwargs):
+    def _LogicleRescale(self, X_input, lin=['FSC-A', 'FSC-H'],
+                        T=2**18, M=4.0, W=1, A=0, **kwargs):
         """
         Applies logicle transformation to columns defined by log_mask
         Applies rescaling from [0,1) to columns defined on rescale_mask
         Operates pass-by-reference (i.e. in place)
         *log_param = passes parameters to be logicle transformed
         """
-        if kwargs.has_key("log_param"):
+        if 'log_param' in kwargs:
             log = kwargs.get("log_param")
         else:
             log = [x for x in X_input.columns.values if x not in lin + ['Time']]
         output = X_input.copy()
-        output[log] = self.__LogicleTransform(X_input[log].values,T, M, W, A)/np.float(2**18) #logicle transform and rescaling
+        output[log] = self.__LogicleTransform(X_input[log].values, T, M, W, A)/np.float(2**18) #logicle transform and rescaling
         output[lin] = X_input[lin].values/(2**18) #rescale forward scatter linear
 
         return output
@@ -197,15 +202,15 @@ class Process_FCS_Data(object):
         interpolated inverse of the biexponential function
         """
         ul = np.log10(2**18+10000+400000)
-        x = np.logspace(0,ul,10000)
+        x = np.logspace(0, ul, 10000)
         x = x[::-1] - 400000
-        #x=np.arange(-200000,2**18+10000,50)
+        # x = np.arange(-200000, 2**18+10000, 50)
 
-        y=self.__BiexponentialFunction(x,T,M,W,A)
-        output=interp1d(y.T,x.T)
+        y = self.__BiexponentialFunction(x, T, M, W, A)
+        output = interp1d(y.T, x.T)
         return output(input_array)
 
-    def __rtsafe(self,w,b):
+    def __rtsafe(self, w, b):
         """
         Modified from 'Numerical recipes: the art of scientific computing'
         solves the following equation for d : w = 2ln(d/b) / (b+d)
@@ -263,7 +268,7 @@ class Process_FCS_Data(object):
             else:
                 xHigh = root
 
-    def __BiexponentialFunction(self,input_array, T, M, W, A):
+    def __BiexponentialFunction(self, input_array, T, M, W, A):
         """
         LOGICLE performs logicle transform of flow data
             T = top of scale data
@@ -305,7 +310,7 @@ if __name__ == "__main__":
     parent =  os.path.realpath('..')
     root = os.path.realpath('../..')
     sys.path.insert(0,parent)
-    from FCS import FCS
+    from FlowAnal.FCS import FCS
     coords={'singlet': [ (0.01,0.06), (0.60,0.75), (0.93,0.977), (0.988,0.86),
                          (0.456,0.379),(0.05,0.0),(0.0,0.0)],
             'viable': [ (0.358,0.174), (0.609,0.241), (0.822,0.132), (0.989,0.298),
@@ -316,7 +321,7 @@ if __name__ == "__main__":
 
     filename = root + "/FlowAnal/data/12-00031_Myeloid 1.fcs"
 
-    FCS_obj = FCS(version = '1.2',filepath=filename,import_dataframe=True)
+    FCS_obj = FCS(version = '1.2', filepath=filename, import_dataframe=True)
 
     FCS_obj.comp_scale_FCS_data(compensation_file=comp_file,
                             gate_coords=coords,
