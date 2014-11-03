@@ -16,7 +16,7 @@ __status__ = "Production"
 import numpy as np
 import pandas as pd
 """Built in packages"""
-from re import compile, findall
+from re import compile, findall, search
 from datetime import datetime
 from warnings import warn
 from struct import calcsize, unpack
@@ -117,10 +117,11 @@ class loadFCS(object):
 
     def __get_filename(self, filepath):
         """Provides error handling in case parameter is undefined"""
-        if self.text.has_key('fil'):
-            output = self.text['fil']
-        else:
-            output = basename(filepath)
+        output = basename(filepath)
+        if 'fil' in self.text:
+            fname = self.text['fil']
+            if search(r"\d+.-\d{5}", fname):
+                output = fname
         return output
 
     def __get_cytometer_info(self):

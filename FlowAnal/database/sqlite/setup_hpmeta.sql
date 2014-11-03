@@ -41,7 +41,9 @@ CREATE TABLE IF NOT EXISTS TubeCases (
        num_events INTEGER,
        cytometer NVARCHAR(10),
        cytnum INTEGER,
+       empty BOOLEAN,
        version VARCHAR(30) NOT NULL,
+       CONSTRAINT empty_bool CHECK ("empty" IN (0, 1)),
        FOREIGN KEY (case_number) REFERENCES Cases(case_number),
        FOREIGN KEY (tube_type_instance) REFERENCES TubeTypesInstances(tube_type_instance)
 );

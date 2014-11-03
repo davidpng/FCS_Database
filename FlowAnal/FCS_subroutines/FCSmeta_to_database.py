@@ -43,7 +43,8 @@ class FCSmeta_to_database(object):
                      'filename': self.FCS.filename,
                      'case_number': self.FCS.case_number,
                      'version': self.FCS.version,
-                     'dirname': relpath(dirname(self.FCS.filepath), start=dir)}
+                     'dirname': relpath(dirname(self.FCS.filepath), start=dir),
+                     'empty': self.FCS.empty}
 
         if self.FCS.empty is False:
             meta_data['date'] = self.FCS.date

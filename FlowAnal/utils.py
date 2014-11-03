@@ -1,6 +1,4 @@
 """ Common utilities placeholder """
-from subprocess import Popen, PIPE
-from git import Repo
 import logging
 import os
 import bz2

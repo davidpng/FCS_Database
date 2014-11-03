@@ -4,11 +4,12 @@
 
 """
 import logging
+import pprint
+from os.path import basename
 
 from FlowAnal.Find_Clinical_FCS_Files import Find_Clinical_FCS_Files
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
-from FlowAnal.__init__ import __version__
 
 log = logging.getLogger(__name__)
 
@@ -30,6 +31,9 @@ def action(args):
 
         # Process files/dirs
         for f in Finder.filenames:
-                fFCS = FCS(filepath=f, version=__version__)
-                fFCS.meta_to_db(db=db, dir=args.dir, add_lists=True)
+            fFCS = FCS(filepath=f)
+            fFCS.meta_to_db(db=db, dir=args.dir, add_lists=True)
+
+
+
 

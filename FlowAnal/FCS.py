@@ -10,6 +10,7 @@ from FCS_subroutines.loadFCS import loadFCS
 from FCS_subroutines.Process_FCS_Data import Process_FCS_Data
 from FCS_subroutines.empty_FCS import empty_FCS
 from FCS_subroutines.FCSmeta_to_database import FCSmeta_to_database
+from . import __version__
 import warnings
 
 log = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ class FCS(object):
     This class represents FCS data (Tube+Case information)
     See loadFCS for attribute details
     """
-    def __init__(self, version="Blank", filepaths=None, filepath=None, db=None, **kwargs):
+    def __init__(self, version=__version__, filepaths=None, filepath=None, db=None, **kwargs):
 
         self.__version = version
         self.__filepath = filepath
