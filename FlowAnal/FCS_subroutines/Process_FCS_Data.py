@@ -49,14 +49,14 @@ class Process_FCS_Data(object):
         """
         self.strict = strict
         self.FCS = FCS
-        # pattern = re.compile("new", re.IGNORECASE)
 
         # save columns because data is redfined after comp
         self.columns = self.__Clean_up_columns(self.FCS.parameters.loc['Channel Name'])
 
         self.total_events = self.FCS.data.shape[0]      # initial number of events before gating
-
-        self.comp_matrix = self._load_comp_matrix(compensation_file)    # load compensation matrix
+        
+        self.overlap_matrix = self._load_overlap_matrix(compensation_file)    # load compensation matrix
+        self.comp_matrix = self._make_comp_matrix(self.overlap_matrix)
         self.data = np.dot(self.FCS.data, self.comp_matrix)   # apply compensation (returns a numpy array)
         self.data = pd.DataFrame(data=self.data[:, :],
                                  columns=self.columns,
@@ -82,7 +82,7 @@ class Process_FCS_Data(object):
                 self.data = self.data[singlet_mask]
         else:
             self.coords = None
-        self.FCS.data = self.data  # update FCS.dat
+        self.FCS.data = self.data  # update FCS.data
 
     def __Clean_up_columns(self, columns):
         """
@@ -112,9 +112,9 @@ class Process_FCS_Data(object):
         lower1 = np.all(X_input[mask] >= 0, axis=1)
         return upper*lower*upper1*lower1
 
-    def _load_comp_matrix(self, compensation_file):
+    def _load_overlap_matrix(self, compensation_file):
         """
-        Loads the the spectral overlap library and returns compensation matrix
+        Loads the the spectral overlap library and returns spectral overlap matrix
         Pass compensation_file as a dictionary if there are different spectral
         overlap libaries for difference cytometers
         """
@@ -145,13 +145,20 @@ class Process_FCS_Data(object):
             pass    # Undescribed is an empty set and we can use columns directly
 
         overlap_matrix = spectral_overlap_library[columns].values   # create a matrix from columns
-
+        return overlap_matrix
+        
+    def _make_comp_matrix(overlap_matrix):
+        """
+        Generates a compensation matrix given a spectral overlap matrix
+        Provides error handling for ill-poised overlap matrices
+        TODO: Make sure all values in overlap matrix are less than 1 
+        i.e. can't have more than 100% comp or spillover
+        """
         if overlap_matrix.shape[0] != overlap_matrix.shape[1]:  # check to make sure matrix is invertable
             raise ValueError('spectral overlap matrix is not square')
         if overlap_matrix.shape[0] != np.trace(overlap_matrix):
             print overlap_matrix
             raise ValueError('Diagonals of the spectral overlap matrix are not one')
-
         if not np.isfinite(np.linalg.cond(overlap_matrix.T)):
             print overlap_matrix.T
             raise ValueError('matrix is not invertable')
@@ -311,6 +318,13 @@ if __name__ == "__main__":
     root = os.path.realpath('../..')
     sys.path.insert(0,parent)
     from FlowAnal.FCS import FCS
+    from os import path
+    datadir = "/home/ngdavid/Desktop/PYTHON/FCS_File_Database/testfiles"
+    
+    def data(fname):
+        return path.join(datadir, fname)
+    
+    
     coords={'singlet': [ (0.01,0.06), (0.60,0.75), (0.93,0.977), (0.988,0.86),
                          (0.456,0.379),(0.05,0.0),(0.0,0.0)],
             'viable': [ (0.358,0.174), (0.609,0.241), (0.822,0.132), (0.989,0.298),
@@ -319,9 +333,10 @@ if __name__ == "__main__":
     comp_file={'H0152':root+'/FlowAnal/data/Spectral_Overlap_Lib_LSRA.txt',
                '2':root+'/FlowAnal/data/Spectral_Overlap_Lib_LSRB.txt'}
 
-    filename = root + "/FlowAnal/data/12-00031_Myeloid 1.fcs"
-
-    FCS_obj = FCS(version = '1.2', filepath=filename, import_dataframe=True)
+    filename = "12-00031_Myeloid 1.fcs"
+    filepath = data(filename)
+    
+    FCS_obj = FCS(filepath=filepath, import_dataframe=True)
 
     FCS_obj.comp_scale_FCS_data(compensation_file=comp_file,
                             gate_coords=coords,
@@ -335,9 +350,11 @@ if __name__ == "__main__":
     ylim(0,1)
     xlabel(ax[0])
     ylabel(ax[1])
+"""
+    filename = "12-00005_Bone Marrow WBC.fcs"
+    filepath = data(filename)
 
-    filename = root + "/FlowAnal/data/12-00005_Bone Marrow WBC.fcs"
-    FCS_obj = FCS(version = '1.2',filepath=filename,import_dataframe=True)
+    FCS_obj = FCS(filepath=filename,import_dataframe=True)
 
     FCS_obj.comp_scale_FCS_data(compensation_file=comp_file,
                             gate_coords=coords,
@@ -352,3 +369,4 @@ if __name__ == "__main__":
     xlabel(ax[0])
     ylabel(ax[1])
 
+"""
