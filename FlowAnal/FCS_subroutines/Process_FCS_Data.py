@@ -54,8 +54,8 @@ class Process_FCS_Data(object):
         self.columns = self.__Clean_up_columns(self.FCS.parameters.loc['Channel Name'])
 
         self.total_events = self.FCS.data.shape[0]      # initial number of events before gating
-        
-        self.overlap_matrix = self._load_overlap_matrix(compensation_file)    # load compensation matrix
+
+        self.overlap_matrix = self._load_overlap_matrix(compensation_file)   # load compensation matrix
         self.comp_matrix = self._make_comp_matrix(self.overlap_matrix)
         self.data = np.dot(self.FCS.data, self.comp_matrix)   # apply compensation (returns a numpy array)
         self.data = pd.DataFrame(data=self.data[:, :],
@@ -70,6 +70,8 @@ class Process_FCS_Data(object):
             self.data = self.data[limit_mask]
             self.__Rescale(self.data, high=rescale_lim[0], low=rescale_lim[1])  # self.data is modified
             self.FCS.data = self.data  # update FCS.data
+        else:
+            raise "Limits not defined!"
 
         if 'gate_coords' in kwargs:   # if gate coord dictionary provided, do initial cleanup
             coords = kwargs['gate_coords']
@@ -146,12 +148,12 @@ class Process_FCS_Data(object):
 
         overlap_matrix = spectral_overlap_library[columns].values   # create a matrix from columns
         return overlap_matrix
-        
+
     def _make_comp_matrix(overlap_matrix):
         """
         Generates a compensation matrix given a spectral overlap matrix
         Provides error handling for ill-poised overlap matrices
-        TODO: Make sure all values in overlap matrix are less than 1 
+        TODO: Make sure all values in overlap matrix are less than 1
         i.e. can't have more than 100% comp or spillover
         """
         if overlap_matrix.shape[0] != overlap_matrix.shape[1]:  # check to make sure matrix is invertable
@@ -320,11 +322,11 @@ if __name__ == "__main__":
     from FlowAnal.FCS import FCS
     from os import path
     datadir = "/home/ngdavid/Desktop/PYTHON/FCS_File_Database/testfiles"
-    
+
     def data(fname):
         return path.join(datadir, fname)
-    
-    
+
+
     coords={'singlet': [ (0.01,0.06), (0.60,0.75), (0.93,0.977), (0.988,0.86),
                          (0.456,0.379),(0.05,0.0),(0.0,0.0)],
             'viable': [ (0.358,0.174), (0.609,0.241), (0.822,0.132), (0.989,0.298),
@@ -335,7 +337,7 @@ if __name__ == "__main__":
 
     filename = "12-00031_Myeloid 1.fcs"
     filepath = data(filename)
-    
+
     FCS_obj = FCS(filepath=filepath, import_dataframe=True)
 
     FCS_obj.comp_scale_FCS_data(compensation_file=comp_file,
