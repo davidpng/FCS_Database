@@ -29,8 +29,9 @@ class Test_FCS(TestBase):
 
         filename = "12-00031_Myeloid 1.fcs"
         filepath = data(filename)
-        a = FCS(filepath=filepath)
+        a = FCS(filepath=filepath, import_dataframe=True)
 
+        self.assertFalse(a.empty)
         self.assertEqual(a.filepath, filepath)
         self.assertEqual(a.filename, filename)
         self.assertEqual(a.case_number, '12-00031')
@@ -39,6 +40,7 @@ class Test_FCS(TestBase):
         self.assertEqual(a.case_tube, '12-00031_Myeloid 1')
         self.assertEqual(a.num_events, 160480)
         self.assertEqual(a.version, __version__)
+        self.assertTrue(hasattr(a, 'data'))
 
         parameters = {'Optical Filter Name': np.nan, 'Excitation Wavelength': np.nan,
                       'Amp type': '0,0', 'Excitation Power': np.nan, 'Antigen': 'CD15',
