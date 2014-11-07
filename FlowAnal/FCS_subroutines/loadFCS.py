@@ -264,7 +264,7 @@ class loadFCS(object):
                 header_df[x]['Channel Name'] = header_df[x]['Short name']
             parsed_name = header_df[x]['Channel Name'].split(" ", 1)
             if len(parsed_name) == 2:
-                header_df[x]['Antigen'] = parsed_name[0]
+                header_df[x]['Antigen'] = parsed_name[0].strip("-H")
                 header_df[x]['Fluorophore'] = parsed_name[1]
             elif len(parsed_name) == 1:
                 header_df[x]['Antigen'] = "Unknown"

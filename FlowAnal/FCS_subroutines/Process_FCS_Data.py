@@ -150,7 +150,7 @@ class Process_FCS_Data(object):
             pass    # Undescribed is an empty set and we can use columns directly
 
         overlap_matrix = spectral_overlap_library[columns].values   # create a matrix from columns
-        return overlap_matrix
+        return overlap_matrix.T
 
     def _make_comp_matrix(self, overlap_matrix):
         """
@@ -164,11 +164,11 @@ class Process_FCS_Data(object):
         if overlap_matrix.shape[0] != np.trace(overlap_matrix):
             print overlap_matrix
             raise ValueError('Diagonals of the spectral overlap matrix are not one')
-        if not np.isfinite(np.linalg.cond(overlap_matrix.T)):
-            print overlap_matrix.T
+        if not np.isfinite(np.linalg.cond(overlap_matrix)):
+            print overlap_matrix
             raise ValueError('matrix is not invertable')
         else:
-            return np.linalg.inv(overlap_matrix.T)
+            return np.linalg.inv(overlap_matrix)
 
     def _SaturationGate(self, X_input, limit, exclude=['Time', 'time']):
         """
