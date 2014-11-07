@@ -11,11 +11,11 @@ Process_FCS_Data._make_comp_matrix()
 Process_FCS_Data.overlap_matrix
 @author: ngdavid
 """
-from Process_FCS_Data import Process_FCS_Data
+#from Process_FCS_Data import Process_FCS_Data
 from itertools import combinations
 
 class Auto_Comp_Tweak(object):
-    self.ignore = ['SSC-H','SSC-A','FCS-H','FCS-A','Time']
+    ignore = ['SSC-H','SSC-A','FCS-H','FCS-A','Time']
     Gates={'LR': [ (0.7,-0.2), (1.5,-0.2), (1.5,0.6), (1.0,0.6),
                          (0.7,0.3),(0.7,-0.2)],
            'UL': [ (-0.2,0.7), (-0.2,1.5), (0.6,1.5), (0.6,1.0),
@@ -23,7 +23,7 @@ class Auto_Comp_Tweak(object):
                         
     def __init__(self,Process_FCS_object):
         self.input = Process_FCS_object
-        self.data = Process_FCS_object.FCS.data        
+        self.data = self.input.FCS.data        
         self.antigens = self.__find_antigens(self.input.FCS.parameters)
         #self.input.__gating(data, x_ax, y_ax, coords)
         

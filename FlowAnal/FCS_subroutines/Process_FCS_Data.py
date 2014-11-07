@@ -18,7 +18,7 @@ import pandas as pd
 import numpy as np
 from scipy.interpolate import interp1d
 from matplotlib.path import Path
-
+from Auto_Comp_Tweak import Auto_Comp_Tweak
 
 class Process_FCS_Data(object):
     """
@@ -52,12 +52,15 @@ class Process_FCS_Data(object):
         self.columns = self.__Clean_up_columns(self.FCS.parameters.loc['Channel Name'])
 
         self.total_events = self.FCS.data.shape[0]      # initial number of events before gating
-
+        
         self.overlap_matrix = self._load_overlap_matrix(compensation_file)   # load compensation matrix
         if auto_comp:
-            pass
+            Tweaked = Auto_Comp_Tweak(self)
+            self.comp_matrix = Tweaked.comp_matrix
+            self.data = Tweaked.data
         else:
-            self.comp_matrix = self._make_comp_matrix(self.overlap_matrix)
+            self.comp_matrix = self._make_comp_matrix(self.overlap_matrix) 
+            #simple inversion of the overlap matrix
             self.data = np.dot(self.FCS.data, self.comp_matrix)   # apply compensation (returns a numpy array)
         self.data = pd.DataFrame(data=self.data[:, :],
                                  columns=self.columns,

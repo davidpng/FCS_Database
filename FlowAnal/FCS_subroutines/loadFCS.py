@@ -7,7 +7,7 @@ Subroutine to FCS that loads an FCS into memory
 __author__ = "David Ng, MD"
 __copyright__ = "Copyright 2014, David Ng"
 __license__ = "GPL v3"
-__version__ = "1.0"
+__version__ = "1.1"
 __maintainer__ = "David Ng"
 __email__ = "ngdavid@uw.edu"
 __status__ = "Production"
@@ -130,12 +130,15 @@ class loadFCS(object):
 
     def __get_cytometer_info(self):
         """Provides error handling in case parameter is undefined"""
+        Convert_CytName = {'H0152':'1', 'H4710082':'3', 
+                           '1':'1', '2':'2', '3':'3'}
         if self.text.has_key('cyt'):
             cytometer = self.text['cyt']
         else:
-            cytometer = "Unknown"
+            cytometer = np.nan()
         if self.text.has_key('cytnum'):
             cytnum = self.text['cytnum']
+            cytnum = Convert_CytName[cytnum]
         else:
             cytnum = "Unknown"
         return cytometer,cytnum

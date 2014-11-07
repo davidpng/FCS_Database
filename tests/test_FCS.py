@@ -95,9 +95,9 @@ class Test_FCS(TestBase):
                   'viable': [(0.358, 0.174), (0.609, 0.241), (0.822, 0.132), (0.989, 0.298),
                              (1.0, 1.0), (0.5, 1.0), (0.358, 0.174)]}
 
-        comp_file = {'H0152': package_data('Spectral_Overlap_Lib_LSRA.txt'),
-                     '2': package_data('Spectral_Overlap_Lib_LSRB.txt')}
-
+        comp_file = {'1': package_data('Spectral_Overlap_Lib_LSRA.txt'),
+                     '2': package_data('Spectral_Overlap_Lib_LSRB.txt'),
+                     '3': package_data('Spectral_Overlap_Lib_LSRB.txt')}
         filename = "12-00031_Myeloid 1.fcs"
         filepath = data(filename)
         a = FCS(filepath=filepath, import_dataframe=True)
@@ -126,8 +126,9 @@ class Test_FCS(TestBase):
                   'viable': [(0.358, 0.174), (0.609, 0.241), (0.822, 0.132), (0.989, 0.298),
                              (1.0, 1.0), (0.5, 1.0), (0.358, 0.174)]}
 
-        comp_file = {'H0152': package_data('Spectral_Overlap_Lib_LSRA.txt'),
-                     '2': package_data('Spectral_Overlap_Lib_LSRB.txt')}
+        comp_file = {'1': package_data('Spectral_Overlap_Lib_LSRA.txt'),
+                     '2': package_data('Spectral_Overlap_Lib_LSRB.txt'),
+                     '3': package_data('Spectral_Overlap_Lib_LSRB.txt')}
 
         filename = "12-00031_Myeloid 1.fcs"
         filepath = data(filename)
