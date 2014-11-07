@@ -113,3 +113,34 @@ class Test_FCS(TestBase):
                                  'CD15 FITC': {105: 0.20802763, 100: 0.20469858,
                                                101: 0.5515328, 102: 0.10146696}}, dtype='float32')
         np.testing.assert_array_equal(b.loc[:, cols].values, b_expect.loc[:, cols].values)
+    
+    def test_auto_comp(self):
+        """ Tests the auto compensation subroutine of comp_scale_FCS_data
+        
+        This function will provide testing of the auto_comp_tweak function called \
+        by comp_scale_FCS_data when auto_comp flag is turned on.
+        """
+
+        coords = {'singlet': [(0.01, 0.06), (0.60, 0.75), (0.93, 0.977), (0.988, 0.86),
+                              (0.456, 0.379), (0.05, 0.0), (0.0, 0.0)],
+                  'viable': [(0.358, 0.174), (0.609, 0.241), (0.822, 0.132), (0.989, 0.298),
+                             (1.0, 1.0), (0.5, 1.0), (0.358, 0.174)]}
+
+        comp_file = {'H0152': package_data('Spectral_Overlap_Lib_LSRA.txt'),
+                     '2': package_data('Spectral_Overlap_Lib_LSRB.txt')}
+
+        filename = "12-00031_Myeloid 1.fcs"
+        filepath = data(filename)
+        a = FCS(filepath=filepath, import_dataframe=True)
+        a.comp_scale_FCS_data(compensation_file=comp_file,
+                              gate_coords=coords,
+                              strict=False,auto_comp=False)
+
+        cols = ['FSC-H', 'CD15 FITC']
+        b = a.data.loc[100:105, cols]
+
+        b_expect = pd.DataFrame({'FSC-H': {105: 0.25751877, 100: 0.29451752,
+                                           101: 0.32627106, 102: 0.42173004},
+                                 'CD15 FITC': {105: 0.20802763, 100: 0.20469858,
+                                               101: 0.5515328, 102: 0.10146696}}, dtype='float32')
+        np.testing.assert_array_equal(b.loc[:, cols].values, b_expect.loc[:, cols].values)

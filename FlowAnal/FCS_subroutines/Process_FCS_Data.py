@@ -34,7 +34,7 @@ class Process_FCS_Data(object):
     """
 
     def __init__(self, FCS, compensation_file, saturation_upper_range=1000,
-                 rescale_lim=(-0.15, 1), strict=True, **kwargs):
+                 rescale_lim=(-0.15, 1), strict=True, auto_comp=False, **kwargs):
         """
         Takes an FCS_object, and a spillover library. \n
         Can handle a spillover library as dictionary if keyed on the machine
@@ -43,7 +43,7 @@ class Process_FCS_Data(object):
         strict - <bool> - default True, strict mode for compensation (if channel
                             parameter is undefined, then error out) and False
                             (if channel parameter is undefined, goto default FL__)
-
+        auto_comp - <bool> - default False, applies auto compensation tweaking
         """
         self.strict = strict
         self.FCS = FCS
@@ -54,8 +54,11 @@ class Process_FCS_Data(object):
         self.total_events = self.FCS.data.shape[0]      # initial number of events before gating
 
         self.overlap_matrix = self._load_overlap_matrix(compensation_file)   # load compensation matrix
-        self.comp_matrix = self._make_comp_matrix(self.overlap_matrix)
-        self.data = np.dot(self.FCS.data, self.comp_matrix)   # apply compensation (returns a numpy array)
+        if auto_comp:
+            pass
+        else:
+            self.comp_matrix = self._make_comp_matrix(self.overlap_matrix)
+            self.data = np.dot(self.FCS.data, self.comp_matrix)   # apply compensation (returns a numpy array)
         self.data = pd.DataFrame(data=self.data[:, :],
                                  columns=self.columns,
                                  dtype=np.float32)  # create a dataframe with columns

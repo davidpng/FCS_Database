@@ -88,12 +88,15 @@ class FCS(object):
                             saturation_upper_range=1000,
                             rescale_lim=(-0.15, 1),
                             strict=True,
+                            auto_comp=False,
                             **kwargs):
-        """ Updates self.data via call of Process_FCS_Data """
+        """ Updates self.data via call of Process_FCS_Data    
+        """
         Process_FCS_Data(FCS=self, compensation_file=compensation_file,
                          saturation_upper_range=saturation_upper_range,
                          rescale_lim=rescale_lim,
                          strict=strict,
+                         auto_comp=auto_comp,
                          **kwargs)
 
     def make_inferred_FCS(self, filepaths):
