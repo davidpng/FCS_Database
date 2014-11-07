@@ -63,7 +63,6 @@ class loadFCS(object):
         if 'import_dataframe' in kwargs:
             if kwargs['import_dataframe']:
                 self.data = pd.DataFrame(self.__parse_data(), columns=self.channels)
-                print self.data
             else:
                 self.data = self.__parse_data()
         self.date = self.__py_export_time()
@@ -240,7 +239,7 @@ class loadFCS(object):
         depth = len(framework)
         columns = []
         for i in range(1,par+1):
-            columns.append(self.text['p{}s'.format(i)]) #parameters column keys same as with data columns
+            columns.append(self.text['p{}n'.format(i)]) #parameters column keys same as with data columns
         header_df = pd.DataFrame(data=None, index=framework[:,1] ,columns=columns)
         for i in range(1,par+1): #iterate over columns
             for j in range(depth): #iterate over rows

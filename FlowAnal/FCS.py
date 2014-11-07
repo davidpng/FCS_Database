@@ -87,14 +87,12 @@ class FCS(object):
     def comp_scale_FCS_data(self, compensation_file,
                             saturation_upper_range=1000,
                             rescale_lim=(-0.15, 1),
-                            limits=False,
                             strict=True,
                             **kwargs):
         """ Updates self.data via call of Process_FCS_Data """
         Process_FCS_Data(FCS=self, compensation_file=compensation_file,
                          saturation_upper_range=saturation_upper_range,
                          rescale_lim=rescale_lim,
-                         limits=limits,
                          strict=strict,
                          **kwargs)
 

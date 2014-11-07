@@ -106,9 +106,10 @@ class Test_FCS(TestBase):
                               strict=False)
 
         cols = ['FSC-H', 'CD15 FITC']
-        b = a.data.ix[100:105, cols]
-        b_expect = pd.DataFrame({'FSC-H': {105: 0.25751877, 100: 0.29451752, 101: 0.32627106,
-                                           102: 0.42173004},
-                                 'CD15 FITC': {105: 0.76076823, 100: 0.76459664,
-                                               101: 0.36573732, 102: 0.883313}}, dtype='float32')
+        b = a.data.loc[100:105, cols]
+
+        b_expect = pd.DataFrame({'FSC-H': {105: 0.25751877, 100: 0.29451752,
+                                           101: 0.32627106, 102: 0.42173004},
+                                 'CD15 FITC': {105: 0.20802763, 100: 0.20469858,
+                                               101: 0.5515328, 102: 0.10146696}}, dtype='float32')
         np.testing.assert_array_equal(b.loc[:, cols].values, b_expect.loc[:, cols].values)

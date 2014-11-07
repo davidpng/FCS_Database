@@ -32,7 +32,7 @@ def build_parser(parser):
 
 def action(args):
     # Connect to database
-    db = FCSdatabase(db=args.db)
+    db = FCSdatabase(db=args.db, rebuild=False)
 
     # Create query
     q = db.query(**vars(args))

@@ -28,20 +28,18 @@ class Process_FCS_Data(object):
     Also stores the export_time, cytometer_name, cytometer_num, comp_matrix and tube_name
 
     rescale_lim - tuple (max,min) for the channels
-    limits - applies rescale limits
     strict - switch between strict mode (if channel parameter is undefined, then
              error out) and (if channel parameter is undefined, goto default FL__)
 
     """
 
     def __init__(self, FCS, compensation_file, saturation_upper_range=1000,
-                 rescale_lim=(-0.15, 1), limits=False, strict=True, **kwargs):
+                 rescale_lim=(-0.15, 1), strict=True, **kwargs):
         """
         Takes an FCS_object, and a spillover library. \n
         Can handle a spillover library as dictionary if keyed on the machine
 
         rescale_lim - tuple (min, max) for the channels
-        limits - <bool> - default False, applies rescale limits \n
         strict - <bool> - default True, strict mode for compensation (if channel
                             parameter is undefined, then error out) and False
                             (if channel parameter is undefined, goto default FL__)
@@ -65,13 +63,11 @@ class Process_FCS_Data(object):
         self.data = self._LogicleRescale(self.data, T=2**18, M=4, W=0.5, A=0)
         self.FCS.data = self.data  # update FCS.data
 
-        if limits:
-            limit_mask = self.__limit_gate(self.data, high=rescale_lim[1], low=rescale_lim[0])
-            self.data = self.data[limit_mask]
-            self.__Rescale(self.data, high=rescale_lim[0], low=rescale_lim[1])  # self.data is modified
-            self.FCS.data = self.data  # update FCS.data
-        else:
-            raise "Limits not defined!"
+        limit_mask = self.__limit_gate(self.data, high=rescale_lim[1], low=rescale_lim[0])
+        self.data = self.data[limit_mask]
+        self.__Rescale(self.data, high=rescale_lim[0], low=rescale_lim[1])  # self.data is modified
+        self.FCS.data = self.data  # update FCS.data
+
 
         if 'gate_coords' in kwargs:   # if gate coord dictionary provided, do initial cleanup
             coords = kwargs['gate_coords']
@@ -98,6 +94,7 @@ class Process_FCS_Data(object):
         """This function only modifies a subset of X_input[mask], therefore
         it is better to pass X_input by reference
         """
+
         mask = [x for x in X_input.columns.values if x not in exclude]
         X_input[mask] = (X_input[mask]-low)/(high-low)
 
@@ -149,7 +146,7 @@ class Process_FCS_Data(object):
         overlap_matrix = spectral_overlap_library[columns].values   # create a matrix from columns
         return overlap_matrix
 
-    def _make_comp_matrix(overlap_matrix):
+    def _make_comp_matrix(self, overlap_matrix):
         """
         Generates a compensation matrix given a spectral overlap matrix
         Provides error handling for ill-poised overlap matrices
