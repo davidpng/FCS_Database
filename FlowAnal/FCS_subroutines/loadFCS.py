@@ -268,7 +268,7 @@ class loadFCS(object):
                 header_df[x]['Fluorophore'] = parsed_name[1]
             elif len(parsed_name) == 1:
                 header_df[x]['Antigen'] = "Unknown"
-                header_df[x]['Fluorophore'] = parsed_name[0]
+                header_df[x]['Fluorophore'] = parsed_name[0].strip("-H")
             else:
                 header_df[x]['Antigen'] = "Unknown"
                 header_df[x]['Fluorophore'] = "Unknown"
