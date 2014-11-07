@@ -16,7 +16,7 @@ FCS_Database-env/bin/activate
 python setup.py -h
 
 # Make FCS db
-./flowanal.py make_FCSmeta_db --dir /home/local/AMC/ngdavid/clinical_cHL_cases/
+./flowanal.py make_FCSmeta_db /home/local/AMC/ngdavid/clinical_cHL_cases/
 
 # Export Tube types data
 ./flowanal.py tube_types -export

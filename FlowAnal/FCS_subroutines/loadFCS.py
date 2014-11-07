@@ -124,6 +124,8 @@ class loadFCS(object):
             fname = self.text['fil']
             if search(r"\d+.-\d{5}", fname):
                 output = fname
+            else:
+                raise ValueError("Fil: [%s], filepath: [%s]" % (self.text['fil'], output))
         return output
 
     def __get_cytometer_info(self):
