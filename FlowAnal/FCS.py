@@ -10,6 +10,7 @@ from FCS_subroutines.loadFCS import loadFCS
 from FCS_subroutines.Process_FCS_Data import Process_FCS_Data
 from FCS_subroutines.empty_FCS import empty_FCS
 from FCS_subroutines.FCSmeta_to_database import FCSmeta_to_database
+from FCS_subroutines.Extract_HistoStats import Extract_HistoStats
 from . import __version__
 import warnings
 
@@ -105,7 +106,11 @@ class FCS(object):
         """
         raise "Not implemented"
 
-
+    def extract_FCS_histostats(self):
+        """
+        Calls Function to make pandas dataframe of columnwise histograms and statistics
+        """
+        Extract_HistoStats(FCS=self)
 if __name__ == '__main__':
     import os
     import sys
