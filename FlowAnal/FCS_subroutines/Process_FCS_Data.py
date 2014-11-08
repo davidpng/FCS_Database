@@ -58,6 +58,7 @@ class Process_FCS_Data(object):
             Tweaked = Auto_Comp_Tweak(self)
             self.comp_matrix = Tweaked.comp_matrix
             self.data = Tweaked.data
+            #data is not compensated at this point!
         else:
             self.comp_matrix = self._make_comp_matrix(self.overlap_matrix) 
             #simple inversion of the overlap matrix
@@ -72,6 +73,8 @@ class Process_FCS_Data(object):
         limit_mask = self.__limit_gate(self.data, high=rescale_lim[1], low=rescale_lim[0])
         self.data = self.data[limit_mask]
         self.__Rescale(self.data, high=rescale_lim[0], low=rescale_lim[1])  # self.data is modified
+
+
         self.FCS.data = self.data  # update FCS.data
 
 
@@ -79,10 +82,10 @@ class Process_FCS_Data(object):
             coords = kwargs['gate_coords']
             self.coords = coords
             if coords.has_key('viable'):
-                viable_mask = self.__gating(self.data, 'SSC-H', 'FSC-H', coords['viable'])
+                viable_mask = self._gating(self.data, 'SSC-H', 'FSC-H', coords['viable'])
                 self.data = self.data[viable_mask]
             if coords.has_key('singlet'):
-                singlet_mask = self.__gating(self.data, 'FSC-A', 'FSC-H', coords['singlet'])
+                singlet_mask = self._gating(self.data, 'FSC-A', 'FSC-H', coords['singlet'])
                 self.data = self.data[singlet_mask]
         else:
             self.coords = None
@@ -182,7 +185,7 @@ class Process_FCS_Data(object):
         upper_limit = np.any(X_input[mask] > lim, axis=1)  # fine events with compensated params >max less 1000
         return np.logical_not(np.logical_or(lower_limit, upper_limit))
 
-    def __gating(self, DF_array_data, x_ax, y_ax, coords):
+    def _gating(self, DF_array_data, x_ax, y_ax, coords):
         """
         Returns a logical index given set of gate coordinates
         """
