@@ -10,6 +10,7 @@ from FCS_subroutines.loadFCS import loadFCS
 from FCS_subroutines.Process_FCS_Data import Process_FCS_Data
 from FCS_subroutines.empty_FCS import empty_FCS
 from FCS_subroutines.FCSmeta_to_database import FCSmeta_to_database
+from FCS_subroutines.FCSstats_to_database import FCSstats_to_database
 from FCS_subroutines.Extract_HistoStats import Extract_HistoStats
 from . import __version__
 import warnings
@@ -73,25 +74,13 @@ class FCS(object):
         """ Import FCS data from db <db> """
         raise "Not implemented"
 
-    def meta_to_db(self, db, dir=None, add_lists=False):
-        """ Export meta data from FCS object to db
-
-        Keyword arguments:
-        dir -- Directory underwhich all loaded files resides (enables formulation of \
-        file relative path)
-        add_lists -- If true then all keywords (Antigens, Fluorophores) are automatically loaded \
-        into the database. If false and database is in strict mode then will require specific \
-        names
-        """
-        FCSmeta_to_database(FCS=self, db=db, dir=dir, add_lists=add_lists)
-
     def comp_scale_FCS_data(self, compensation_file,
                             saturation_upper_range=1000,
                             rescale_lim=(-0.15, 1),
                             strict=True,
                             auto_comp=False,
                             **kwargs):
-        """ Updates self.data via call of Process_FCS_Data    
+        """ Updates self.data via call of Process_FCS_Data
         """
         Process_FCS_Data(FCS=self, compensation_file=compensation_file,
                          saturation_upper_range=saturation_upper_range,
@@ -111,6 +100,24 @@ class FCS(object):
         Calls Function to make pandas dataframe of columnwise histograms and statistics
         """
         Extract_HistoStats(FCS=self)
+
+    def meta_to_db(self, db, dir=None, add_lists=False):
+        """ Export meta data from FCS object to db
+
+        Keyword arguments:
+        dir -- Directory underwhich all loaded files resides (enables formulation of \
+        file relative path)
+        add_lists -- If true then all keywords (Antigens, Fluorophores) are automatically loaded \
+        into the database. If false and database is in strict mode then will require specific \
+        names
+        """
+        FCSmeta_to_database(FCS=self, db=db, dir=dir, add_lists=add_lists)
+
+    def histostats_to_db(self, db):
+        """ Add histostats to db """
+
+        FCSstats_to_database(FCS=self, db=db)
+
 if __name__ == '__main__':
     import os
     import sys

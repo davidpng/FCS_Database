@@ -257,7 +257,9 @@ class SqliteConnection(Connection):
     def add_df(self, df, table):
         """ Add pandas df to database table
 
-        NOTE: df keys and table columns may not perfectly match, but MUST overlap
+        NOTES:
+        - df keys and table columns may not perfectly match, but MUST overlap
+        - If df_o is empty, then does nothing
 
         Keyword arguments:
         df -- <pandas dataframe>
@@ -269,7 +271,10 @@ class SqliteConnection(Connection):
         df_o = df[colnames].drop_duplicates()
 
         # Update db
-        self.update_db_table(df=df_o, table=table)
+        if df_o.shape[0] > 0:
+            self.update_db_table(df=df_o, table=table)
+        else:
+            log.debug('Nothing to add to table %s' % table)
 
     def add_list(self, x, table):
         """ Add a list to a database column

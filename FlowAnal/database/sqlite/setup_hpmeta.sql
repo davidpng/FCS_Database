@@ -18,11 +18,13 @@ CREATE TABLE IF NOT EXISTS PmtTubeCases (
        "Range" INTEGER,
        Voltage INTEGER,
        version VARCHAR(30) NOT NULL,
-       PRIMARY KEY (case_tube, Antigen, Fluorophore)
+       PRIMARY KEY (case_tube, "Channel Name"),
        FOREIGN KEY (case_tube) REFERENCES TubeCases(case_tube),
        FOREIGN KEY (Antigen) REFERENCES Antigens(Antigen),
        FOREIGN KEY (Fluorophore) REFERENCES Fluorophores(Fluorophore)
 );
+CREATE INDEX IF NOT EXISTS ix_PmtTubeCases_case_tube_antigen_fluor
+       ON PmtTubeCases (case_tube, Antigen, Fluorophore);
 CREATE INDEX IF NOT EXISTS ix_PmtTubeCases_antigen_fluor
        ON PmtTubeCases (Antigen, Fluorophore);
 CREATE INDEX IF NOT EXISTS ix_PmtTubeCases_number
@@ -80,3 +82,35 @@ CREATE TABLE IF NOT EXISTS Antigens (
 CREATE TABLE IF NOT EXISTS Fluorophores (
        Fluorophore NVARCHAR(10) PRIMARY KEY
 );
+
+-- Pmt event stats
+CREATE TABLE IF NOT EXISTS PmtStats (
+       case_tube NVARCHAR(100) NOT NULL,
+      "Channel Name" NVARCHAR(20) NOT NULL,
+       count INTEGER,
+       mean FLOAT,
+       std FLOAT,
+       min FLOAT,
+       "25%" FLOAT,
+       "50%" FLOAT,
+       "75%" FLOAT,
+       max FLOAT,
+       version VARCHAR(30) NOT NULL,
+       PRIMARY KEY (case_tube, "Channel Name"),
+       FOREIGN KEY (case_tube, "Channel Name") REFERENCES PmtTubeCases (case_tube, "Channel Name")
+);
+
+CREATE INDEX IF NOT EXISTS ix_PmtStats_Channel_Name
+       ON PmtStats ("Channel Name");
+
+-- Pmt event histogram
+CREATE TABLE IF NOT EXISTS PmtHistos (
+       case_tube NVARCHAR(100) NOT NULL,
+       "Channel Name" NVARCHAR(20) NOT NULL,
+       bin NVARCHAR(20) NOT NULL,
+       density FLOAT NOT NULL,
+       PRIMARY KEY (case_tube, "Channel Name", bin),
+       FOREIGN KEY (case_tube, "Channel Name") REFERENCES PmtTubeCases (case_tube, "Channel Name")
+);
+CREATE INDEX IF NOT EXISTS PmtHistos_bin
+       ON PmtHistos (bin);

@@ -113,6 +113,7 @@ class Test_FCS(TestBase):
                                  'CD15 FITC': {105: 0.20802763, 100: 0.20469858,
                                                101: 0.5515328, 102: 0.10146696}}, dtype='float32')
         np.testing.assert_array_equal(b.loc[:, cols].values, b_expect.loc[:, cols].values)
+
     def test_HistoStats(self):
         """ Tests the HistoStats information subroutines
         :return:
@@ -131,13 +132,15 @@ class Test_FCS(TestBase):
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
                               gate_coords=coords,
-                              strict=False,auto_comp=False)
+                              strict=False, auto_comp=False)
         a.extract_FCS_histostats()
-        print a.stats
-        print a.histos
+
+        log.debug(a.stats)
+        log.debug(a.histos)
+
     def test_auto_comp(self):
         """ Tests the auto compensation subroutine of comp_scale_FCS_data
-        
+
         This function will provide testing of the auto_comp_tweak function called \
         by comp_scale_FCS_data when auto_comp flag is turned on.
         """
@@ -151,9 +154,9 @@ class Test_FCS(TestBase):
                      '2': package_data('Spectral_Overlap_Lib_LSRB.txt'),
                      '3': package_data('Spectral_Overlap_Lib_LSRB.txt')}
 
-        Convert_CytName = {'H0152':'1', 'H4710082':'3', 
+        Convert_CytName = {'H0152':'1', 'H4710082':'3',
                            '1':'1', '2':'2', '3':'3'}
-                           
+
         filename = "12-00031_Myeloid 1.fcs"
         filepath = data(filename)
         a = FCS(filepath=filepath, import_dataframe=True)

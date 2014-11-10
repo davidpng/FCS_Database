@@ -8,9 +8,14 @@ from FCS data
 """
 import pandas as pd
 import numpy as np
+import logging
+
+log = logging.getLogger(__name__)
+
 
 class Extract_HistoStats(object):
-    def __init__(self,FCS,verbose=False):
+
+    def __init__(self, FCS, verbose=False):
         """
         Returns 2 dataframes, stats and histogram indexed on parameters in
         FCS.data
@@ -19,16 +24,19 @@ class Extract_HistoStats(object):
         :param verbose:
         :return:
         """
-        self.data = FCS.data
-        FCS.stats = self._make_stats()
-        FCS.histos = self._make_histogram()
-        if verbose:
-            print "Parameters Statistics:\n"
-            print FCS.stats
-            print "Parameter Histograms:\n"
-            print FCS.histos
+        if hasattr(FCS, 'data'):
+            self.data = FCS.data
+            FCS.stats = self._make_stats()
+            FCS.histos = self._make_histogram()
+            if verbose:
+                print "Parameters Statistics:\n"
+                print FCS.stats
+                print "Parameter Histograms:\n"
+                print FCS.histos
+        else:
+            log.debug('Nothing todo because stats and histogram are missing')
 
-    def _make_histogram(self,bins=100,range=(0,1),density=True):
+    def _make_histogram(self, bins=100, range=(0, 1), density=True):
         """
         Makes histogram with bins defined by bins over a normalized range of [0,1)
         Columns are indexed on parameters (scatter, antigens, & time)
@@ -39,9 +47,10 @@ class Extract_HistoStats(object):
         :return pandas dataframe:
         """
         columns = self.data.columns
-        function_hist = lambda x: np.histogram(x,bins=bins,range=range,density=density)[0]
+        function_hist = lambda x: np.histogram(x, bins=bins, range=range, density=density)[0]
         histo_df = np.apply_along_axis(function_hist, 0, self.data[columns])
-        histo_df = pd.DataFrame(histo_df,columns=columns,index=np.linspace(range[0],range[1],num=bins))
+        histo_df = pd.DataFrame(histo_df, columns=columns,
+                                index=np.linspace(range[0], range[1], num=bins))
         return histo_df
 
     def _make_stats(self):
