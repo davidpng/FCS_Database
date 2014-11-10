@@ -14,16 +14,41 @@ class Find_Clinical_FCS_Files(object):
     Finds all FCS files matching a pattern NN-NNNNN in a given directory
     """
     def __init__(self, directory,**kwargs):
+        """
+        if directory ends with .txt we will load the text file as a list
+        else if directory will be treated as a directory
+        """
         self.directory = directory
-        self.filenames = self.__find_files()
-        if "Filelist_Path" in kwargs:
-            self.write_found_files(kwargs['Filelist_Path'])
+        
+        if '.txt' in self.directory:
+            self.filenames = self.__load_files()
+        else:
+            self.filenames = self.__find_files()
+            if "Filelist_Path" in kwargs: 
+                # do only if Filelist_Path included and directory is not a txt
+                # file
+                self.write_found_files(kwargs['Filelist_Path'])
+                
     def __find_files(self):
+        """
+        Old Inline (list comprehension style) code:        
         filenames = [os.path.join(dirpath, f)
                      for dirpath, dirnames, files in os.walk(self.directory)
                      for f in filter(files, '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9]*.fcs')]
+        """        
+        filenames = []
+        filenum = 0
+        for dirpath,dirnames,files in os.walk(self.directory):
+            for f in filter(files,'[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9]*.fcs'):
+                filenames.append(os.path.join(dirpath,f))
+                print("FileCount: {:06d}\r".format(filenum)),
+                filenum+=1
         return filenames
-
+        
+    def __load_files(self):
+        with open(self.directory,'r') as fo:
+            filenames = [filename.strip('\n') for filename in fo]
+        return filenames
     def __get_base_folder_name(self, root):
         """
         Performs regex extraction to a XX-XXXXX pattern
