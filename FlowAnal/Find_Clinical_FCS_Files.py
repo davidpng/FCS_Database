@@ -6,8 +6,7 @@ Finds all fcs files in a given directory and returns the pathnames
 """
 import os
 import re
-from fnmatch import filter
-
+import fnmatch
 
 class Find_Clinical_FCS_Files(object):
     """
@@ -38,11 +37,15 @@ class Find_Clinical_FCS_Files(object):
         """        
         filenames = []
         filenum = 0
+        filecount = 0
         for dirpath,dirnames,files in os.walk(self.directory):
-            for f in filter(files,'[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9]*.fcs'):
+            filteredlist = fnmatch.filter(files,'[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9]*.fcs')
+            filenum+=len(files)
+            for f in filteredlist:
                 filenames.append(os.path.join(dirpath,f))
-                print("FileCount: {:06d}\r".format(filenum)),
-                filenum+=1
+                filecount+=1
+                print("FileCount: {:06d} of {:06d}\r".format(filecount,filenum)),
+                #update screen/filecount 
         return filenames
         
     def __load_files(self):
