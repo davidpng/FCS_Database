@@ -8,8 +8,18 @@ import logging
 from FlowAnal.Find_Clinical_FCS_Files import Find_Clinical_FCS_Files
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
+from FlowAnal.__init__ import package_data, __version__
 
 log = logging.getLogger(__name__)
+
+coords = {'singlet': [(0.01, 0.06), (0.60, 0.75), (0.93, 0.977), (0.988, 0.86),
+                      (0.456, 0.379), (0.05, 0.0), (0.0, 0.0)],
+          'viable': [(0.358, 0.174), (0.609, 0.241), (0.822, 0.132), (0.989, 0.298),
+                     (1.0, 1.0), (0.5, 1.0), (0.358, 0.174)]}
+
+comp_file = {'1': package_data('Spectral_Overlap_Lib_LSRA.txt'),
+             '2': package_data('Spectral_Overlap_Lib_LSRB.txt'),
+             '3': package_data('Spectral_Overlap_Lib_LSRB.txt')}
 
 
 def build_parser(parser):
@@ -32,7 +42,9 @@ def action(args):
         for f in Finder.filenames:
             fFCS = FCS(filepath=f, import_dataframe=True)
             fFCS.meta_to_db(db=db, dir=args.dir, add_lists=True)
-
+            fFCS.comp_scale_FCS_data(compensation_file=comp_file,
+                                     gate_coords=coords,
+                                     strict=False,auto_comp=False)
             fFCS.extract_FCS_histostats()
             fFCS.histostats_to_db(db=db)
 
