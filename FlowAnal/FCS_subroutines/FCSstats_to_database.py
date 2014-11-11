@@ -44,9 +44,6 @@ class FCSstats_to_database(object):
 
     def __push_histos(self):
         """ Export Pmt event histos
-
-        NOTE:
-        - Rows where the bin density is NA or 0 are dropped before pushing
         """
         d = self.FCS.histos.T
         d.reset_index(drop=False, inplace=True, col_level=0)
@@ -56,10 +53,14 @@ class FCSstats_to_database(object):
         # Pivot table (drop NAs and density of 0)
         d.set_index(["case_tube", "Channel Name"],
                     drop=True, append=False, inplace=True)
-        d2 = d.stack(dropna=True)
+        d2 = d.stack(dropna=False)
         d3 = d2.reset_index(drop=False)
         d3.sort(['case_tube', 'Channel Name'], inplace=True)
         d3.columns = ['case_tube', 'Channel Name', 'bin', 'density']
-        d3 = d3.loc[~(d3.density == 0), :]
 
+        # Push bins
+        bins = [str(x) for x in d3.bin.unique()]
+        self.db.add_list(x=bins, table='HistoBins')
+
+        # Push histo
         self.db.add_df(df=d3, table='PmtHistos')

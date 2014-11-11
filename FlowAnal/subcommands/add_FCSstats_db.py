@@ -40,8 +40,13 @@ def action(args):
         # Process files/dirs
         for f in Finder.filenames:
             fFCS = FCS(filepath=f, import_dataframe=True)
-            fFCS.comp_scale_FCS_data(compensation_file=comp_file,
-                                     gate_coords=coords,
-                                     strict=False, auto_comp=False)
-            fFCS.extract_FCS_histostats()
-            fFCS.histostats_to_db(db=db)
+            if fFCS.empty is False:
+                try:
+                    fFCS.comp_scale_FCS_data(compensation_file=comp_file,
+                                             gate_coords=coords,
+                                             strict=False, auto_comp=False)
+                    fFCS.extract_FCS_histostats()
+                    fFCS.histostats_to_db(db=db)
+                except ValueError, e:
+                    log.debug("Skipping FCS %s because of %s" % (f, e))
+
