@@ -8,8 +8,7 @@ import logging
 from FlowAnal.Find_Clinical_FCS_Files import Find_Clinical_FCS_Files
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
-from FlowAnal.__init__ import package_data, __version__
-
+from FlowAnal.__init__ import package_data
 log = logging.getLogger(__name__)
 
 coords = {'singlet': [(0.01, 0.06), (0.60, 0.75), (0.93, 0.977), (0.988, 0.86),
@@ -35,19 +34,14 @@ def action(args):
         Finder = Find_Clinical_FCS_Files(args.dir)
 
         # Connect to database (and rebuild)
-        db = FCSdatabase(db=args.db, rebuild=True)
+        db = FCSdatabase(db=args.db, rebuild=False)
         print "Building database %s" % args.db
 
         # Process files/dirs
         for f in Finder.filenames:
             fFCS = FCS(filepath=f, import_dataframe=True)
-            fFCS.meta_to_db(db=db, dir=args.dir, add_lists=True)
             fFCS.comp_scale_FCS_data(compensation_file=comp_file,
                                      gate_coords=coords,
-                                     strict=False,auto_comp=False)
+                                     strict=False, auto_comp=False)
             fFCS.extract_FCS_histostats()
             fFCS.histostats_to_db(db=db)
-
-
-
-
