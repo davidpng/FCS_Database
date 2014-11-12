@@ -216,12 +216,15 @@ class Process_FCS_Data(object):
     def __LogicleTransform(self, input_array, T=2**18, M=4.0, W=1, A=1.0):
         """
         interpolated inverse of the biexponential function
-        """
-        ul = np.log10(2**18+10000+400000)
+        
+        ul = np.log10(2**18+10000)
         x = np.logspace(0, ul, 10000)
         x = x[::-1] - 400000
         # x = np.arange(-200000, 2**18+10000, 50)
-
+        """
+        xn = np.linspace(-2**20,0,10000)
+        xp = np.logspace(0,6,10000)
+        x = np.concatentate([xn,xp])
         y = self.__BiexponentialFunction(x, T, M, W, A)
         output = interp1d(y.T, x.T)
         return output(input_array)
