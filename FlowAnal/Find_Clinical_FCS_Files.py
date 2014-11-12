@@ -12,13 +12,14 @@ class Find_Clinical_FCS_Files(object):
     """
     Finds all FCS files matching a pattern NN-NNNNN in a given directory
     """
-    def __init__(self, directory,**kwargs):
+    def __init__(self, directory,exclude,**kwargs):
         """
         if directory ends with .txt we will load the text file as a list
         else if directory will be treated as a directory
         """
         self.directory = directory
-        
+        self.excludes = exclude
+        print('Excluding the following Directories {}'.format(exclude))
         if '.txt' in self.directory:
             self.filenames = self.__load_files()
         else:
@@ -35,15 +36,27 @@ class Find_Clinical_FCS_Files(object):
                      for dirpath, dirnames, files in os.walk(self.directory)
                      for f in filter(files, '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9]*.fcs')]
         """        
+        #initialization of variables
         filenames = []
         filenum = 0
         filecount = 0
-        for dirpath,dirnames,files in os.walk(self.directory):
-            filteredlist = fnmatch.filter(files,'[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9]*.fcs')
-            filenum+=len(files)
-            for f in filteredlist:
-                filenames.append(os.path.join(dirpath,f))
-                filecount+=1
+        #find all directories in given self.directory
+        sub_directories=os.listdir(self.directory)
+        #remove sub directories in the exclude list
+        sub_directories = list(set(sub_directories)-set(self.excludes))
+        print("Sub-directories to be searched: {}".format(sub_directories))
+        for sub_dirs in sub_directories:
+            #search individual sub_directories 
+            for dirpath,dirnames,files in os.walk(os.path.join(self.directory,sub_dirs)):
+                #for files that match the XX-XXXXX pattern
+                filteredlist = fnmatch.filter(files,'[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9]*.fcs')
+                filenum+=len(files)
+                for f in filteredlist:
+                    #and add it to the filenames list
+                    filenames.append(os.path.join(dirpath,f))
+                    filecount+=1
+                    #then update the status count
+                    print("FileCount: {:06d} of {:06d}\r".format(filecount,filenum)),
                 print("FileCount: {:06d} of {:06d}\r".format(filecount,filenum)),
                 #update screen/filecount 
         return filenames

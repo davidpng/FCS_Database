@@ -17,6 +17,8 @@ python setup.py -h
 
 # Make FCS db
 ./flowanal.py make_FCSmeta_db /home/local/AMC/ngdavid/clinical_cHL_cases/
+# Make FCS db from archive volume
+python flowanal.py make_FCSmeta_db '/mnt/hgfs/archive/' --ex 'archive2' 'Duplicate data' '~snapshot' 'test' 'MISC archive files' 'FC500' --fl 'db/NewFileList.txt'
 
 # Export Tube types data
 ./flowanal.py tube_types -export
