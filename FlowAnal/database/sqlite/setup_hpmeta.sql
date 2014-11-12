@@ -108,9 +108,11 @@ CREATE TABLE IF NOT EXISTS PmtHistos (
        case_tube NVARCHAR(100) NOT NULL,
        "Channel Name" NVARCHAR(20) NOT NULL,
        bin NVARCHAR(20) NOT NULL,
-       density FLOAT NOT NULL,
+       density FLOAT,
        PRIMARY KEY (case_tube, "Channel Name", bin),
        FOREIGN KEY (case_tube, "Channel Name") REFERENCES PmtTubeCases (case_tube, "Channel Name")
 );
 CREATE INDEX IF NOT EXISTS PmtHistos_bin
        ON PmtHistos (bin);
+CREATE TABLE IF NOT EXISTS HistoBins (
+       bin NVARCHAR(20) NOT NULL PRIMARY KEY);
