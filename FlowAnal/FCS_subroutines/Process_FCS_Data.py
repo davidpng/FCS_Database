@@ -222,9 +222,11 @@ class Process_FCS_Data(object):
         x = x[::-1] - 400000
         # x = np.arange(-200000, 2**18+10000, 50)
         """
-        xn = np.linspace(-2**20,0,10000)
-        xp = np.logspace(0,6,10000)
-        x = np.concatentate([xn,xp])
+        xn = np.linspace(-2**19,0,10000)
+        #set up a linear range from -2**19 to zero
+        xp = np.logspace(0,np.log10(2**18+10000),10000)
+        #set up a log range from 0 to 2**18+10000
+        x = np.concatenate([xn,xp])
         y = self.__BiexponentialFunction(x, T, M, W, A)
         output = interp1d(y.T, x.T)
         return output(input_array)
