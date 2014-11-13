@@ -22,7 +22,7 @@ def build_parser(parser):
     [default: db/FoundFile.txt]', default='db/FoundFile.txt', type=str)
     
     parser.add_argument('-exclude', '--ex',help='List of directories to exclude',
-                        default = [], nargs='+',type=str)
+                        default = [".."], nargs='+',type=str)
 
 def action(args):
     # Collect files/dirs
