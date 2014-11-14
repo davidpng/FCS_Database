@@ -265,11 +265,11 @@ class loadFCS(object):
                 header_df[x]['Channel Name'] = header_df[x]['Short name']
             parsed_name = header_df[x]['Channel Name'].split(" ", 1)
             if len(parsed_name) == 2:
-                header_df[x]['Antigen'] = parsed_name[0].strip("-H")
-                header_df[x]['Fluorophore'] = parsed_name[1]
+                header_df[x]['Antigen'] = parsed_name[0].replace("-H","")
+                header_df[x]['Fluorophore'] = parsed_name[1].replace("-H","")
             elif len(parsed_name) == 1:
-                header_df[x]['Antigen'] = "Unknown"
-                header_df[x]['Fluorophore'] = parsed_name[0].strip("-H")
+                header_df[x]['Antigen'] = parsed_name[0]
+                header_df[x]['Fluorophore'] = parsed_name[0]
             else:
                 header_df[x]['Antigen'] = "Unknown"
                 header_df[x]['Fluorophore'] = "Unknown"
@@ -297,11 +297,11 @@ class loadFCS(object):
 
 if __name__ == "__main__":
     filepath = "/home/ngdavid/Desktop/Ubuntu_Dropbox/Myeloid_Data/Myeloid/10-13469/10-13469_Myeloid 1.fcs"
-
+    #filepath = "/home/ngdavid/Desktop/Ubuntu_Dropbox/Myeloid_Data/14-21257_B Cells.fcs"
     from FlowAnal.FCS import FCS
     a = FCS()
     FCSobject = loadFCS(FCS=a, filepath=filepath, version='test', import_dataframe=False)
 
     print FCSobject.date
     print FCSobject.case_tube
-    print FCSobject.data
+    print FCSobject.parameters
