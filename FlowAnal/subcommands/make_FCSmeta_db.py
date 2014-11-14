@@ -32,10 +32,11 @@ def action(args):
     print "Building database %s" % args.db
 
     # Process files/dirs
+    i = 0
     for f in Finder.filenames:
         fFCS = FCS(filepath=f)
         fFCS.meta_to_db(db=db, dir=args.dir, add_lists=True)
-
+        print("{:6d} Cases uploaded\r".format(i)),
 
 
 
