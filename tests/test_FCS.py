@@ -112,8 +112,10 @@ class Test_FCS(TestBase):
                                            101: 0.32627106, 102: 0.42173004},
                                  'CD15 FITC': {105: 0.20802763, 100: 0.20469858,
                                                101: 0.5515328, 102: 0.10146696}}, dtype='float32')
-        np.testing.assert_array_equal(b.loc[:, cols].values, b_expect.loc[:, cols].values)
-
+        #np.testing.assert_array_equal(b.loc[:, cols].values, b_expect.loc[:, cols].values)
+        np.testing.assert_allclose(b.loc[:, cols].values, b_expect.loc[:, cols].values,
+                                   rtol=1e-3,atol=0,err_msg="Results are more different \
+                                   than tolerable")
     def test_HistoStats(self):
         """ Tests the HistoStats information subroutines
         :return:
@@ -171,4 +173,7 @@ class Test_FCS(TestBase):
                                            101: 0.32627106, 102: 0.42173004},
                                  'CD15 FITC': {105: 0.20802763, 100: 0.20469858,
                                                101: 0.5515328, 102: 0.10146696}}, dtype='float32')
-        np.testing.assert_array_equal(b.loc[:, cols].values, b_expect.loc[:, cols].values)
+        #np.testing.assert_array_equal(b.loc[:, cols].values, b_expect.loc[:, cols].values)
+        np.testing.assert_allclose(b.loc[:, cols].values, b_expect.loc[:, cols].values,
+                                   rtol=1e-3,atol=0,err_msg="Results are more different \
+                                   than tolerable")
