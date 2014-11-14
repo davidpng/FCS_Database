@@ -69,7 +69,7 @@ class loadFCS(object):
         self.filename = self.__get_filename(filepath)
         self.case_number = self.__get_case_number(filepath)
         self.case_tube = self.filename.strip('.fcs')
-        self.cytometer, self.cytnum = self.__get_cytometer_info()
+        self.cytometer, self.cytnum = self.__get_cytometer_info(convert_cytnum=True)
         self.num_events = self.__get_num_events()
         self.fh.close()  # not included in FCM package, without it, it leads to a memory leak
 
@@ -128,19 +128,20 @@ class loadFCS(object):
                 raise ValueError("Fil: [%s], filepath: [%s]" % (self.text['fil'], output))
         return output
 
-    def __get_cytometer_info(self):
+    def __get_cytometer_info(self,convert_cytnum=True):
         """Provides error handling in case parameter is undefined"""
-        Convert_CytName = {'H0152':'1', 'H4710082':'3', 
+        Convert_CytName = {'H0152':'1', 'H47100082':'3', 'H4710082':'3', 
                            '1':'1', '2':'2', '3':'3'}
         if self.text.has_key('cyt'):
             cytometer = self.text['cyt']
         else:
-            cytometer = np.nan()
+            cytometer = np.nan
         if self.text.has_key('cytnum'):
             cytnum = self.text['cytnum']
-            cytnum = Convert_CytName[cytnum]
+            if convert_cytnum:
+                cytnum = Convert_CytName[cytnum]
         else:
-            cytnum = "Unknown"
+            cytnum = np.nan
         return cytometer,cytnum
 
     def __get_num_events(self):
