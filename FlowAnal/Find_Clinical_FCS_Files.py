@@ -12,7 +12,7 @@ class Find_Clinical_FCS_Files(object):
     """
     Finds all FCS files matching a pattern NN-NNNNN in a given directory
     """
-    def __init__(self, directory,exclude,**kwargs):
+    def __init__(self, directory,exclude=[],**kwargs):
         """
         if directory ends with .txt we will load the text file as a list
         else if directory will be treated as a directory
@@ -24,18 +24,18 @@ class Find_Clinical_FCS_Files(object):
             self.filenames = self.__load_files()
         else:
             self.filenames = self.__find_files()
-            if "Filelist_Path" in kwargs: 
+            if "Filelist_Path" in kwargs:
                 # do only if Filelist_Path included and directory is not a txt
                 # file
                 self.write_found_files(kwargs['Filelist_Path'])
-                
+
     def __find_files(self):
         """
-        Old Inline (list comprehension style) code:        
+        Old Inline (list comprehension style) code:
         filenames = [os.path.join(dirpath, f)
                      for dirpath, dirnames, files in os.walk(self.directory)
                      for f in filter(files, '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9]*.fcs')]
-        """        
+        """
         #initialization of variables
         filenames = []
         filenum = 0
@@ -46,7 +46,7 @@ class Find_Clinical_FCS_Files(object):
         sub_directories = list(set(sub_directories)-set(self.excludes))
         print("Sub-directories to be searched: {}".format(sub_directories))
         for sub_dirs in sub_directories:
-            #search individual sub_directories 
+            #search individual sub_directories
             for dirpath,dirnames,files in os.walk(os.path.join(self.directory,sub_dirs)):
                 #for files that match the XX-XXXXX pattern
                 filteredlist = fnmatch.filter(files,'[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9]*.fcs')
@@ -58,9 +58,9 @@ class Find_Clinical_FCS_Files(object):
                     #then update the status count
                     print("FileCount: {:06d} of {:06d}\r".format(filecount,filenum)),
                 print("FileCount: {:06d} of {:06d}\r".format(filecount,filenum)),
-                #update screen/filecount 
+                #update screen/filecount
         return filenames
-        
+
     def __load_files(self):
         with open(self.directory,'r') as fo:
             filenames = [filename.strip('\n') for filename in fo]
@@ -84,7 +84,7 @@ class Find_Clinical_FCS_Files(object):
         This will write the found filenames to a text file
         """
         dir_FoundFiles = os.path.join(os.getcwd(),Filelist_Path)
-        
+
         with open(dir_FoundFiles,'w+') as fo:
             for f in self.filenames:
                 fo.write(f+'\n')
