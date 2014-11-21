@@ -59,8 +59,7 @@ class queryDB(object):
         if 'tubes' in kwargs:
             tubes_to_select = [unicode(x) for x in kwargs['tubes']]
             log.info('Looking for tubes: %s' % tubes_to_select)
-
-            if 'daterange' in kwargs:
+            if 'daterange' in kwargs and kwargs['daterange'] is not None:
                 date_start = datetime.strptime(kwargs['daterange'][0], '%Y-%m-%d')
                 date_end = datetime.strptime(kwargs['daterange'][1], '%Y-%m-%d')
                 q = self.session.query(TubeCases.c.case_number, TubeCases.c.filename,

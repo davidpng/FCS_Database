@@ -43,7 +43,10 @@ def action(args):
             a = FCS(filepath=filepath)
 
             # DO SOMETHING
-            print a.date
-            print a.case_number
-            print a.case_tube
+            if a.empty is False:
+                print a.empty
+                print a.filepath
+                print a.date
+                print a.case_number
+                print a.case_tube
 
