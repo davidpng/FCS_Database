@@ -209,7 +209,7 @@ class Process_FCS_Data(object):
             log = [x for x in X_input.columns.values if x not in lin + ['Time']]
         output = X_input.copy()
         output[log] = self.__LogicleTransform(X_input[log].values, T, M, W, A)/np.float(2**18) #logicle transform and rescaling
-        output[lin] = X_input[lin].values/(2**18) #rescale forward scatter linear
+        output[lin] = X_input[lin].values/np.float(2**18) #rescale forward scatter linear
 
         return output
 
@@ -222,7 +222,7 @@ class Process_FCS_Data(object):
         x = x[::-1] - 400000
         # x = np.arange(-200000, 2**18+10000, 50)
         """
-        xn = np.linspace(-2**19,0,10000)
+        xn = np.linspace(-2**19,0,20000)
         #set up a linear range from -2**19 to zero
         xp = np.logspace(0,np.log10(2**18+10000),10000)
         #set up a log range from 0 to 2**18+10000
