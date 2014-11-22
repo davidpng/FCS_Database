@@ -104,7 +104,7 @@ class FCS(object):
 
     def comp_visualize_FCS(self, filename, filetype="PDF"):
         """ Makes a pdf file containing the visizliations of the FCS file """
-        Comp_Visualization(FCS=self,filename,filetype=filetype)
+        Comp_Visualization(FCS=self,filename=filename,filetype=filetype)
         
     def meta_to_db(self, db, dir=None, add_lists=False):
         """ Export meta data from FCS object to db
