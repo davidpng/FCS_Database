@@ -12,6 +12,7 @@ from FCS_subroutines.empty_FCS import empty_FCS
 from FCS_subroutines.FCSmeta_to_database import FCSmeta_to_database
 from FCS_subroutines.FCSstats_to_database import FCSstats_to_database
 from FCS_subroutines.Extract_HistoStats import Extract_HistoStats
+from FCS_subroutines.Comp_Visualization import Comp_Visualization
 from . import __version__
 import warnings
 
@@ -101,6 +102,10 @@ class FCS(object):
         """
         Extract_HistoStats(FCS=self)
 
+    def comp_visualize_FCS(self, filename, filetype="PDF"):
+        """ Makes a pdf file containing the visizliations of the FCS file """
+        Comp_Visualization(FCS=self,filename,filetype=filetype)
+        
     def meta_to_db(self, db, dir=None, add_lists=False):
         """ Export meta data from FCS object to db
 
