@@ -99,7 +99,7 @@ class Process_FCS_Data(object):
         output = [c.replace('CD ', 'CD') for c in columns]
         return output
 
-    def __Rescale(self, X_input, high=1, low=-0.15,
+    def __Rescale(self, X_input, high=1.0, low=-0.15,
                   exclude=['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'Time']):
         """This function only modifies a subset of X_input[mask], therefore
         it is better to pass X_input by reference

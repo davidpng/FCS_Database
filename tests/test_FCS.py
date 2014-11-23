@@ -101,8 +101,10 @@ class Test_FCS(TestBase):
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
                               gate_coords=coords,
-                              strict=False)
+                              strict=False,auto_comp=False)
+                             
         a.comp_visualize_FCS(filename='dummy.pdf')
+        
     def test_process(self):
         """ Test running processing
 
@@ -123,7 +125,7 @@ class Test_FCS(TestBase):
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
                               gate_coords=coords,
-                              strict=False)
+                              strict=False,)
 
         cols = ['FSC-H', 'CD15 FITC']
         b = a.data.loc[100:105, cols]
