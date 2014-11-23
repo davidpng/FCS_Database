@@ -22,7 +22,7 @@ class Comp_Visualization(object):
         self.FCS = FCS
         self.filename = filename
         self.filetype = filetype
-        self.plot_2d(4,14)
+        self.plot_2d(1,4)
         
     def plot_2d(self,x,y):
         x_lb=self.FCS.parameters.iloc[:,x-1].loc['Channel Name']
