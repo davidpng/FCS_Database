@@ -9,8 +9,12 @@ import matplotlib as plt
 import numpy as np
 
 class Comp_Visualization(object):
+    schema = {1:}
     def __init__(self,FCS,filename,filetype):
         self.listmode = FCS.data
         self.filename = filename
         self.filetype = filetype
-    def plot_
+        print self.listmode.iloc[:,(5,6)]
+        
+    def display_projection(x_lab,y_lab,x_dat,y_dat):
+        pass

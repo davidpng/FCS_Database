@@ -259,20 +259,32 @@ class loadFCS(object):
                         header_df[x][y] = temp.replace('CD ','CD') #handles space after 'CD '
                 elif framework[j,0] == 'i':
                     header_df[x][y] = i  # allowance to number the channels
+        #handles parsing for the channel names
         for i in range(1,par+1):
             x = columns[i-1]
             if pd.isnull(header_df[x]['Channel Name']):
                 header_df[x]['Channel Name'] = header_df[x]['Short name']
-            parsed_name = header_df[x]['Channel Name'].split(" ", 1)
-            if len(parsed_name) == 2:
+            unparsed_name = header_df[x]['Channel Name']
+            parsed_name = unparsed_name.split(" ", 1)
+            
+            if 'FSC' in unparsed_name:
+                header_df[x]['Antigen'] = np.nan
+                header_df[x]['Fluorophore'] = np.nan
+            elif 'SSC' in unparsed_name:
+                header_df[x]['Antigen'] = np.nan
+                header_df[x]['Fluorophore'] = np.nan
+            elif 'Time' in parsed_name:
+                header_df[x]['Antigen'] = np.nan
+                header_df[x]['Fluorophore'] = np.nan
+            elif len(parsed_name) == 2:
                 header_df[x]['Antigen'] = parsed_name[0].replace("-H","")
-                header_df[x]['Fluorophore'] = parsed_name[1].replace("-H","")
+                header_df[x]['Fluorophore'] = parsed_name[1].strip("-H") #replace("-H","") #problem with APC-H7
             elif len(parsed_name) == 1:
-                header_df[x]['Antigen'] = parsed_name[0]
+                header_df[x]['Antigen'] = np.nan
                 header_df[x]['Fluorophore'] = parsed_name[0]
             else:
-                header_df[x]['Antigen'] = "Unknown"
-                header_df[x]['Fluorophore'] = "Unknown"
+                header_df[x]['Antigen'] = np.nan
+                header_df[x]['Fluorophore'] = np.nan
 
         return header_df
 
