@@ -321,8 +321,14 @@ class Process_FCS_Data(object):
 
         return (a*np.e**(b*input_array)-c*np.e**(-d*input_array)+f)
 
-
-
+    def __patch(self):
+        """
+        This function is a temporary patch that flips the flurophore parameters of self.data
+        """
+        mask = [x for x in self.data.columns
+                if x not in ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'Time']]
+        TODO: Patch
+        
 if __name__ == "__main__":
     import os
     import sys
