@@ -158,7 +158,7 @@ class Test_FCS(TestBase):
                               gate_coords=coords,
                               strict=False, auto_comp=False)
         a.extract_FCS_histostats()
-
+        # not sure what these do?
         log.debug(a.stats)
         log.debug(a.histos)
         
@@ -178,7 +178,7 @@ class Test_FCS(TestBase):
         Convert_CytName = {'H0152':'1', 'H4710082':'3',
                            '1':'1', '2':'2', '3':'3'}
 
-        filename = "14-21257_B Cells.fcs"
+        filename = "12-00031_Myeloid 1.fcs"
         filepath = data(filename)
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,

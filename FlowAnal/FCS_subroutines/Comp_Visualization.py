@@ -60,12 +60,14 @@ class Comp_Visualization(object):
         x_pts = self.FCS.data.iloc[:,x-1]
         y_pts = self.FCS.data.iloc[:,y-1]
         indicies = np.random.choice(x_pts.index,int(downsample*len(x_pts)))
-
+        """ 
+        #Legacy Code: Old Patching Routine, moved to Process_FCS_Data
+        Remove after viz_dev_06 is merged with master
         if x not in [1,2,3,4]:
             x_pts = 1 - x_pts 
         if y not in [1,2,3,4]:
             y_pts = 1 - y_pts
-
+        """
 
         plt.plot(x_pts[indicies],y_pts[indicies],'b.',markersize=1,alpha=0.7)
         plt.xlabel(x_lb)

@@ -96,11 +96,12 @@ class FCS(object):
         """
         raise "Not implemented"
 
-    def extract_FCS_histostats(self):
+    def extract_FCS_histostats(self,verbose=False):
         """
         Calls Function to make pandas dataframe of columnwise histograms and statistics
+        Verbose flag will print out the stats and histograms (i.e. FCS.stats and FCS.histograms)
         """
-        Extract_HistoStats(FCS=self)
+        Extract_HistoStats(FCS=self,verbose=verbose)
 
     def comp_visualize_FCS(self, filename, filetype="PDF"):
         """ Makes a pdf file containing the visizliations of the FCS file """

@@ -75,7 +75,7 @@ class Process_FCS_Data(object):
         self.data = self.data[limit_mask]
         self.__Rescale(self.data, high=rescale_lim[0], low=rescale_lim[1])  # self.data is modified
 
-
+        self.__patch()
         self.FCS.data = self.data  # update FCS.data
 
 
@@ -327,7 +327,10 @@ class Process_FCS_Data(object):
         """
         mask = [x for x in self.data.columns
                 if x not in ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'Time']]
-        TODO: Patch
+        #print "the mask is :" 
+        #print mask
+        #print self.data[mask]
+        self.data[mask] = 1-self.data[mask]
         
 if __name__ == "__main__":
     import os
