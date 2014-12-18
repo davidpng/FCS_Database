@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS PmtStats (
        transform_remain INTEGER,
        version VARCHAR(30) NOT NULL,
        PRIMARY KEY (case_tube, "Channel Name"),
-       FOREIGN KEY (case_tube, "Channel Name") REFERENCES PmtTubeCases (case_tube, "Channel Name")
+       FOREIGN KEY (case_tube) REFERENCES TubeCases (case_tube)
 );
 
 CREATE INDEX IF NOT EXISTS ix_PmtStats_Channel_Name

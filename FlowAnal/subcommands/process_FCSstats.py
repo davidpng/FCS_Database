@@ -15,15 +15,33 @@ def build_parser(parser):
     parser.add_argument('--db', '-db', help='sqlite3 db with flow meta data \
     [default: db/fcs_stats.db]',
                         default="db/fcs_stats.db", type=str)
+    parser.add_argument('-tubes', '--tubes', help='List of tube types to select',
+                        nargs='+', action='store',
+                        default=['Hodgkins'], type=str)
+    parser.add_argument('-dates', '--daterange',
+                        help='Start and end dates to bound selection of cases \
+                        [Year-Month-Date Year-Month-Date]',
+                        nargs=2, action='store', type=str)
+    parser.add_argument('-testing', '--testing',
+                        action='store_true')
+    parser.add_argument('-table-format', '--table-format', dest='table_format',
+                        default='tall', type=str)
 
 
 def action(args):
         # Connect to database
-        db = FCSdatabase(db=args.db, rebuild=False)
+        dbcon = FCSdatabase(db=args.db, rebuild=False)
         print "Processing database %s" % args.db
 
         # Get QC data
-        qc = FlowQC(db=db, table_format='wide')
+        if args.testing:
+            testdbcon = FCSdatabase(db='db/test.db', rebuild=True)
+            args.table_format = 'tall'
+            qc = FlowQC(dbcon=dbcon, **vars(args))
+            qc.pushQC(db=testdbcon)
+        else:
+            qc = FlowQC(dbcon=dbcon, **vars(args))
+        log.debug(qc.histos)
+        log.debug(qc.PmtStats)
+        log.debug(qc.TubeStats)
 
-        log.info(qc.histos)
-        log.info(qc.stats)

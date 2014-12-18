@@ -5,23 +5,24 @@ class FlowQC(object):
     db  -- FCS_Database object that contains histos and stats
     """
 
-    def __init__(self, db, **kwargs):
-        self.db = db
+    def __init__(self, dbcon, **kwargs):
+        self.db = dbcon
+
+        # Load all QC data
         self.histos = self.__get_histos(**kwargs)
-        self.stats = self.__get_stats()
+        self.PmtStats = self.__get_PmtStats(**kwargs)
+        self.TubeStats = self.__get_TubeStats(**kwargs)
 
-        # TODO: merge relevant tables together
-
-    def __get_histos(self, table_format='wide'):
+    def __get_histos(self, table_format='tall', **kwargs):
         """ Return pandas df from db table PmtHistos
 
         NOTE:
         - Adds NAs to densities not present in database table
         """
-        tmp = self.db.sql2pd('PmtHistos')
-
+        tmp = self.db.query(getPmtHistos=True, **kwargs).results
         if table_format == 'wide':
-            tmp.set_index(['case_tube', 'Channel Name', 'bin'], inplace=True)
+            meta_cols = [c for c in tmp.columns if c not in ['density']]
+            tmp.set_index(meta_cols, inplace=True)
             tmp = tmp.unstack()
             tmp.reset_index(drop=False, inplace=True, col_level=0)
 
@@ -33,22 +34,24 @@ class FlowQC(object):
                 else:
                     new_columns.append(tmp.columns[i][1])
             tmp.columns = new_columns
-        elif table_format == 'tall':
-            tmp.set_index(['case_tube', 'Channel Name', 'bin'], inplace=True)
-            tmp = tmp.unstack()
-            tmp = tmp.stack(dropna=False)
-        else:
-            raise ValueError("table_format value %s is invalid" % table_format)
 
         return tmp
 
-    def __get_stats(self):
+    def __get_PmtStats(self, **kwargs):
         """ Return pandas df from db table PmtStats """
-        try:
-            return self.db.sql2pd('PmtStats')
-        except:
-            raise
 
-    def __get_meta(self):
-        """ Need to capture relevant meta information """
+        df = self.db.query(getPmtStats=True, **kwargs).results
+        return df
 
+    def __get_TubeStats(self, **kwargs):
+        """ Return pandas df from db table PmtStats """
+
+        df = self.db.query(getTubeStats=True, **kwargs).results
+        return df
+
+    def pushQC(self, db):
+        """ Push QC tables to a database """
+
+        self.histos.to_sql('full_histos', con=db.engine, if_exists='replace', index=False)
+        self.PmtStats.to_sql('full_PmtStats', con=db.engine, if_exists='replace', index=False)
+        self.TubeStats.to_sql('full_TubeStats', con=db.engine, if_exists='replace', index=False)
