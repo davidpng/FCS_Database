@@ -25,6 +25,5 @@ def action(args):
         # Get QC data
         qc = FlowQC(db=db, table_format='wide')
 
-        print qc.histos
-
-        print qc.stats
+        log.info(qc.histos)
+        log.info(qc.stats)

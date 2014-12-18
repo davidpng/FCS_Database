@@ -4,8 +4,8 @@
 
 """
 import logging
+from os import path
 
-from FlowAnal.Find_Clinical_FCS_Files import Find_Clinical_FCS_Files
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
 from FlowAnal.__init__ import package_data
@@ -24,29 +24,48 @@ comp_file = {'1': package_data('Spectral_Overlap_Lib_LSRA.txt'),
 def build_parser(parser):
     parser.add_argument('dir', help='Directory with Flow FCS files [required]',
                         type=str)
-    parser.add_argument('-db', '--db', help='Output sqlite3 db for Flow meta data \
+    parser.add_argument('-db', '--db', help='Input sqlite3 db for Flow meta data \
     [default: db/fcs.db]',
                         default="db/fcs.db", type=str)
+    parser.add_argument('-outdb', '--outdb', help='Output sqlite3 db for Flow meta data \
+    [default: db/fcs_stats.db]',
+                        default="db/fcs_stats.db", type=str)
+    parser.add_argument('-tubes', '--tubes', help='List of tube types to select',
+                        nargs='+', action='store',
+                        default=['Hodgkins', 'Hodgkin'], type=str)
+    parser.add_argument('-dates', '--daterange',
+                        help='Start and end dates to bound selection of cases \
+                        [Year-Month-Date Year-Month-Date]',
+                        nargs=2, action='store', type=str)
 
 
 def action(args):
-        # Collect files/dirs
-        Finder = Find_Clinical_FCS_Files(args.dir)
 
-        # Connect to database (and rebuild)
-        db = FCSdatabase(db=args.db, rebuild=False)
-        print "Building database %s" % args.db
+    # Connect to database
+    db = FCSdatabase(db=args.db, rebuild=False)
+    log.info("Loading database input %s" % args.db)
 
-        # Process files/dirs
-        for f in Finder.filenames:
-            fFCS = FCS(filepath=f, import_dataframe=True)
+    # Connect to database
+    out_db = FCSdatabase(db=args.outdb, rebuild=True)
+    log.info("Loading database output %s" % args.outdb)
+
+    # Create query
+    q = db.query(exporttype='dict_dict', getfiles=True, **vars(args))
+
+    for case, case_info in q.results.items():
+        for tube, relpath in case_info.items():
+            log.info("Case: %s, Tube: %s, File: %s" % (case, tube, relpath))
+            filepath = path.join(args.dir, relpath)
+            fFCS = FCS(filepath=filepath, import_dataframe=True)
+
             if fFCS.empty is False:
                 try:
+                    fFCS.meta_to_db(db=out_db, dir=args.dir, add_lists=True)
                     fFCS.comp_scale_FCS_data(compensation_file=comp_file,
                                              gate_coords=coords,
                                              strict=False, auto_comp=False)
                     fFCS.extract_FCS_histostats()
-                    fFCS.histostats_to_db(db=db)
+                    fFCS.histostats_to_db(db=out_db)
                 except ValueError, e:
-                    log.debug("Skipping FCS %s because of %s" % (f, e))
+                    log.debug("Skipping FCS %s because of %s" % (filepath, e))
 

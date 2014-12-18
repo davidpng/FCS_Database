@@ -7,27 +7,38 @@ Finds all fcs files in a given directory and returns the pathnames
 import os
 import re
 import fnmatch
+import logging
+
+log = logging.getLogger(__name__)
+
 
 class Find_Clinical_FCS_Files(object):
     """
     Finds all FCS files matching a pattern NN-NNNNN in a given directory
     """
-    def __init__(self, directory,exclude=[],**kwargs):
+    def __init__(self, directory=None, Filelist_Path=None, exclude=[], testing=False, **kwargs):
         """
         if directory ends with .txt we will load the text file as a list
         else if directory will be treated as a directory
         """
         self.directory = directory
         self.excludes = exclude
+        self.testing = testing
+        self.file_list = Filelist_Path
+
         print('Excluding the following Directories {}'.format(exclude))
-        if '.txt' in self.directory:
+        if self.directory is None and self.file_list is not None:
+            log.info('Loading filepaths from %s' % self.directory)
             self.filenames = self.__load_files()
-        else:
+        elif self.directory is not None:
+            log.info('Looking for filepaths in directory %s' % self.directory)
             self.filenames = self.__find_files()
-            if "Filelist_Path" in kwargs:
+            if self.file_list is not None:
                 # do only if Filelist_Path included and directory is not a txt
                 # file
-                self.write_found_files(kwargs['Filelist_Path'])
+                self.write_found_files(self.file_list)
+        else:
+            raise "Must specify directory or file path"
 
     def __find_files(self):
         """
@@ -36,35 +47,47 @@ class Find_Clinical_FCS_Files(object):
                      for dirpath, dirnames, files in os.walk(self.directory)
                      for f in filter(files, '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9]*.fcs')]
         """
-        #initialization of variables
+
+        # initialization of variables
         filenames = []
         filenum = 0
         filecount = 0
-        #find all directories in given self.directory
-        sub_directories=os.listdir(self.directory)
-        #remove sub directories in the exclude list
+        done = False
+
+        # find all directories in given self.directory
+        sub_directories = os.listdir(self.directory)
+
+        # remove sub directories in the exclude list
         sub_directories = list(set(sub_directories)-set(self.excludes))
         print("Sub-directories to be searched: {}".format(sub_directories))
         for sub_dirs in sub_directories:
-            #search individual sub_directories
-            for dirpath,dirnames,files in os.walk(os.path.join(self.directory,sub_dirs)):
-                #for files that match the XX-XXXXX pattern
-                filteredlist = fnmatch.filter(files,'[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9]*.fcs')
-                filenum+=len(files)
+            # search individual sub_directories
+            for dirpath, dirnames, files in os.walk(os.path.join(self.directory, sub_dirs)):
+                # for files that match the XX-XXXXX pattern
+                filteredlist = fnmatch.filter(files, '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9]*.fcs')
+                filenum += len(files)
                 for f in filteredlist:
-                    #and add it to the filenames list
-                    filenames.append(os.path.join(dirpath,f))
-                    filecount+=1
-                    #then update the status count
-                    print("FileCount: {:06d} of {:06d}\r".format(filecount,filenum)),
-                print("FileCount: {:06d} of {:06d}\r".format(filecount,filenum)),
-                #update screen/filecount
+                    # and add it to the filenames list
+                    filenames.append(os.path.join(dirpath, f))
+                    filecount += 1
+                    # then update the status count
+                    # print("FileCount: {:06d} of {:06d}\r".format(filecount, filenum)),
+                log.info("FileCount: {:06d} of {:06d}\r".format(filecount, filenum))
+
+                # update screen/filecount
+                if self.testing is True and filecount > 10:
+                    done = True
+                    break
+            if done is True:
+                break
+
         return filenames
 
     def __load_files(self):
-        with open(self.directory,'r') as fo:
+        with open(self.file_list, 'r') as fo:
             filenames = [filename.strip('\n') for filename in fo]
         return filenames
+
     def __get_base_folder_name(self, root):
         """
         Performs regex extraction to a XX-XXXXX pattern

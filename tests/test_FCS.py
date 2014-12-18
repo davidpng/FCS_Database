@@ -116,6 +116,7 @@ class Test_FCS(TestBase):
         np.testing.assert_allclose(b.loc[:, cols].values, b_expect.loc[:, cols].values,
                                    rtol=1e-3,atol=0,err_msg="Results are more different \
                                    than tolerable")
+
     def test_HistoStats(self):
         """ Tests the HistoStats information subroutines
         :return:
