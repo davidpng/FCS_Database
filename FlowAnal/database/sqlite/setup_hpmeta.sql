@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS PmtStats (
        "50%" FLOAT,
        "75%" FLOAT,
        max FLOAT,
+       transform_remain INTEGER,
        version VARCHAR(30) NOT NULL,
        PRIMARY KEY (case_tube, "Channel Name"),
        FOREIGN KEY (case_tube, "Channel Name") REFERENCES PmtTubeCases (case_tube, "Channel Name")
@@ -102,6 +103,18 @@ CREATE TABLE IF NOT EXISTS PmtStats (
 
 CREATE INDEX IF NOT EXISTS ix_PmtStats_Channel_Name
        ON PmtStats ("Channel Name");
+
+-- Tube event stats
+CREATE TABLE IF NOT EXISTS TubeStats (
+       case_tube NVARCHAR(100) NOT NULL,
+       total_events INTEGER NOT NULL,
+       transform_remain INTEGER NOT NULL,
+       viable_remain INTEGER NULL,
+       singlet_remain INTEGER NULL,
+       version VARCHAR(30) NOT NULL,
+       PRIMARY KEY (case_tube),
+       FOREIGN KEY (case_tube) REFERENCES TubeCases (case_tube)
+);
 
 -- Pmt event histogram
 CREATE TABLE IF NOT EXISTS PmtHistos (

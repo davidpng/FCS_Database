@@ -52,7 +52,7 @@ class Process_FCS_Data(object):
         # save columns because data is redfined after comp
         self.columns = self.__Clean_up_columns(self.FCS.parameters.loc['Channel Name'])
 
-        self.total_events = self.FCS.data.shape[0]      # initial number of events before gating
+        self.FCS.total_events = self.FCS.data.shape[0]      # initial number of events before gating
 
         self.overlap_matrix = self._load_overlap_matrix(compensation_file)   # load compensation matrix
         if auto_comp:
@@ -84,9 +84,11 @@ class Process_FCS_Data(object):
             self.coords = coords
             if coords.has_key('viable'):
                 viable_mask = self._gating(self.data, 'SSC-H', 'FSC-H', coords['viable'])
+                self.FCS.viable_remain = np.sum(viable_mask)
                 self.data = self.data[viable_mask]
             if coords.has_key('singlet'):
                 singlet_mask = self._gating(self.data, 'FSC-A', 'FSC-H', coords['singlet'])
+                self.FCS.singlet_remain = np.sum(singlet_mask)
                 self.data = self.data[singlet_mask]
         else:
             self.coords = None
@@ -112,14 +114,26 @@ class Process_FCS_Data(object):
         """
         limits X_input to all events between 0 and 1
         """
-        mask = [x for x in X_input.columns.values
-                if x not in ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'Time']]
-        upper = np.all(X_input[mask] <= high, axis=1)
-        lower = np.all(X_input[mask] >= low, axis=1)
-        mask = ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H']
-        upper1 = np.all(X_input[mask] <= 1, axis=1)
-        lower1 = np.all(X_input[mask] >= 0, axis=1)
-        return upper*lower*upper1*lower1
+        tmp = X_input.drop(['Time'], axis=1).copy()
+        reagents = [x for x in tmp.columns.values
+                    if x not in ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H']]
+
+        for col in tmp.columns:
+            if col in reagents:
+                tmp[col] = (tmp[col] <= high) & (tmp[col] >= low)
+            else:
+                tmp[col] = (tmp[col] <= 1) & (tmp[col] >= 0)
+
+        # Tally and record number of cells that are inside of limits
+        n_transform_keep = tmp.apply(lambda x: np.sum(x), axis=0)
+        n_transform_keep.name = 'transform_remain'
+        self.FCS.n_transform_keep_by_channel = n_transform_keep
+
+        # True if all true (Not sure if this is fastest)
+        mask = np.prod(tmp, axis=1).astype(bool)
+        self.FCS.n_transform_keep_all = np.sum(mask)
+
+        return mask
 
     def _load_overlap_matrix(self, compensation_file):
         """
@@ -216,17 +230,17 @@ class Process_FCS_Data(object):
     def __LogicleTransform(self, input_array, T=2**18, M=4.0, W=1, A=1.0):
         """
         interpolated inverse of the biexponential function
-        
+
         ul = np.log10(2**18+10000)
         x = np.logspace(0, ul, 10000)
         x = x[::-1] - 400000
         # x = np.arange(-200000, 2**18+10000, 50)
         """
-        xn = np.linspace(-2**19,0,10000)
+        xn = np.linspace(-2**19, 0, 10000)
         #set up a linear range from -2**19 to zero
-        xp = np.logspace(0,np.log10(2**18+10000),10000)
+        xp = np.logspace(0, np.log10(2**18+10000), 10000)
         #set up a log range from 0 to 2**18+10000
-        x = np.concatenate([xn,xp])
+        x = np.concatenate([xn, xp])
         y = self.__BiexponentialFunction(x, T, M, W, A)
         output = interp1d(y.T, x.T)
         return output(input_array)
@@ -305,8 +319,8 @@ class Process_FCS_Data(object):
         b = (M+A)*np.log(10)
         w = np.float(W)/np.float(M+A)
 
-        d = self.__rtsafe(w,b)
-        if (d<0) | (d>b):
+        d = self.__rtsafe(w, b)
+        if (d < 0) | (d > b):
             raise NameError('d must satisfy 0 < d < b')
 
         x2 = np.float(A)/np.float(M+A)
@@ -319,7 +333,7 @@ class Process_FCS_Data(object):
         f = f_a*a
         c = c_a*a
 
-        return (a*np.e**(b*input_array)-c*np.e**(-d*input_array)+f)
+        return (a*np.e**(b*input_array) - c*np.e**(-d*input_array)+f)
 
 
 

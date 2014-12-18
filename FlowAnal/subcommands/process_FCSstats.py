@@ -13,8 +13,8 @@ log = logging.getLogger(__name__)
 
 def build_parser(parser):
     parser.add_argument('--db', '-db', help='sqlite3 db with flow meta data \
-    [default: db/fcs.db]',
-                        default="db/fcs.db", type=str)
+    [default: db/fcs_stats.db]',
+                        default="db/fcs_stats.db", type=str)
 
 
 def action(args):

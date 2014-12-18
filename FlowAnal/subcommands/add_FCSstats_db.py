@@ -5,6 +5,7 @@
 """
 import logging
 from os import path
+import sys
 
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
@@ -67,5 +68,8 @@ def action(args):
                     fFCS.extract_FCS_histostats()
                     fFCS.histostats_to_db(db=out_db)
                 except ValueError, e:
-                    log.debug("Skipping FCS %s because of %s" % (filepath, e))
+                    print "Skipping FCS %s because of ValueError: %s" % (filepath, e)
+                except:
+                    print "Skipping FCS %s because of unknown error related to: %s" % \
+                        (filepath, sys.exc_info()[0])
 

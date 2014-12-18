@@ -10,6 +10,8 @@ class FlowQC(object):
         self.histos = self.__get_histos(**kwargs)
         self.stats = self.__get_stats()
 
+        # TODO: merge relevant tables together
+
     def __get_histos(self, table_format='wide'):
         """ Return pandas df from db table PmtHistos
 
@@ -46,3 +48,7 @@ class FlowQC(object):
             return self.db.sql2pd('PmtStats')
         except:
             raise
+
+    def __get_meta(self):
+        """ Need to capture relevant meta information """
+

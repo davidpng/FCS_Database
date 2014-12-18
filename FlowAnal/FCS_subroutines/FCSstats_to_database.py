@@ -13,6 +13,8 @@ __maintainer__ = "David Ng"
 __email__ = "hermands@uw.edu"
 __status__ = "Subroutine - prototype"
 
+import pandas as pd
+
 
 class FCSstats_to_database(object):
     """ Export the stats/histo data in an FCS object to database
@@ -28,19 +30,33 @@ class FCSstats_to_database(object):
         self.FCS = FCS
         self.db = db
 
-        if hasattr(self.FCS, 'stats'):
+        if hasattr(self.FCS, 'PmtStats') and hasattr(self.FCS, 'TubeStats'):
             self.__push_stats()
+        else:
+            raise "Missing stats"
         if hasattr(self.FCS, 'histos'):
             self.__push_histos()
+        else:
+            raise "Missing histos"
 
     def __push_stats(self):
-        """ Export Pmt event stats """
-        d = self.FCS.stats.T
+        """ Export Pmt event stats and Tube event stats """
+
+        d = self.FCS.PmtStats
         d.reset_index(drop=False, inplace=True, col_level=0)
         d.columns.values[0] = "Channel Name"
         d['version'] = self.FCS.version
         d['case_tube'] = self.FCS.case_tube
         self.db.add_df(df=d, table='PmtStats')
+
+        d = self.FCS.TubeStats
+        d['version'] = self.FCS.version
+        d['case_tube'] = self.FCS.case_tube
+        d = pd.Series(d, name='val')
+        d = d.reset_index(drop=False).T
+        d.columns = d.loc['index', :]
+        d.drop(['index'], inplace=True)
+        self.db.add_df(df=d, table='TubeStats')
 
     def __push_histos(self):
         """ Export Pmt event histos
