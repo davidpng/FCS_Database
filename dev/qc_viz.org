@@ -1,0 +1,35 @@
+#+TITLE: Visualization of HP flow QC data
+#+DATE: 2014-12-15
+#+PROPERTY: header-args:R :session *R* :exports both :results output replace
+
+* Setup session
+Choose repository version
+#+BEGIN_SRC sh :results none :exports none
+cd /home/local/AMC/hermands/repos/flow_anal
+python setup.py -h
+cur_branch=`git branch --list|egrep "^\\*"|perl -pe 's/^\* //'`
+git stash
+git checkout v0.2.1
+#+END_SRC
+* Setup R
+#+BEGIN_SRC R :exports none :results none
+library(RSQLite)
+library(dplyr)
+library(ggplot2)
+library(MASS)
+sqlite <- dbDriver("SQLite")
+setwd('/home/local/AMC/hermands/repos/flow_anal')
+db <- dbConnect(sqlite, "db/test.db")
+histos <- tbl_df(dbReadTable(db, 'full_histos'))
+pmtstats <- tbl_df(dbReadTable(db, 'full_PmtStats'))
+tubestats <- tbl_df(dbReadTable(db, 'full_tubestats'))
+
+#+END_SRC
+
+* Reset repository
+Choose repository version
+#+BEGIN_SRC sh :results none :exports none
+cd /home/local/AMC/hermands/repos/flow_anal
+git checkout $cur_branch
+git stash apply
+#+END_SRC

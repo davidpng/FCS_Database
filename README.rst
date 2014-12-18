@@ -15,8 +15,12 @@ FCS_Database-env/bin/activate
 # Update version
 python setup.py -h
 
+# Make .fcs file list
+./flowanal.py -v make_FCS_file_list /home/local/AMC/ngdavid/clinical_cHL_cases/ [-n 30]
+
 # Make FCS db
 ./flowanal.py make_FCSmeta_db /home/local/AMC/ngdavid/clinical_cHL_cases/
+
 # Make FCS db from archive volume
 python flowanal.py make_FCSmeta_db '/mnt/hgfs/archive/' --ex 'archive2' 'Duplicate data' '~snapshot' 'test' 'MISC archive files' 'FC500' --fl 'db/NewFileList.txt'
 
@@ -26,6 +30,12 @@ python flowanal.py make_FCSmeta_db '/mnt/hgfs/archive/' --ex 'archive2' 'Duplica
 # Import Tube types data
 <edit> db/tube_types.tmp
 ./flowanal.py tube_types -load
+
+# Add QC stats
+./flowanal.py add_FCSstats_db /home/local/AMC/ngdavid/clinical_cHL_cases/ -tubes Hodgkin Hodgkins
+
+# Do something with QC stats
+./flowanal.py -v process_FCSstats -tubes Hodgkin Hodgkins --table-format tall [--testing]
 
 # Query FCS db for Hodgkins tubes
 ./flowanal.py query_db --tubes Hodgkins --daterange 2012-01-01 2013-01-01 --outfile db/cases.tmp

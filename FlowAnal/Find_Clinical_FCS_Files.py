@@ -16,19 +16,19 @@ class Find_Clinical_FCS_Files(object):
     """
     Finds all FCS files matching a pattern NN-NNNNN in a given directory
     """
-    def __init__(self, directory=None, Filelist_Path=None, exclude=[], testing=False, **kwargs):
+    def __init__(self, directory=None, Filelist_Path=None, exclude=[], n_files=None, **kwargs):
         """
         if directory ends with .txt we will load the text file as a list
         else if directory will be treated as a directory
         """
         self.directory = directory
         self.excludes = exclude
-        self.testing = testing
+        self.n_files = n_files
         self.file_list = Filelist_Path
 
         print('Excluding the following Directories {}'.format(exclude))
         if self.directory is None and self.file_list is not None:
-            log.info('Loading filepaths from %s' % self.directory)
+            log.info('Loading filepaths from %s' % self.file_list)
             self.filenames = self.__load_files()
         elif self.directory is not None:
             log.info('Looking for filepaths in directory %s' % self.directory)
@@ -75,7 +75,7 @@ class Find_Clinical_FCS_Files(object):
                 log.info("FileCount: {:06d} of {:06d}\r".format(filecount, filenum))
 
                 # update screen/filecount
-                if self.testing is True and filecount > 10:
+                if self.n_files is not None and filecount > self.n_files:
                     done = True
                     break
             if done is True:

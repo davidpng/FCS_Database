@@ -16,8 +16,8 @@ def build_parser(parser):
     [default: db/FoundFile.txt]', default='db/FoundFile.txt', type=str)
     parser.add_argument('-exclude', '--ex', help='List of directories to exclude',
                         default=[".."], nargs='+', type=str)
-    parser.add_argument('-testing', '--testing', help='For testing purposes only find ~10 files',
-                        action='store_true')
+    parser.add_argument('-n', '--n_files', help='For testing purposes only find N files',
+                        default=None, type=int)
 
 
 def action(args):
