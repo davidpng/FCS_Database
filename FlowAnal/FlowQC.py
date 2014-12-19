@@ -9,8 +9,8 @@ class FlowQC(object):
         self.db = dbcon
 
         # Load all QC data
-        self.histos = self.__get_histos(**kwargs)
         self.PmtStats = self.__get_PmtStats(**kwargs)
+        self.histos = self.__get_histos(**kwargs)
         self.TubeStats = self.__get_TubeStats(**kwargs)
 
     def __get_histos(self, table_format='tall', **kwargs):

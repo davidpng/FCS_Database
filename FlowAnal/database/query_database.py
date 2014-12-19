@@ -101,6 +101,7 @@ class queryDB(object):
         self.q = self.session.query(TubeCases.c.cytnum,
                                     TubeCases.c.date,
                                     PmtStats).\
+            filter(TubeCases.c.case_tube == PmtStats.c.case_tube).\
             filter(~TubeCases.c.empty).\
             order_by(TubeCases.c.date)
 

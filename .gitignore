@@ -58,3 +58,5 @@ target/
 
 # Tmp files
 *.tmp
+
+output/

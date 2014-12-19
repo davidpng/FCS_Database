@@ -21,9 +21,65 @@ sqlite <- dbDriver("SQLite")
 setwd('/home/local/AMC/hermands/repos/flow_anal')
 db <- dbConnect(sqlite, "db/test.db")
 histos <- tbl_df(dbReadTable(db, 'full_histos'))
+histos$date <- as.POSIXct(histos$date, "%Y-%m-%d %H:%M:%S")
+histos$cytnum <- as.factor(histos$cytnum)
 pmtstats <- tbl_df(dbReadTable(db, 'full_PmtStats'))
+pmtstats$date <- as.POSIXct(pmtstats$date, "%Y-%m-%d %H:%M:%S")
+pmtstats$cytnum <- as.factor(pmtstats$cytnum)
 tubestats <- tbl_df(dbReadTable(db, 'full_tubestats'))
+tubestats$date <- as.POSIXct(tubestats$date, "%Y-%m-%d %H:%M:%S")
+tubestats$cytnum <- as.factor(tubestats$cytnum)
 
+#+END_SRC
+
+* TubeStats
+#+BEGIN_SRC R
+outdir <- 'output'
+
+variables <- c('total_events', 'transform_remain', 'viable_remain', 'singlet_remain')
+pdf(paste(outdir, 'count_lines.pdf', sep='/'), 10, 5)
+for (var in c(variables)) {
+  g <- tubestats %>%
+    arrange(date) %>%
+      ggplot(aes_string(x='date', y=var, group='cytnum'))
+  g <- g + geom_line(aes(colour=cytnum))
+  g <- g + labs(title=paste(var, ' over time', sep=''))
+  print(g)
+}
+dev.off()
+
+variables <- c('total_events', 'transform_remain', 'viable_remain', 'singlet_remain')
+cyts <- names(table(tubestats$cytnum))[which(as.numeric(table(tubestats$cytnum)) > 10)]
+pdf(paste(outdir, 'smooth_lines.pdf', sep='/'), 10, 5)
+for (var in c(variables)) {
+  for (cyt in cyts) {
+    g <- tubestats %>%
+      arrange(date) %>%
+        filter(cytnum == cyt) %>%
+          ggplot(aes_string(x='date', y=var))
+    g <- g + geom_point()
+    g <- g + stat_smooth(n=10)
+    g <- g + labs(title=paste(var, ' for cytometer [', cyt, '] smoothed (n=10) over time', sep=''))
+    print(g)
+  }
+}
+dev.off()
+
+variables <- c('ptransform', 'pviable', 'psinglet')
+tmp <- tubestats %>%
+  arrange(date) %>%
+    mutate(ptransform = transform_remain / total_events * 100,
+           pviable = viable_remain / transform_remain * 100,
+           psinglet = singlet_remain / viable_remain * 100)
+pdf(paste(outdir, 'percent_lines.pdf', sep='/'), 10, 5)
+for (var in c(variables)) {
+  g <- ggplot(tmp, aes_string(x='date', y='pviable', group='cytnum'))
+  g <- g + geom_line(aes(colour=cytnum))
+  g <- g + labs(title=paste(var, ' over time', sep=''))
+  print(g)
+}
+dev.off()
+rm(tmp)
 #+END_SRC
 
 * Reset repository
