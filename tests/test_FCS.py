@@ -82,9 +82,9 @@ class Test_FCS(TestBase):
         db = FCSdatabase(db=outfile, rebuild=True)
 
         a.meta_to_db(db=db, dir=root_dir)
-        
+
     def test_comp_vis(self):
-        """ 
+        """
         Tests the compensation visualizer subroutine in FCS
         """
 
@@ -102,9 +102,9 @@ class Test_FCS(TestBase):
         a.comp_scale_FCS_data(compensation_file=comp_file,
                               gate_coords=coords,
                               strict=False,auto_comp=False)
-                             
+
         a.comp_visualize_FCS(filename='dummy.pdf')
-        
+
     def test_process(self):
         """ Test running processing
 
@@ -132,8 +132,8 @@ class Test_FCS(TestBase):
 
         b_expect = pd.DataFrame({'FSC-H': {105: 0.25751877, 100: 0.29451752,
                                            101: 0.32627106, 102: 0.42173004},
-                                 'CD15 FITC': {105: 0.20802763, 100: 0.20469858,
-                                               101: 0.5515328, 102: 0.10146696}}, dtype='float32')
+                                 'CD15 FITC': {105: 0.79197961, 100: 0.79530305,
+                                               101: 0.44847226, 102: 0.898543}}, dtype='float32')
         #np.testing.assert_array_equal(b.loc[:, cols].values, b_expect.loc[:, cols].values)
         np.testing.assert_allclose(b.loc[:, cols].values, b_expect.loc[:, cols].values,
                                    rtol=1e-3,atol=0,err_msg="Results are more different \
@@ -161,11 +161,11 @@ class Test_FCS(TestBase):
         # not sure what these do?
         log.debug(a.stats)
         log.debug(a.histos)
-        
+
     def test_comp_vis(self):
         """
         Tests the comp vizulization subroutine in FCS
-        """        
+        """
         coords = {'singlet': [(0.01, 0.06), (0.60, 0.75), (0.93, 0.977), (0.988, 0.86),
                               (0.456, 0.379), (0.05, 0.0), (0.0, 0.0)],
                   'viable': [(0.358, 0.174), (0.609, 0.241), (0.822, 0.132), (0.989, 0.298),
@@ -186,7 +186,7 @@ class Test_FCS(TestBase):
                               strict=False,auto_comp=False)
 
         a.comp_visualize_FCS(filename = 'test.png')
-        
+
     def test_auto_comp(self):
         """ Tests the auto compensation subroutine of comp_scale_FCS_data
 
@@ -218,8 +218,8 @@ class Test_FCS(TestBase):
 
         b_expect = pd.DataFrame({'FSC-H': {105: 0.25751877, 100: 0.29451752,
                                            101: 0.32627106, 102: 0.42173004},
-                                 'CD15 FITC': {105: 0.20802763, 100: 0.20469858,
-                                               101: 0.5515328, 102: 0.10146696}}, dtype='float32')
+                                 'CD15 FITC': {105: 0.79197961, 100: 0.79530305,
+                                               101: 0.44847226, 102: 0.898543}}, dtype='float32')
         #np.testing.assert_array_equal(b.loc[:, cols].values, b_expect.loc[:, cols].values)
         np.testing.assert_allclose(b.loc[:, cols].values, b_expect.loc[:, cols].values,
                                    rtol=1e-3,atol=0,err_msg="Results are more different \

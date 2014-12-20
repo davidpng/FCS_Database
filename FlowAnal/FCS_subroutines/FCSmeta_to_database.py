@@ -81,8 +81,9 @@ class FCSmeta_to_database(object):
         """ Capture/add TubeTypeInstance """
 
         # Capture antigen in FCS object
-        antigens = self.FCS.parameters.loc['Antigen', :].unique()
+        antigens = self.FCS.parameters.loc['Antigen', :].dropna().unique()
         antigens.sort()
+        print antigens
         antigens_string = ';'.join(antigens)
 
         s = self.db.Session()

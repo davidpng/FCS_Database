@@ -130,18 +130,18 @@ class loadFCS(object):
 
     def __get_cytometer_info(self,convert_cytnum=True):
         """Provides error handling in case parameter is undefined"""
-        Convert_CytName = {'H0152':'1', 'H47100082':'3', 'H4710082':'3', 
+        Convert_CytName = {'H0152':'1', 'H47100082':'3', 'H4710082':'3',
                            '1':'1', '2':'2', '3':'3'}
         if self.text.has_key('cyt'):
             cytometer = self.text['cyt']
         else:
-            cytometer = np.nan
+            cytometer = None
         if self.text.has_key('cytnum'):
             cytnum = self.text['cytnum']
             if convert_cytnum:
                 cytnum = Convert_CytName[cytnum]
         else:
-            cytnum = np.nan
+            cytnum = None
         return cytometer,cytnum
 
     def __get_num_events(self):
@@ -266,25 +266,25 @@ class loadFCS(object):
                 header_df[x]['Channel Name'] = header_df[x]['Short name']
             unparsed_name = header_df[x]['Channel Name']
             parsed_name = unparsed_name.split(" ", 1)
-            
+
             if 'FSC' in unparsed_name:
-                header_df[x]['Antigen'] = np.nan
-                header_df[x]['Fluorophore'] = np.nan
+                header_df[x]['Antigen'] = None
+                header_df[x]['Fluorophore'] = None
             elif 'SSC' in unparsed_name:
-                header_df[x]['Antigen'] = np.nan
-                header_df[x]['Fluorophore'] = np.nan
+                header_df[x]['Antigen'] = None
+                header_df[x]['Fluorophore'] = None
             elif 'Time' in parsed_name:
-                header_df[x]['Antigen'] = np.nan
-                header_df[x]['Fluorophore'] = np.nan
+                header_df[x]['Antigen'] = None
+                header_df[x]['Fluorophore'] = None
             elif len(parsed_name) == 2:
                 header_df[x]['Antigen'] = parsed_name[0].replace("-H","")
                 header_df[x]['Fluorophore'] = parsed_name[1].strip("-H") #replace("-H","") #problem with APC-H7
             elif len(parsed_name) == 1:
-                header_df[x]['Antigen'] = np.nan
+                header_df[x]['Antigen'] = None
                 header_df[x]['Fluorophore'] = parsed_name[0]
             else:
-                header_df[x]['Antigen'] = np.nan
-                header_df[x]['Fluorophore'] = np.nan
+                header_df[x]['Antigen'] = None
+                header_df[x]['Fluorophore'] = None
 
         return header_df
 
