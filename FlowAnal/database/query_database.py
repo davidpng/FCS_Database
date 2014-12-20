@@ -58,6 +58,7 @@ class queryDB(object):
         TubeCases = self.db.meta.tables['TubeCases']
         TubeTypesInstances = self.db.meta.tables['TubeTypesInstances']
 
+        log.info('Looking for files')
         # Build query
         self.q = self.session.query(TubeCases.c.case_number, TubeCases.c.filename,
                                     TubeCases.c.dirname,
@@ -96,12 +97,16 @@ class queryDB(object):
         """
         PmtStats = self.db.meta.tables['PmtStats']
         TubeCases = self.db.meta.tables['TubeCases']
+        TubeStats = self.db.meta.tables['TubeStats']
 
+        log.info('Looking for PmtStats')
         # Build query
         self.q = self.session.query(TubeCases.c.cytnum,
                                     TubeCases.c.date,
-                                    PmtStats).\
+                                    PmtStats,
+                                    TubeStats.c.total_events).\
             filter(TubeCases.c.case_tube == PmtStats.c.case_tube).\
+            filter(TubeStats.c.case_tube == TubeCases.c.case_tube).\
             filter(~TubeCases.c.empty).\
             order_by(TubeCases.c.date)
 
@@ -121,6 +126,7 @@ class queryDB(object):
         TubeStats = self.db.meta.tables['TubeStats']
         TubeCases = self.db.meta.tables['TubeCases']
 
+        log.info('Looking for TubeStats')
         # Build query
         self.q = self.session.query(TubeCases.c.cytnum,
                                     TubeCases.c.date,
@@ -145,6 +151,7 @@ class queryDB(object):
         PmtHistos = self.db.meta.tables['PmtHistos']
         TubeCases = self.db.meta.tables['TubeCases']
 
+        log.info('Looking for PmtHistos')
         # Build query
         self.q = self.session.query(TubeCases.c.cytnum,
                                     TubeCases.c.date,
@@ -176,6 +183,8 @@ class queryDB(object):
             self.q = self.q.filter(TubeTypesInstances.c.tube_type.in_(tubes_to_select))
 
         if 'daterange' in kwargs and kwargs['daterange'] is not None:
+            log.info('Looking for daterange: [%s, %s]' % (kwargs['daterange'][0],
+                                                          kwargs['daterange'][1]))
             date_start = datetime.strptime(kwargs['daterange'][0], '%Y-%m-%d')
             date_end = datetime.strptime(kwargs['daterange'][1], '%Y-%m-%d')
             self.q = self.q.filter(func.date(TubeCases.c.date).between(date_start, date_end))

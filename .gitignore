@@ -60,3 +60,4 @@ target/
 *.tmp
 
 output/
+.R*
