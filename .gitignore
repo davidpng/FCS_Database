@@ -23,6 +23,9 @@ var/
 *.egg
 db/
 src/
+*.pdf
+*.fcs
+*.png
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -58,3 +61,5 @@ target/
 
 # Tmp files
 *.tmp
+
+.R*
