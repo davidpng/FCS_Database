@@ -73,11 +73,10 @@ class Process_FCS_Data(object):
 
         limit_mask = self.__limit_gate(self.data, high=rescale_lim[1], low=rescale_lim[0])
         self.data = self.data[limit_mask]
-        self.__Rescale(self.data, high=rescale_lim[0], low=rescale_lim[1])  # self.data is modified
+        self.__Rescale(high=rescale_lim[0], low=rescale_lim[1])  # Edits self.data
 
-
+        self.__patch()
         self.FCS.data = self.data  # update FCS.data
-
 
         if 'gate_coords' in kwargs:   # if gate coord dictionary provided, do initial cleanup
             coords = kwargs['gate_coords']
@@ -101,14 +100,16 @@ class Process_FCS_Data(object):
         output = [c.replace('CD ', 'CD') for c in columns]
         return output
 
-    def __Rescale(self, X_input, high=1, low=-0.15,
+    def __Rescale(self, high=1.0, low=-0.15,
                   exclude=['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'Time']):
         """This function only modifies a subset of X_input[mask], therefore
         it is better to pass X_input by reference
         """
+        mask = ~np.in1d(self.data.columns.values, exclude)
+        cols = self.data.columns[mask].values
 
-        mask = [x for x in X_input.columns.values if x not in exclude]
-        X_input[mask] = (X_input[mask]-low)/(high-low)
+        self.data[cols] = self.data[cols].apply(func=lambda x:
+                                                (x - low) / (high - low), axis=0)
 
     def __limit_gate(self, X_input, high, low):
         """
@@ -223,7 +224,7 @@ class Process_FCS_Data(object):
             log = [x for x in X_input.columns.values if x not in lin + ['Time']]
         output = X_input.copy()
         output[log] = self.__LogicleTransform(X_input[log].values, T, M, W, A)/np.float(2**18) #logicle transform and rescaling
-        output[lin] = X_input[lin].values/(2**18) #rescale forward scatter linear
+        output[lin] = X_input[lin].values/np.float(2**18) #rescale forward scatter linear
 
         return output
 
@@ -236,7 +237,7 @@ class Process_FCS_Data(object):
         x = x[::-1] - 400000
         # x = np.arange(-200000, 2**18+10000, 50)
         """
-        xn = np.linspace(-2**19, 0, 10000)
+        xn = np.linspace(-2**19, 0, 20000)
         #set up a linear range from -2**19 to zero
         xp = np.logspace(0, np.log10(2**18+10000), 10000)
         #set up a log range from 0 to 2**18+10000
@@ -335,7 +336,16 @@ class Process_FCS_Data(object):
 
         return (a*np.e**(b*input_array) - c*np.e**(-d*input_array)+f)
 
-
+    def __patch(self):
+        """
+        This function is a temporary patch that flips the flurophore parameters of self.data
+        """
+        mask = [x for x in self.data.columns
+                if x not in ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'Time']]
+        #print "the mask is :"
+        #print mask
+        #print self.data[mask]
+        self.data[mask] = 1-self.data[mask]
 
 if __name__ == "__main__":
     import os
