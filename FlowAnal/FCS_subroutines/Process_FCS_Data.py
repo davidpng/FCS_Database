@@ -73,11 +73,10 @@ class Process_FCS_Data(object):
 
         limit_mask = self.__limit_gate(self.data, high=rescale_lim[1], low=rescale_lim[0])
         self.data = self.data[limit_mask]
-        self.__Rescale(self.data, high=rescale_lim[0], low=rescale_lim[1])  # self.data is modified
+        self.__Rescale(high=rescale_lim[0], low=rescale_lim[1])  # Edits self.data
 
         self.__patch()
         self.FCS.data = self.data  # update FCS.data
-
 
         if 'gate_coords' in kwargs:   # if gate coord dictionary provided, do initial cleanup
             coords = kwargs['gate_coords']
@@ -99,14 +98,16 @@ class Process_FCS_Data(object):
         output = [c.replace('CD ', 'CD') for c in columns]
         return output
 
-    def __Rescale(self, X_input, high=1.0, low=-0.15,
+    def __Rescale(self, high=1.0, low=-0.15,
                   exclude=['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'Time']):
         """This function only modifies a subset of X_input[mask], therefore
         it is better to pass X_input by reference
         """
+        mask = ~np.in1d(self.data.columns.values, exclude)
+        cols = self.data.columns[mask].values
 
-        mask = [x for x in X_input.columns.values if x not in exclude]
-        X_input[mask] = (X_input[mask]-low)/(high-low)
+        self.data[cols] = self.data[cols].apply(func=lambda x:
+                                                (x - low) / (high - low), axis=0)
 
     def __limit_gate(self, X_input, high, low):
         """
@@ -216,7 +217,7 @@ class Process_FCS_Data(object):
     def __LogicleTransform(self, input_array, T=2**18, M=4.0, W=1, A=1.0):
         """
         interpolated inverse of the biexponential function
-        
+
         ul = np.log10(2**18+10000)
         x = np.logspace(0, ul, 10000)
         x = x[::-1] - 400000
@@ -327,11 +328,11 @@ class Process_FCS_Data(object):
         """
         mask = [x for x in self.data.columns
                 if x not in ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'Time']]
-        #print "the mask is :" 
+        #print "the mask is :"
         #print mask
         #print self.data[mask]
         self.data[mask] = 1-self.data[mask]
-        
+
 if __name__ == "__main__":
     import os
     import sys

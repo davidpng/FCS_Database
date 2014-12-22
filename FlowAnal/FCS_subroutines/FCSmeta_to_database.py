@@ -82,8 +82,7 @@ class FCSmeta_to_database(object):
 
         # Capture antigen in FCS object
         antigens = self.FCS.parameters.loc['Antigen', :].dropna().unique()
-        antigens.sort()
-        print antigens
+        antigens.sort(inplace=True)
         antigens_string = ';'.join(antigens)
 
         s = self.db.Session()
@@ -105,8 +104,11 @@ class FCSmeta_to_database(object):
     def push_TubeCase(self, dir):
         """ Push tube+case information FCS object to DB """
 
+        # Push case
+        self.db.add_list(x=[self.FCS.case_number], table='Cases')
+
         # Push case+tube meta information
         self.db.add_dict(self.meta, table='TubeCases')
 
-        # Push case
-        self.db.add_list(x=[self.FCS.case_number], table='Cases')
+        # Need to pull assigned case_tube_idx from database
+
