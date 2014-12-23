@@ -34,10 +34,16 @@ class FCSstats_to_database(object):
             self.__push_stats()
         else:
             raise "Missing stats"
+
         if hasattr(self.FCS, 'histos'):
             self.__push_histos()
         else:
             raise "Missing histos"
+
+        if hasattr(self.FCS, 'comp_correlation'):
+            self.__push_comp_corr()
+        else:
+            raise "Missing compensation correlation"
 
     def __push_stats(self):
         """ Export Pmt event stats and Tube event stats """
@@ -91,3 +97,12 @@ class FCSstats_to_database(object):
 
         # Push histo
         self.db.add_df(df=d3, table='PmtHistos')
+
+    def __push_comp_corr(self):
+        """ Export compensation correlation data
+        """
+
+        d1 = self.FCS.comp_correlation
+        print d1.iloc[1:8, 1:8]
+        d2 = self.FCS.comp_p_value
+        print d2.iloc[1:8, 1:8]

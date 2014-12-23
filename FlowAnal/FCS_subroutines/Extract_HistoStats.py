@@ -17,6 +17,7 @@ import itertools
 
 log = logging.getLogger(__name__)
 
+
 class Extract_HistoStats(object):
 
     def __init__(self, FCS,range=(0,1),comp_corr_cutoff=25):
@@ -33,12 +34,6 @@ class Extract_HistoStats(object):
             FCS.TubeStats = self.__make_TubeStats()
             FCS.histos = self.__make_histogram(range=range)
             FCS.comp_correlation = self.__generate_comp_corr_mtx(cutoff=comp_corr_cutoff)
-            """ Moved to test_FCS.py
-            log.debug(FCS.PmtStats)
-            log.debug(FCS.TubeStats)
-            log.debug(FCS.histos)
-            log.debug(FCS.comp_correlation)
-            """
         else:
             log.debug('Nothing todo because stats and histogram are missing')
 
@@ -77,18 +72,18 @@ class Extract_HistoStats(object):
 
     def __generate_comp_corr_mtx(self, cutoff):
         """
-	    This function generates a square matrix as a pandas dataframe listing the 
+	    This function generates a square matrix as a pandas dataframe listing the
 	    Pearson's correlation coefficient for each channel/reagent combination
-		
+
 	    Takes arguments:
 	    cutoff - required number of events in the gated 'high comp' area (default 50)
 	    Returns:
         a list of lists with [Xax,Yax,PearsonR,P_value]
         N.B. - This is a subfunction of the FCS object
 	    """
-        # set up the reagent list 
+        # set up the reagent list
         exclude = ['FSC-A','FSC-H','SSC-A','SSC-H','Time']
-        reagents = [i for i in self.FCS.data.columns if i not in exclude] 
+        reagents = [i for i in self.FCS.data.columns if i not in exclude]
 
         # make an empty list to append
         output = []
@@ -100,16 +95,16 @@ class Extract_HistoStats(object):
 
     def __comp_correlation(self,x_ax,y_ax,cutoff):
         gated_pop = self.FCS.data[[x_ax,y_ax]][self.__UL_gating(x_ax,y_ax)]
-        
+
         if len(gated_pop) > cutoff:
 	        output = pearsonr(gated_pop.iloc[:,0],gated_pop.iloc[:,1])
 
-        else: 
+        else:
 	          #if not enough events exist in the gate; there is no point in taking
 	          #a correlation and we should append NaN to the matrix
 	        output = (np.nan,np.nan)
         return output
-        
+
     def __UL_gating(self,x_ax,y_ax):
         #describes an upper left corner gate
         coords = [(0.0,0.7),(0.6,0.7),(0.9,1.0),(0.0,1.0),(0.0,0.7)]
