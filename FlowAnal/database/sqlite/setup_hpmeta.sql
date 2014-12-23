@@ -135,3 +135,19 @@ CREATE TABLE IF NOT EXISTS PmtHistos (
 );
 CREATE INDEX IF NOT EXISTS PmtHistos_bin
        ON PmtHistos ("Channel Number", bin);
+
+-- Pmt Compensation Correlation
+CREATE TABLE IF NOT EXISTS PmtCompCorr (
+       case_tube_idx INTEGER NOT NULL,
+       "Channel Number IN" NVARCHAR(5) NOT NULL,
+       "Channel Number FROM" NVARCHAR(5) NOT NULL,
+       Pearson_R FLOAT NULL,
+       P_value FLOAT NULL,
+       PRIMARY KEY (case_tube_idx, "Channel Number IN", "Channel Number FROM"),
+       FOREIGN KEY (case_tube_idx) REFERENCES TubeCases(case_tube_idx)
+);
+
+CREATE INDEX IF NOT EXISTS PmtCompCorr_IN
+       ON PmtCompCorr ("Channel Number IN", "Channel Number FROM");
+CREATE INDEX IF NOT EXISTS PmtCompCorr_IN
+       ON PmtCompCorr ("Channel Number FROM", "Channel Number IN");

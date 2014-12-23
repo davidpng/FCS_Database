@@ -102,7 +102,18 @@ class FCSstats_to_database(object):
         """ Export compensation correlation data
         """
 
-        d1 = self.FCS.comp_correlation
-        print d1.iloc[1:8, 1:8]
-        d2 = self.FCS.comp_p_value
-        print d2.iloc[1:8, 1:8]
+        d = self.FCS.comp_correlation
+        params = self.FCS.parameters.T
+
+        d = pd.merge(d, params[['Channel Name', 'Channel Number']],
+                     how='left', left_on=['spill_in'], right_on=['Channel Name'])
+        d.drop(['spill_in', 'Channel Name'], axis=1, inplace=True)
+        d.columns = d.columns[range(d.shape[1] - 1)].tolist() + ['Channel Number IN']
+
+        d = pd.merge(d, params[['Channel Name', 'Channel Number']],
+                     how='left', left_on=['spill_from'], right_on=['Channel Name'])
+        d.drop(['spill_from', 'Channel Name'], axis=1, inplace=True)
+        d.columns = d.columns[range(d.shape[1] - 1)].tolist() + ['Channel Number FROM']
+
+        d['case_tube_idx'] = self.FCS.case_tube_idx
+        self.db.add_df(df=d, table='PmtCompCorr')
