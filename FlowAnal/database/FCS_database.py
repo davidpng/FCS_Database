@@ -3,7 +3,7 @@
 import logging
 import pandas as pd
 
-from database import SqliteConnection
+from hsqr.database.database import SqliteConnection
 from query_database import queryDB
 from FlowAnal.__init__ import package_data
 
