@@ -6,7 +6,7 @@
 
 -- Case_Tube_Pmt
 CREATE TABLE IF NOT EXISTS PmtTubeCases (
-       case_tube_idx INTEGER NULL,  -- tmp fix SHOULD BE NOT NULL
+       case_tube_idx INTEGER NOT NULL,
        Antigen NVARCHAR(10) NULL,
        Fluorophore NVARCHAR(10) NULL,
        "Channel Name" NVARCHAR(20) NOT NULL,

@@ -91,10 +91,6 @@ class FCSstats_to_database(object):
         d3.sort(['case_tube_idx', 'Channel Number'], inplace=True)
         d3.columns = ['case_tube_idx', 'Channel Number', 'bin', 'density']
 
-        # # Push bins
-        # bins = [str(x) for x in d3.bin.unique()]
-        # self.db.add_list(x=bins, table='HistoBins')
-
         # Push histo
         self.db.add_df(df=d3, table='PmtHistos')
 

@@ -12,6 +12,7 @@ class FlowQC(object):
         self.PmtStats = self.__get_PmtStats(**kwargs)
         self.histos = self.__get_histos(**kwargs)
         self.TubeStats = self.__get_TubeStats(**kwargs)
+        self.PmtCompCorr = self.__get_PmtCompCorr(**kwargs)
 
     def __get_histos(self, table_format='tall', **kwargs):
         """ Return pandas df from db table PmtHistos
@@ -49,9 +50,18 @@ class FlowQC(object):
         df = self.db.query(getTubeStats=True, **kwargs).results
         return df
 
+    def __get_PmtCompCorr(self, **kwargs):
+        """ Return pandas df from db table CompCorr
+        """
+        tmp = self.db.query(getPmtCompCorr=True, **kwargs).results
+
+        return tmp
+
     def pushQC(self, db):
         """ Push QC tables to a database """
 
         self.histos.to_sql('full_histos', con=db.engine, if_exists='replace', index=False)
         self.PmtStats.to_sql('full_PmtStats', con=db.engine, if_exists='replace', index=False)
         self.TubeStats.to_sql('full_TubeStats', con=db.engine, if_exists='replace', index=False)
+        self.PmtCompCorr.to_sql('full_PmtCompCorr', con=db.engine,
+                                if_exists='replace', index=False)
