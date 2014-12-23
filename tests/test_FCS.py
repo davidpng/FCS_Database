@@ -98,11 +98,11 @@ class Test_FCS(TestBase):
         filename = "12-00031_Myeloid 1.fcs"
         filepath = data(filename)
 
-        outfile = path.join(self.mkoutdir(), 'dummy.pdf')
+        outfile = path.join(self.mkoutdir(), 'dummy.png')
 
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
-                              gate_coords=coords,
+                              gate_coords=coords,rescale_lim=(-0.5,1),
                               strict=False, auto_comp=False)
 
         a.comp_visualize_FCS(outfile=outfile)
@@ -157,7 +157,7 @@ class Test_FCS(TestBase):
         filepath = data(filename)
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
-                              gate_coords=coords,
+                              gate_coords=coords,rescale_lim=(-0.5,1),
                               strict=False, auto_comp=False)
         a.extract_FCS_histostats()
         warnings.warn('Not currently checking results of HistoStats')

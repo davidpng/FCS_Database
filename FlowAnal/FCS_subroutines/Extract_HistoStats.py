@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 
 class Extract_HistoStats(object):
 
-    def __init__(self, FCS):
+    def __init__(self, FCS,range=(0,1)):
         """
         Returns 2 dataframes, stats and histogram indexed on parameters in
         FCS.data
@@ -27,14 +27,14 @@ class Extract_HistoStats(object):
             self.FCS = FCS
             FCS.PmtStats = self.__make_PmtStats()
             FCS.TubeStats = self.__make_TubeStats()
-            FCS.histos = self.__make_histogram()
+            FCS.histos = self.__make_histogram(range=range)
             log.debug(FCS.PmtStats)
             log.debug(FCS.TubeStats)
             log.debug(FCS.histos)
         else:
             log.debug('Nothing todo because stats and histogram are missing')
 
-    def __make_histogram(self, bins=100, range=(0, 1), density=True):
+    def __make_histogram(self, range, bins=100, density=True):
         """
         Makes histogram with bins defined by bins over a normalized range of [0,1)
         Columns are indexed on parameters (scatter, antigens, & time)

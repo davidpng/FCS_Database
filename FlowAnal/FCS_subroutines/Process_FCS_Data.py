@@ -68,6 +68,8 @@ class Process_FCS_Data(object):
                                  columns=self.columns,
                                  dtype=np.float32)  # create a dataframe with columns
 
+        #Saturation Gate might need to go here
+        #sat_gate = self._SaturationGate()
         self.data = self._LogicleRescale(self.data, T=2**18, M=4, W=0.5, A=0)
         self.FCS.data = self.data  # update FCS.data
 
