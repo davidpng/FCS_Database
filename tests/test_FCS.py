@@ -164,6 +164,8 @@ class Test_FCS(TestBase):
         log.debug(a.PmtStats)
         log.debug(a.TubeStats)
         log.debug(a.histos)
+        log.debug(a.comp_correlation)
+        log.debug(a.comp_p_value)
 
     def test_auto_comp(self):
         """ Tests the auto compensation subroutine of comp_scale_FCS_data
