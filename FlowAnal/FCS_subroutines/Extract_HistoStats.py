@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 
 class Extract_HistoStats(object):
 
-    def __init__(self, FCS,range=(0,1),comp_corr_cutoff=10):
+    def __init__(self, FCS,range=(0,1),comp_corr_cutoff=25):
         """
         Returns 2 dataframes, stats and histogram indexed on parameters in
         FCS.data
@@ -32,7 +32,7 @@ class Extract_HistoStats(object):
             FCS.PmtStats = self.__make_PmtStats()
             FCS.TubeStats = self.__make_TubeStats()
             FCS.histos = self.__make_histogram(range=range)
-            FCS.comp_correlation, FCS.comp_p_value = self.__generate_comp_corr_mtx(cutoff=comp_corr_cutoff)
+            FCS.comp_correlation = self.__generate_comp_corr_mtx(cutoff=comp_corr_cutoff)
             """ Moved to test_FCS.py
             log.debug(FCS.PmtStats)
             log.debug(FCS.TubeStats)
@@ -75,7 +75,7 @@ class Extract_HistoStats(object):
 
         return stats
 
-    def __generate_comp_corr_mtx(self, cutoff=50):
+    def __generate_comp_corr_mtx(self, cutoff):
         """
 	    This function generates a square matrix as a pandas dataframe listing the 
 	    Pearson's correlation coefficient for each channel/reagent combination
@@ -83,31 +83,20 @@ class Extract_HistoStats(object):
 	    Takes arguments:
 	    cutoff - required number of events in the gated 'high comp' area (default 50)
 	    Returns:
-	    correlation_mtx - a correlation matrix with rows and columns as reagents \
-	                      describing the dispersion correlation between pairs 
-					      (rows,columns)
-					      The diagonal of this should be all ones
-	    p_value_mtx - a dataframe describing the p_value (measure of significace \
-	                  given the size and correlation)
+        a list of lists with [Xax,Yax,PearsonR,P_value]
         N.B. - This is a subfunction of the FCS object
 	    """
         # set up the reagent list 
         exclude = ['FSC-A','FSC-H','SSC-A','SSC-H','Time']
         reagents = [i for i in self.FCS.data.columns if i not in exclude] 
 
-        # make an empty dataframe to take information
-        sq_ones = np.ones((len(reagents),len(reagents)))
-        sq_ones[:] = np.nan
-        correlation_mtx = pd.DataFrame(sq_ones, index=reagents, columns=reagents)
-        p_value_mtx =  pd.DataFrame(sq_ones, index=reagents, columns=reagents)
-
+        # make an empty list to append
+        output = []
         for (x,y) in itertools.permutations(reagents,2):
 	        # this will walk through all pairwise permutations of the reagent
             correlation = self.__comp_correlation(x,y,cutoff=cutoff)
-            correlation_mtx[x][y] = correlation[0]
-            p_value_mtx[x][y] = correlation[1]
-
-        return correlation_mtx,p_value_mtx
+            output.append([x,y,correlation[0],correlation[1]])
+        return pd.DataFrame(output,columns = ['spill_in','spill_from','Pearson_R','P_value'])
 
     def __comp_correlation(self,x_ax,y_ax,cutoff):
         gated_pop = self.FCS.data[[x_ax,y_ax]][self.__UL_gating(x_ax,y_ax)]
