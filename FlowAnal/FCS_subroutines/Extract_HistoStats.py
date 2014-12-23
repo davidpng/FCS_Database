@@ -21,7 +21,6 @@ class Extract_HistoStats(object):
         FCS.data
         TODO: Other statistical Measures to be added?
         :param FCS:
-        :param verbose:
         :return:
         """
         if hasattr(FCS, 'data'):
@@ -63,6 +62,8 @@ class Extract_HistoStats(object):
         # Add transformation filtering information
         stats = pd.concat([stats, self.FCS.n_transform_keep_by_channel], axis=1, join='outer',
                           ignore_index=False)
+        stats = pd.concat([stats, self.FCS.n_transform_not_nan_by_channel], axis=1, join='outer',
+                          ignore_index=False)
 
         return stats
 
@@ -76,7 +77,8 @@ class Extract_HistoStats(object):
 
         # Add filtering information
         stats['total_events'] = self.FCS.total_events
-        stats['transform_remain'] = self.FCS.n_transform_keep_all
+        stats['transform_in_limits'] = self.FCS.n_transform_keep_all
+        stats['transform_not_nan'] = self.FCS.n_transform_not_nan_all
         if hasattr(self.FCS, 'viable_remain'):
             stats['viable_remain'] = self.FCS.viable_remain
         if hasattr(self.FCS, 'singlet_remain'):

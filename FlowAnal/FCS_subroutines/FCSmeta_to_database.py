@@ -60,21 +60,14 @@ class FCSmeta_to_database(object):
 
         return meta_data
 
-    def push_parameters(self):
-        """ Export Pmt+Tube+Case parameters from FCS object to DB """
-        d = self.FCS.parameters.T
-        d['version'] = self.FCS.version
-        d['case_tube'] = self.FCS.case_tube
-        self.db.add_df(df=d, table='PmtTubeCases')
-
     def push_antigens(self):
         """ Export antigens to DB """
-        antigens = self.FCS.parameters.loc['Antigen', :].unique()
+        antigens = self.FCS.parameters.loc['Antigen', :].dropna().unique()
         self.db.add_list(x=list(antigens), table='Antigens')
 
     def push_fluorophores(self):
         """ Export fluorophores to DB """
-        fluorophores = self.FCS.parameters.loc['Fluorophore', :].unique()
+        fluorophores = self.FCS.parameters.loc['Fluorophore', :].dropna().unique()
         self.db.add_list(x=list(fluorophores), table='Fluorophores')
 
     def push_TubeTypes(self):
@@ -82,7 +75,7 @@ class FCSmeta_to_database(object):
 
         # Capture antigen in FCS object
         antigens = self.FCS.parameters.loc['Antigen', :].dropna().unique()
-        antigens.sort(inplace=True)
+        antigens.sort()
         antigens_string = ';'.join(antigens)
 
         s = self.db.Session()
@@ -110,5 +103,12 @@ class FCSmeta_to_database(object):
         # Push case+tube meta information
         self.db.add_dict(self.meta, table='TubeCases')
 
-        # Need to pull assigned case_tube_idx from database
+        # Retrieve the case_tube_idx into self.FCS.case_tube_idx
+        self.FCS.get_case_tube_index(db=self.db, dir=dir)
 
+    def push_parameters(self):
+        """ Export Pmt+Tube+Case parameters from FCS object to DB """
+        d = self.FCS.parameters.T
+        d['version'] = self.FCS.version
+        d['case_tube_idx'] = self.FCS.case_tube_idx
+        self.db.add_df(df=d, table='PmtTubeCases')

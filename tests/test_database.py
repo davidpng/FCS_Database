@@ -4,7 +4,7 @@ Test FCS database functionality
 
 import logging
 from os import path
-import pprint
+import datetime
 
 from __init__ import TestBase, datadir
 from FlowAnal.FCS import FCS
@@ -40,7 +40,9 @@ class Test_query_database(TestBase):
                   'daterange': ['2012-01-01', '2012-01-04'],
                   'getfiles': True}
         self.assertEqual(db.query(**q_dict).results,
-                         {u'12-00031': {u'Myeloid 1': u'testfiles/12-00031_Myeloid 1.fcs'}})
+                         {u'12-00031': {u'Myeloid 1':
+                                        {datetime.datetime(2012, 1, 3, 12, 0, 15):
+                                         u'testfiles/12-00031_Myeloid 1.fcs'}}})
 
         # Test specific negative request daterange
         q_dict = {'tubes': ['Myeloid 1'],

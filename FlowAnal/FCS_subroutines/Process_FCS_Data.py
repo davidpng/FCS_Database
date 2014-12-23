@@ -71,8 +71,12 @@ class Process_FCS_Data(object):
         self.data = self._LogicleRescale(self.data, T=2**18, M=4, W=0.5, A=0)
         self.FCS.data = self.data  # update FCS.data
 
+        nan_mask = self.__nan_gate(self.data)
+        self.data = self.data[nan_mask]
+
         limit_mask = self.__limit_gate(self.data, high=rescale_lim[1], low=rescale_lim[0])
         self.data = self.data[limit_mask]
+
         self.__Rescale(high=rescale_lim[0], low=rescale_lim[1])  # Edits self.data
 
         self.__patch()
@@ -111,6 +115,26 @@ class Process_FCS_Data(object):
         self.data[cols] = self.data[cols].apply(func=lambda x:
                                                 (x - low) / (high - low), axis=0)
 
+    def __nan_gate(self, X_input):
+        """
+        limits X_input to all events between 0 and 1
+        """
+        tmp = X_input.copy()
+
+        for col in tmp.columns:
+            tmp[col] = pd.notnull(tmp[col])
+
+        # Tally and record number of cells that are inside of limits
+        n_transform_keep = tmp.apply(lambda x: np.sum(x), axis=0)
+        n_transform_keep.name = 'transform_not_nan'
+        self.FCS.n_transform_not_nan_by_channel = n_transform_keep
+
+        # True if all true (Not sure if this is fastest)
+        mask = np.prod(tmp, axis=1).astype(bool)
+        self.FCS.n_transform_not_nan_all = np.sum(mask)
+
+        return mask
+
     def __limit_gate(self, X_input, high, low):
         """
         limits X_input to all events between 0 and 1
@@ -127,7 +151,7 @@ class Process_FCS_Data(object):
 
         # Tally and record number of cells that are inside of limits
         n_transform_keep = tmp.apply(lambda x: np.sum(x), axis=0)
-        n_transform_keep.name = 'transform_remain'
+        n_transform_keep.name = 'transform_in_limits'
         self.FCS.n_transform_keep_by_channel = n_transform_keep
 
         # True if all true (Not sure if this is fastest)
@@ -243,8 +267,8 @@ class Process_FCS_Data(object):
         #set up a log range from 0 to 2**18+10000
         x = np.concatenate([xn, xp])
         y = self.__BiexponentialFunction(x, T, M, W, A)
-        output = interp1d(y.T, x.T)
-        return output(input_array)
+        output = interp1d(y.T, x.T, bounds_error=False, fill_value=np.nan)
+        return output(input_array)  # NOTE: This fails if values fall outside the defined range
 
     def __rtsafe(self, w, b):
         """

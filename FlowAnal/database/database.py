@@ -11,6 +11,7 @@ from sqlalchemy.orm import sessionmaker
 from FlowAnal.exceptions import OperationalError
 
 log = logging.getLogger(__name__)
+# logging.getLogger('sqlalchemy.engine').setLevel(10)
 
 
 class Connection(object):
@@ -184,16 +185,17 @@ class SqliteConnection(Connection):
         colnames = [col['name'] for col in columns]
         return colnames
 
-    def update_db_coltable(self, x, table):
+    def update_db_coltable(self, x, table, mode='replace'):
         """ Update a single column table with x
 
         Keyword arguments:
         x -- <tuple of tuples>
         table -- <str> Table (single column) to add values to
+        mode -- [replace|fail] What to do if insert complains
         """
         trans = self.engine.conn.begin()
         try:
-            cmd = 'insert or replace into ' + table + ' values (?)'
+            cmd = 'insert or ' + mode + ' into ' + table + ' values (?)'
             self.engine.conn.execute(cmd, x)
             trans.commit()
             log.debug("Successively imported to %s" % table)
@@ -201,7 +203,7 @@ class SqliteConnection(Connection):
             trans.rollback()
             raise
 
-    def update_db_table(self, df, table):
+    def update_db_table(self, df, table, mode='replace'):
         """ Update db table with pandas df
 
         NOTE: df keys and table columns must perfectly match
@@ -209,13 +211,14 @@ class SqliteConnection(Connection):
         Keyword arguments:
         df -- <pandas dataframe> Data to add
         table -- <str> table to which to add <df>
+        mode -- [replace|fail] What to do if insert complains
         """
         cols = ['"' + x + '"' for x in df.columns.values]
         dat = tuple(df.itertuples(index=False))
 
         trans = self.engine.conn.begin()
         try:
-            cmd = 'insert or replace into ' + table + ' (%s)' % \
+            cmd = 'insert or ' + mode + ' into ' + table + ' (%s)' % \
                   ', '.join(cols) + \
                   ' values (%s)' % ', '.join(['?'] * len(cols))
             self.engine.conn.execute(cmd, dat)
@@ -225,7 +228,8 @@ class SqliteConnection(Connection):
             trans.rollback()
             raise
 
-    def add_dict(self, d, table):
+    def add_dict(self, d, table, mode='replace',
+                 cols_not_to_fillin=[]):  # 'case_tube_idx']):
         """ Add dictionary values to database table
 
         NOTE: <d> can be missing keys in table columns
@@ -233,9 +237,10 @@ class SqliteConnection(Connection):
         Keyword arguments:
         d -- <dict> Single dict to add
         table -- <str> table to which to add <d>
+        mode -- [replace|fail] What to do if insert complains
         """
 
-        table_cols = self.get_colnames(table)
+        table_cols = [col for col in self.get_colnames(table) if col not in cols_not_to_fillin]
         colnames = [col for col in table_cols if col in d]
 
         # Fill in missing
@@ -246,7 +251,7 @@ class SqliteConnection(Connection):
         trans = self.engine.conn.begin()
         try:
             col_string = ', '.join([':' + c for c in table_cols])
-            cmd = 'insert or replace into ' + table + ' values (%s)' % col_string
+            cmd = 'insert or ' + mode + ' into ' + table + ' values (%s)' % col_string
             self.engine.conn.execute(cmd, d)
             trans.commit()
             log.debug("Successively imported to %s" % table)

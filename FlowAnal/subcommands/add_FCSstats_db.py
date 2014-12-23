@@ -38,6 +38,9 @@ def build_parser(parser):
                         help='Start and end dates to bound selection of cases \
                         [Year-Month-Date Year-Month-Date]',
                         nargs=2, action='store', type=str)
+    parser.add_argument('-cases', '--cases', help='List of cases to select',
+                        nargs='+', action='store',
+                        default=None, type=str)
 
 
 def action(args):
@@ -54,22 +57,23 @@ def action(args):
     q = db.query(exporttype='dict_dict', getfiles=True, **vars(args))
 
     for case, case_info in q.results.items():
-        for tube, relpath in case_info.items():
-            log.info("Case: %s, Tube: %s, File: %s" % (case, tube, relpath))
-            filepath = path.join(args.dir, relpath)
-            fFCS = FCS(filepath=filepath, import_dataframe=True)
+        for tube, tube_info in case_info.items():
+            for date, relpath in tube_info.items():
+                log.info("Case: %s, Tube: %s, Date: %s, File: %s" % (case, tube, date, relpath))
+                filepath = path.join(args.dir, relpath)
+                fFCS = FCS(filepath=filepath, import_dataframe=True)
 
-            if fFCS.empty is False:
-                try:
-                    fFCS.meta_to_db(db=out_db, dir=args.dir, add_lists=True)
-                    fFCS.comp_scale_FCS_data(compensation_file=comp_file,
-                                             gate_coords=coords,
-                                             strict=False, auto_comp=False)
-                    fFCS.extract_FCS_histostats()
-                    fFCS.histostats_to_db(db=out_db)
-                except ValueError, e:
-                    print "Skipping FCS %s because of ValueError: %s" % (filepath, e)
-                except:
-                    print "Skipping FCS %s because of unknown error related to: %s" % \
-                        (filepath, sys.exc_info()[0])
+                if fFCS.empty is False:
+                    try:
+                        fFCS.meta_to_db(db=out_db, dir=args.dir, add_lists=True)
+                        fFCS.comp_scale_FCS_data(compensation_file=comp_file,
+                                                 gate_coords=coords,
+                                                 strict=False, auto_comp=False)
+                        fFCS.extract_FCS_histostats()
+                        fFCS.histostats_to_db(db=out_db)
+                    except ValueError, e:
+                        print "Skipping FCS %s because of ValueError: %s" % (filepath, e)
+                    except:
+                        print "Skipping FCS %s because of unknown error related to: %s" % \
+                            (filepath, sys.exc_info()[0])
 

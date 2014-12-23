@@ -105,7 +105,7 @@ class Test_FCS(TestBase):
                               gate_coords=coords,
                               strict=False, auto_comp=False)
 
-        a.comp_visualize_FCS(filename=outfile)
+        a.comp_visualize_FCS(outfile=outfile)
 
     def test_process(self):
         """ Test running processing
@@ -134,8 +134,8 @@ class Test_FCS(TestBase):
 
         b_expect = pd.DataFrame({'FSC-H': {105: 0.25751877, 100: 0.29451752,
                                            101: 0.32627106, 102: 0.42173004},
-                                 'CD15 FITC': {105: 0.20802763, 100: 0.20469858,
-                                               101: 0.5515328, 102: 0.10146696}}, dtype='float32')
+                                 'CD15 FITC': {105: 0.79197961, 100: 0.79530305,
+                                               101: 0.44847226, 102: 0.898543}}, dtype='float32')
         np.testing.assert_allclose(b.loc[:, cols].values, b_expect.loc[:, cols].values,
                                    rtol=1e-3, atol=0, err_msg="Results are more different \
                                    than tolerable")
@@ -196,8 +196,8 @@ class Test_FCS(TestBase):
 
         b_expect = pd.DataFrame({'FSC-H': {105: 0.25751877, 100: 0.29451752,
                                            101: 0.32627106, 102: 0.42173004},
-                                 'CD15 FITC': {105: 0.20802763, 100: 0.20469858,
-                                               101: 0.5515328, 102: 0.10146696}}, dtype='float32')
+                                 'CD15 FITC': {105: 0.79197961, 100: 0.79530305,
+                                               101: 0.44847226, 102: 0.898543}}, dtype='float32')
         np.testing.assert_allclose(b.loc[:, cols].values, b_expect.loc[:, cols].values,
                                    rtol=1e-3, atol=0, err_msg="Results are more different \
                                    than tolerable")

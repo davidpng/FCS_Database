@@ -42,16 +42,22 @@ class FCSstats_to_database(object):
     def __push_stats(self):
         """ Export Pmt event stats and Tube event stats """
 
+        params = self.FCS.parameters.T
+
+        # Handle PmtStats
         d = self.FCS.PmtStats
         d.reset_index(drop=False, inplace=True, col_level=0)
         d.columns.values[0] = "Channel Name"
         d['version'] = self.FCS.version
-        d['case_tube'] = self.FCS.case_tube
+        d['case_tube_idx'] = self.FCS.case_tube_idx
+        d = pd.merge(d, params[['Channel Name', 'Channel Number']],
+                     how='left', on=['Channel Name'])
+        d.drop(['Channel Name'], axis=1, inplace=True)
         self.db.add_df(df=d, table='PmtStats')
 
         d = self.FCS.TubeStats
         d['version'] = self.FCS.version
-        d['case_tube'] = self.FCS.case_tube
+        d['case_tube_idx'] = self.FCS.case_tube_idx
         d = pd.Series(d, name='val')
         d = d.reset_index(drop=False).T
         d.columns = d.loc['index', :]
@@ -64,19 +70,24 @@ class FCSstats_to_database(object):
         d = self.FCS.histos.T
         d.reset_index(drop=False, inplace=True, col_level=0)
         d.columns.values[0] = "Channel Name"
-        d['case_tube'] = self.FCS.case_tube
+        d['case_tube_idx'] = self.FCS.case_tube_idx
+
+        params = self.FCS.parameters.T
+        d = pd.merge(d, params[['Channel Name', 'Channel Number']],
+                     how='left', on=['Channel Name'])
+        d.drop(['Channel Name'], axis=1, inplace=True)
 
         # Pivot table (drop NAs and density of 0)
-        d.set_index(["case_tube", "Channel Name"],
+        d.set_index(["case_tube_idx", "Channel Number"],
                     drop=True, append=False, inplace=True)
         d2 = d.stack(dropna=False)
         d3 = d2.reset_index(drop=False)
-        d3.sort(['case_tube', 'Channel Name'], inplace=True)
-        d3.columns = ['case_tube', 'Channel Name', 'bin', 'density']
+        d3.sort(['case_tube_idx', 'Channel Number'], inplace=True)
+        d3.columns = ['case_tube_idx', 'Channel Number', 'bin', 'density']
 
-        # Push bins
-        bins = [str(x) for x in d3.bin.unique()]
-        self.db.add_list(x=bins, table='HistoBins')
+        # # Push bins
+        # bins = [str(x) for x in d3.bin.unique()]
+        # self.db.add_list(x=bins, table='HistoBins')
 
         # Push histo
         self.db.add_df(df=d3, table='PmtHistos')

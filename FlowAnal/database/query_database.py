@@ -62,7 +62,8 @@ class queryDB(object):
         # Build query
         self.q = self.session.query(TubeCases.c.case_number, TubeCases.c.filename,
                                     TubeCases.c.dirname,
-                                    TubeTypesInstances.c.tube_type).\
+                                    TubeTypesInstances.c.tube_type,
+                                    TubeCases.c.date).\
             filter(~TubeCases.c.empty)
 
         self.__add_filters_to_query(**kwargs)
@@ -72,7 +73,7 @@ class queryDB(object):
             files = Vividict()
             try:
                 for x in self.q.all():
-                    files[x.case_number][x.tube_type] = path.join(x.dirname, x.filename)
+                    files[x.case_number][x.tube_type][x.date] = path.join(x.dirname, x.filename)
             except:
                 self.session.rollback()
                 raise "Failed to query TubeCases"
@@ -105,8 +106,8 @@ class queryDB(object):
                                     TubeCases.c.date,
                                     PmtStats,
                                     TubeStats.c.total_events).\
-            filter(TubeCases.c.case_tube == PmtStats.c.case_tube).\
-            filter(TubeStats.c.case_tube == TubeCases.c.case_tube).\
+            filter(TubeCases.c.case_tube_idx == PmtStats.c.case_tube_idx).\
+            filter(TubeStats.c.case_tube_idx == TubeCases.c.case_tube_idx).\
             filter(~TubeCases.c.empty).\
             order_by(TubeCases.c.date)
 
@@ -131,7 +132,7 @@ class queryDB(object):
         self.q = self.session.query(TubeCases.c.cytnum,
                                     TubeCases.c.date,
                                     TubeStats).\
-            filter(TubeStats.c.case_tube == TubeCases.c.case_tube).\
+            filter(TubeStats.c.case_tube_idx == TubeCases.c.case_tube_idx).\
             filter(~TubeCases.c.empty).\
             order_by(TubeCases.c.date)
 
@@ -156,10 +157,10 @@ class queryDB(object):
         self.q = self.session.query(TubeCases.c.cytnum,
                                     TubeCases.c.date,
                                     PmtHistos).\
-            filter(PmtHistos.c.case_tube == TubeCases.c.case_tube).\
+            filter(PmtHistos.c.case_tube_idx == TubeCases.c.case_tube_idx).\
             filter(~TubeCases.c.empty).\
             order_by(TubeCases.c.date,
-                     PmtHistos.c.case_tube, PmtHistos.c["Channel Name"], PmtHistos.c.bin)
+                     PmtHistos.c.case_tube_idx, PmtHistos.c["Channel Number"], PmtHistos.c.bin)
 
         self.__add_filters_to_query(**kwargs)
 
@@ -188,6 +189,11 @@ class queryDB(object):
             date_start = datetime.strptime(kwargs['daterange'][0], '%Y-%m-%d')
             date_end = datetime.strptime(kwargs['daterange'][1], '%Y-%m-%d')
             self.q = self.q.filter(func.date(TubeCases.c.date).between(date_start, date_end))
+
+        if 'cases' in kwargs and kwargs['cases'] is not None:
+            cases_to_select = [unicode(x) for x in kwargs['cases']]
+            log.info('Looking for cases #%s' % ", ".join(cases_to_select))
+            self.q = self.q.filter(TubeCases.c.case_number.in_(cases_to_select))
 
     def __q2df(self):
         """ Convert a query object to a pandas dataframe """

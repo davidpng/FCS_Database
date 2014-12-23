@@ -6,6 +6,8 @@ Created on Tue Sep 30 18:34:54 2014
 @author: David Ng, MD
 """
 import logging
+from sqlalchemy.sql import func
+
 from FCS_subroutines.loadFCS import loadFCS
 from FCS_subroutines.Process_FCS_Data import Process_FCS_Data
 from FCS_subroutines.empty_FCS import empty_FCS
@@ -96,23 +98,22 @@ class FCS(object):
         """
         raise "Not implemented"
 
-    def extract_FCS_histostats(self,verbose=False):
+    def extract_FCS_histostats(self):
         """
         Calls Function to make pandas dataframe of columnwise histograms and statistics
-        Verbose flag will print out the stats and histograms (i.e. FCS.stats and FCS.histograms)
         """
-        Extract_HistoStats(FCS=self, verbose=verbose)
+        Extract_HistoStats(FCS=self)
 
-    def comp_visualize_FCS(self, filename, filetype="PDF"):
+    def comp_visualize_FCS(self, outfile, outfiletype="PNG"):
         """ Makes a pdf file containing the visizliations of the FCS file
 
-        filename -- output filename
+        outfile -- output filename
 
         Optional arguments:
-        filetype -- accepts PDF, PNG, JPEG (overidden by filename suffix)
+        outfiletype -- accepts PDF, PNG, JPEG (overidden by filename suffix)
 
         """
-        Comp_Visualization(FCS=self, filename=filename, filetype=filetype)
+        Comp_Visualization(FCS=self, outfile=outfile, outfiletype=outfiletype)
 
     def meta_to_db(self, db, dir=None, add_lists=False):
         """ Export meta data from FCS object to db
@@ -130,6 +131,21 @@ class FCS(object):
         """ Add histostats to db """
 
         FCSstats_to_database(FCS=self, db=db)
+
+    def get_case_tube_index(self, db, dir):
+        """ Read a meta database to get the case_tube_index """
+
+        # Capture database-created case_tube_idx
+        s = db.Session()
+        log.info('Getting case_tube_idx from db')
+        TubeCases = db.meta.tables['TubeCases']
+
+        self.case_tube_idx = s.query(TubeCases.c.case_tube_idx).\
+                             filter(TubeCases.c.case_tube == unicode(self.case_tube)).\
+                             filter(TubeCases.c.filename == unicode(self.filename)).\
+                             filter(TubeCases.c.date == str(self.date)).one()[0]
+        s.close()
+
 
 if __name__ == '__main__':
     import os

@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS TubeCases (
        date DATETIME,
        num_events INTEGER,
        cytometer NVARCHAR(10),
-       cytnum INTEGER NOT NULL,
+       cytnum VARCHAR(3) NOT NULL,
        empty BOOLEAN NOT NULL,
        version VARCHAR(30) NOT NULL,
        CONSTRAINT empty_bool CHECK ("empty" IN (0, 1)),
@@ -102,7 +102,8 @@ CREATE TABLE IF NOT EXISTS PmtStats (
        "50%" FLOAT,
        "75%" FLOAT,
        max FLOAT,
-       transform_remain INTEGER,
+       transform_in_limits INTEGER,
+       transform_not_nan INTEGER,
        version VARCHAR(30) NOT NULL,
        PRIMARY KEY (case_tube_idx, "Channel Number"),
        FOREIGN KEY (case_tube_idx) REFERENCES TubeCases(case_tube_idx)
@@ -113,24 +114,24 @@ CREATE INDEX IF NOT EXISTS ix_PmtStats_Channel_Number
 
 -- Tube event stats
 CREATE TABLE IF NOT EXISTS TubeStats (
-       case_tube NVARCHAR(100) NOT NULL,
+       case_tube_idx NVARCHAR(100) PRIMARY KEY,
        total_events INTEGER NOT NULL,
-       transform_remain INTEGER NOT NULL,
+       transform_not_nan INTEGER NOT NULL,
+       transform_in_limits INTEGER NOT NULL,
        viable_remain INTEGER NULL,
        singlet_remain INTEGER NULL,
        version VARCHAR(30) NOT NULL,
-       PRIMARY KEY (case_tube),
-       FOREIGN KEY (case_tube) REFERENCES TubeCases (case_tube)
+       FOREIGN KEY (case_tube_idx) REFERENCES TubeCases (case_tube_idx)
 );
 
 -- Pmt event histogram
 CREATE TABLE IF NOT EXISTS PmtHistos (
        case_tube_idx INTEGER NOT NULL,
-       "Channel Number" NVARCHAR(20) NOT NULL,
+       "Channel Number" NVARCHAR(5) NOT NULL,
        bin NVARCHAR(20) NOT NULL,
        density FLOAT,
        PRIMARY KEY (case_tube_idx, "Channel Number", bin),
        FOREIGN KEY (case_tube_idx) REFERENCES TubeCases(case_tube_idx)
 );
 CREATE INDEX IF NOT EXISTS PmtHistos_bin
-       ON PmtHistos (bin);
+       ON PmtHistos ("Channel Number", bin);

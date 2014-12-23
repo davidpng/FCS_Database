@@ -10,6 +10,9 @@ matplotlib.use('Agg')  # Turn off interactive X11 stuff...
 import matplotlib.pyplot as plt
 import numpy as np
 
+import logging
+log = logging.getLogger(__name__)
+
 schema = {1: {1: (5,10), 2:(6,10)},
               2: {1:(6,5), 2:(7,5), 3:(8,5), 4:(9,5)},
               3: {1:(7,6), 2:(8,6), 3:(9,6)},
@@ -20,16 +23,17 @@ schema = {1: {1: (5,10), 2:(6,10)},
               8: {1:(13,12), 2:(14,12)},
               9: {1:(14,13)} }
 
+
 class Comp_Visualization(object):
-
-    def __init__(self, FCS, filename, filetype):
+    def __init__(self, FCS, outfile, outfiletype):
         self.FCS = FCS
-        self.filename = filename
-        self.filetype = filetype
-        # print self.FCS.data
-        self.display_projection(1,2,3,4)
+        self.filename = outfile
+        self.filetype = outfiletype
 
-    def display_projection(self,x_lab,y_lab,x_dat,y_dat):
+        log.info('Plotting %s to %s' % (self.FCS.case_tube, outfile))
+        self.display_projection(1, 2, 3, 4)
+
+    def display_projection(self, x_lab, y_lab, x_dat, y_dat):
         self.walk_schema()
         self.setup_plotting()
 
