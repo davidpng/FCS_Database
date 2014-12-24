@@ -19,7 +19,7 @@ def build_parser(parser):
                         type=str)
     parser.add_argument('-tubes', '--tubes', help='List of tube types to select',
                         nargs='+', action='store',
-                        default=['Hodgkins'], type=str)
+                        default=None, type=str)
     parser.add_argument('-dates', '--daterange',
                         help='Start and end dates to bound selection of cases \
                         [Year-Month-Date Year-Month-Date]',

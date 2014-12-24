@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 def build_parser(parser):
     parser.add_argument('-tubes', '--tubes', help='List of tube types to select',
                         nargs='+', action='store',
-                        default=['Hodgkins', 'Hodgkin'], type=str)
+                        default=None, type=str)
     parser.add_argument('-dates', '--daterange', help='Start and end dates to bound selection of cases \
     [Year-Month-Date Year-Month-Date]',
                         nargs=2, action='store', type=str)

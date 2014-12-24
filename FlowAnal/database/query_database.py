@@ -237,7 +237,7 @@ class queryDB(object):
         TubeTypesInstances = self.db.meta.tables['TubeTypesInstances']
         TubeCases = self.db.meta.tables['TubeCases']
 
-        if 'tubes' in kwargs:
+        if 'tubes' in kwargs and kwargs['tubes'] is not None:
             tubes_to_select = [unicode(x) for x in kwargs['tubes']]
             log.info('Looking for tubes: %s' % tubes_to_select)
             self.q = self.q.filter(TubeTypesInstances.c.tube_type.in_(tubes_to_select))

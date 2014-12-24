@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS PmtTubeCases (
        "Range" INTEGER,
        Voltage INTEGER,
        version VARCHAR(30) NOT NULL,
-       PRIMARY KEY (case_tube_idx, "Channel Name"),
+       PRIMARY KEY (case_tube_idx, "Channel Number"),
        FOREIGN KEY (case_tube_idx) REFERENCES TubeCases(case_tube_idx),
        FOREIGN KEY (Antigen) REFERENCES Antigens(Antigen),
        FOREIGN KEY (Fluorophore) REFERENCES Fluorophores(Fluorophore)
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS TubeCases (
        date DATETIME,
        num_events INTEGER,
        cytometer NVARCHAR(10),
-       cytnum VARCHAR(3) NOT NULL,
+       cytnum VARCHAR(3) NULL,
        empty BOOLEAN NOT NULL,
        version VARCHAR(30) NOT NULL,
        CONSTRAINT empty_bool CHECK ("empty" IN (0, 1)),
@@ -57,7 +57,7 @@ CREATE INDEX IF NOT EXISTS ix_TubeCases_case_number
 CREATE INDEX IF NOT EXISTS ix_TubeCases_date_cytnum
        ON TubeCases (date, cytnum);
 CREATE UNIQUE INDEX IF NOT EXISTS ix_TubeCases_file
-       ON TubeCases (filename, dirname);
+       ON TubeCases (filename, dirname, case_tube);
 CREATE INDEX IF NOT EXISTS ix_TubeCases_tube_type_instance
        ON TubeCases (tube_type_instance);
 

@@ -26,14 +26,17 @@ db <- dbConnect(sqlite, "db/test.db")
 histos <- tbl_df(dbReadTable(db, 'full_histos'))
 pmtstats <- tbl_df(dbReadTable(db, 'full_PmtStats'))
 tubestats <- tbl_df(dbReadTable(db, 'full_tubestats'))
+pmtcorr <- tbl_df(dbReadTable(db, 'full_PmtCompCorr'))
 
 histos$date <- as.POSIXct(histos$date, "%Y-%m-%d %H:%M:%S")
 pmtstats$date <- as.POSIXct(pmtstats$date, "%Y-%m-%d %H:%M:%S")
 tubestats$date <- as.POSIXct(tubestats$date, "%Y-%m-%d %H:%M:%S")
+pmtcorr$date <- as.POSIXct(pmtcorr$date, "%Y-%m-%d %H:%M:%S")
 
 histos$cytnum <- as.factor(histos$cytnum)
 pmtstats$cytnum <- as.factor(pmtstats$cytnum)
 tubestats$cytnum <- as.factor(tubestats$cytnum)
+pmtcorr$cytnum <- as.factor(pmtcorr$cytnum)
 
 #+END_SRC
 
@@ -42,8 +45,9 @@ tubestats$cytnum <- as.factor(tubestats$cytnum)
 #+BEGIN_SRC R
 tmp <- tubestats %>%
   arrange(date) %>%
-    mutate(ptransform = transform_remain / total_events * 100,
-           pviable = viable_remain / transform_remain * 100,
+    mutate(ptransform_not_nan= transform_not_nan/ total_events * 100,
+           ptransform_in_limits= transform_in_limits/ total_events * 100,
+           pviable = viable_remain / transform_in_limits * 100,
            psinglet = singlet_remain / viable_remain * 100)
 
 tmp <- tmp %>%

@@ -130,19 +130,24 @@ class loadFCS(object):
 
     def __get_cytometer_info(self,convert_cytnum=True):
         """Provides error handling in case parameter is undefined"""
-        Convert_CytName = {'H0152':'1', 'H47100082':'3', 'H4710082':'3',
-                           '1':'1', '2':'2', '3':'3'}
+        Convert_CytName = {'H0152':'1',
+                           'H47100082':'3',
+                           'H4710082':'3',
+                           '1':'1',
+                           '2':'2',
+                           '3':'3'}
         if self.text.has_key('cyt'):
             cytometer = self.text['cyt']
         else:
-            cytometer = None
+            cytometer = 'other'
+
         if self.text.has_key('cytnum'):
             cytnum = self.text['cytnum']
             if convert_cytnum:
                 cytnum = Convert_CytName[cytnum]
         else:
-            cytnum = None
-        return cytometer,cytnum
+            cytnum = 'other'
+        return cytometer, cytnum
 
     def __get_num_events(self):
         """if 'tot' is undefined, try to get total number of events from

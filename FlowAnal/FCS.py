@@ -6,7 +6,6 @@ Created on Tue Sep 30 18:34:54 2014
 @author: David Ng, MD
 """
 import logging
-from sqlalchemy.sql import func
 
 from FCS_subroutines.loadFCS import loadFCS
 from FCS_subroutines.Process_FCS_Data import Process_FCS_Data
@@ -135,16 +134,26 @@ class FCS(object):
     def get_case_tube_index(self, db, dir):
         """ Read a meta database to get the case_tube_index """
 
-        # Capture database-created case_tube_idx
-        s = db.Session()
-        log.info('Getting case_tube_idx from db')
-        TubeCases = db.meta.tables['TubeCases']
+        if self.empty is False:
+            # Capture database-created case_tube_idx
+            s = db.Session()
+            TubeCases = db.meta.tables['TubeCases']
 
-        self.case_tube_idx = s.query(TubeCases.c.case_tube_idx).\
-                             filter(TubeCases.c.case_tube == unicode(self.case_tube)).\
-                             filter(TubeCases.c.filename == unicode(self.filename)).\
-                             filter(TubeCases.c.date == str(self.date)).one()[0]
-        s.close()
+            # Pick last appropriate index
+            tmp = s.query(TubeCases.c.case_tube_idx).\
+                  filter(TubeCases.c.case_tube == unicode(self.case_tube)).\
+                  filter(TubeCases.c.filename == unicode(self.filename)).\
+                  filter(TubeCases.c.date == str(self.date)).all()
+            tmp = zip(*tmp)[0]
+            self.case_tube_idx = max(tmp)
+            log.info('Getting case_tube_idx from db for Case_tube: %s, Filename: %s, Date: %s ==> %s'
+                     % (self.case_tube,
+                        self.filename,
+                        self.date,
+                        self.case_tube_idx))
+            s.close()
+        else:
+            self.case_tube_idx = None
 
 
 if __name__ == '__main__':

@@ -33,7 +33,7 @@ def build_parser(parser):
                         default="db/fcs_stats.db", type=str)
     parser.add_argument('-tubes', '--tubes', help='List of tube types to select',
                         nargs='+', action='store',
-                        default=['Hodgkins', 'Hodgkin'], type=str)
+                        default=None, type=str)
     parser.add_argument('-dates', '--daterange',
                         help='Start and end dates to bound selection of cases \
                         [Year-Month-Date Year-Month-Date]',
@@ -65,12 +65,14 @@ def action(args):
 
                 if fFCS.empty is False:
                     try:
-                        fFCS.meta_to_db(db=out_db, dir=args.dir, add_lists=True)
-                        fFCS.comp_scale_FCS_data(compensation_file=comp_file,
-                                                 gate_coords=coords,
-                                                 strict=False, auto_comp=False)
-                        fFCS.extract_FCS_histostats()
-                        fFCS.histostats_to_db(db=out_db)
+                        pass
+                        # Need to correct query so that merge is correct
+                        # fFCS.meta_to_db(db=out_db, dir=args.dir, add_lists=True)
+                        # fFCS.comp_scale_FCS_data(compensation_file=comp_file,
+                        #                          gate_coords=coords,
+                        #                          strict=False, auto_comp=False)
+                        # fFCS.extract_FCS_histostats()
+                        # fFCS.histostats_to_db(db=out_db)
                     except ValueError, e:
                         print "Skipping FCS %s because of ValueError: %s" % (filepath, e)
                     except:
