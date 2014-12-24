@@ -9,10 +9,11 @@ import datetime
 import numpy as np
 import pandas as pd
 
-from __init__ import TestBase, datadir
+from __init__ import TestBase, datadir, write_csv
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
 from FlowAnal.__init__ import package_data, __version__
+from pandas.util.testing import assert_frame_equal,assert_almost_equal
 
 log = logging.getLogger(__name__)
 
@@ -30,25 +31,36 @@ class Test_FCS(TestBase):
         filename = "12-00031_Myeloid 1.fcs"
         filepath = data(filename)
         a = FCS(filepath=filepath, import_dataframe=True)
+        
+        if write_csv:
+            write = {}
+            write['filepath'] = a.filepath
+            write['filename'] = a.filename
+            write['case_number'] = a.case_number
+            write['cytometer'] = a.cytometer
+            write['date'] = a.date
+            write['case_tube'] = a.case_tube
+            write['num_events'] = a.num_events
+            write['version'] = a.version
+            header_info = pd.Series(write)
+            header_info.to_pickle(data('header_info.pkl'))
+            a.parameters.to_pickle(data('parameter_info.pkl'))
+            print('\nLoadFCS header and Parameter data successfully written\n')
+        else:
+            header_info = pd.read_pickle(data('header_info.pkl'))
+            self.assertFalse(a.empty)
+            self.assertEqual(a.filepath, header_info['filepath'])
+            self.assertEqual(a.filename, header_info['filename'])
+            self.assertEqual(a.case_number, header_info['case_number'])
+            self.assertEqual(a.cytometer, header_info['cytometer'])
+            self.assertEqual(a.date, header_info['date'])
+            self.assertEqual(a.case_tube, header_info['case_tube'])
+            self.assertEqual(a.num_events, header_info['num_events'])
+            self.assertEqual(a.version, header_info['version'])
+            self.assertTrue(hasattr(a, 'data'))
 
-        self.assertFalse(a.empty)
-        self.assertEqual(a.filepath, filepath)
-        self.assertEqual(a.filename, filename)
-        self.assertEqual(a.case_number, '12-00031')
-        self.assertEqual(a.cytometer, 'LSRII - A (LSRII)')
-        self.assertEqual(a.date, datetime.datetime(2012, 1, 3, 12, 0, 15))
-        self.assertEqual(a.case_tube, '12-00031_Myeloid 1')
-        self.assertEqual(a.num_events, 160480)
-        self.assertEqual(a.version, __version__)
-        self.assertTrue(hasattr(a, 'data'))
-
-        parameters = {'Optical Filter Name': np.nan, 'Excitation Wavelength': np.nan,
-                      'Amp type': '0,0', 'Excitation Power': np.nan, 'Antigen': 'CD15',
-                      'Detector Type': np.nan, 'Short name': 'FITC-H', 'suggested scale': np.nan,
-                      'Channel Name': 'CD15 FITC',
-                      'Voltage': 465, 'Amp gain': '1.0',
-                      'Range': 262144, 'Channel Number': 5, 'Bits': 32, 'Fluorophore': 'FITC'}
-        self.assertEqual(dict(a.parameters.loc[:, 'FITC-H']), parameters)
+            parameters = pd.read_pickle(data('parameter_info.pkl'))
+            assert_frame_equal(a.parameters,parameters)
 
     def test_empty_FCS(self):
         """ Testing loading FCS filepath that does not load properly ==> empty """
@@ -78,9 +90,15 @@ class Test_FCS(TestBase):
 
         a = FCS(filepath=filepath)
 
-        db = FCSdatabase(db=outfile, rebuild=True)
-
-        a.meta_to_db(db=db, dir=root_dir)
+        org_file = data('12_00031_db_file.db')
+        if write_csv:
+            db = FCSdatabase(db=org_file, rebuild=True)
+            a.meta_to_db(db=db,dir=root_dir)
+            print("\nTest Meta Info successfully written\n")
+        else:
+            db_original = FCSdatabase(db=org_file, rebuild=False)
+            db = FCSdatabase(db=outfile, rebuild=True)
+            a.meta_to_db(db=db, dir=root_dir)
 
     def test_comp_vis(self):
         """
@@ -98,7 +116,7 @@ class Test_FCS(TestBase):
         filename = "12-00031_Myeloid 1.fcs"
         filepath = data(filename)
 
-        outfile = path.join(self.mkoutdir(), 'dummy.png')
+        outfile = path.join(self.mkoutdir(), 'test_visualization.png')
 
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
@@ -128,17 +146,15 @@ class Test_FCS(TestBase):
         a.comp_scale_FCS_data(compensation_file=comp_file,
                               gate_coords=coords,
                               strict=False,)
-
-        cols = ['FSC-H', 'CD15 FITC']
-        b = a.data.loc[100:105, cols]
-
-        b_expect = pd.DataFrame({'FSC-H': {105: 0.25751877, 100: 0.29451752,
-                                           101: 0.32627106, 102: 0.42173004},
-                                 'CD15 FITC': {105: 0.79197961, 100: 0.79530305,
-                                               101: 0.44847226, 102: 0.898543}}, dtype='float32')
-        np.testing.assert_allclose(b.loc[:, cols].values, b_expect.loc[:, cols].values,
-                                   rtol=1e-3, atol=0, err_msg="Results are more different \
-                                   than tolerable")
+      
+        if write_csv:
+            a.data.to_pickle(data('fcs_data.pkl'))
+            print("\nProcessed FCS data was successfully pickled\n")
+        else:
+            comparison_data = pd.read_pickle(data('fcs_data.pkl'))
+            np.testing.assert_allclose(a.data.values, comparison_data.values,
+                                       rtol=1e-3, atol=0, err_msg="FCS Data results are more \
+                                       different than tolerable")
 
     def test_HistoStats(self):
         """ Tests the HistoStats information subroutines
@@ -160,7 +176,31 @@ class Test_FCS(TestBase):
                               gate_coords=coords,rescale_lim=(-0.5,1),
                               strict=False, auto_comp=False)
         a.extract_FCS_histostats()
-        warnings.warn('Not currently checking results of HistoStats')
+        save_directory = self.mkoutdir(clobber=False)
+        
+        if write_csv:
+            a.PmtStats.to_pickle(data('PmtStats.pkl'))
+            pd.Series(a.TubeStats).to_pickle(data('TubeStats.pkl'))
+            a.histos.to_pickle(data('histos.pkl'))
+            a.comp_correlation.to_pickle(data('comp_correlation.pkl'))
+            print("\nHistoStats successfully written\n")
+        else:
+            PmtStats = pd.read_pickle(data('PmtStats.pkl'))
+            TubeStats = pd.read_pickle(data('TubeStats.pkl'))
+            histos = pd.read_pickle(data('histos.pkl'))
+            comp_correlation = pd.read_pickle(data('comp_correlation.pkl'))
+
+            np.testing.assert_allclose(a.PmtStats.values, PmtStats.values,
+                                       rtol=1e-3, atol=0, err_msg="PMT Statistics results are more \
+                                       different than tolerable")
+            np.testing.assert_allclose(pd.Series(a.TubeStats).values, TubeStats.values,
+                                       rtol=1e-3, atol=0, err_msg="Tube Statistics results are more \
+                                       different than tolerable")
+            np.testing.assert_allclose(a.histos.values, histos.values,
+                                       rtol=1e-3, atol=0, err_msg="Histogram results are more \
+                                       different than tolerable")
+            assert_frame_equal(a.comp_correlation,comp_correlation)
+    
         log.debug(a.PmtStats)
         log.debug(a.TubeStats)
         log.debug(a.histos)
