@@ -27,6 +27,9 @@ log = logging.getLogger(__name__)
 datadir = 'testfiles'
 outputdir = 'test_output'
 
+# TO rewrite test data change below to => True
+write_csv = False
+
 
 def mkdir(dirpath, clobber=False):
     """
@@ -57,7 +60,7 @@ class TestBase(unittest.TestCase):
 
     outputdir = outputdir
 
-    def mkoutdir(self, clobber=True):
+    def mkoutdir(self, clobber=False):
         """
         Create outdir as outpudir/module.class.method (destructively
         if clobber is True).
