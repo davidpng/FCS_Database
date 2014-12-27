@@ -48,6 +48,9 @@ class queryDB(object):
         elif ('getPmtCompCorr' in kwargs and kwargs['getPmtCompCorr'] is True):
             self.results = self.__getPmtCompCorr(**kwargs)
 
+        elif('delCasesByCustom' in kwargs):
+            self.__delCasesByCustom()
+
         self.session.close()
 
     def __getfiles(self, exporttype='dict_dict', **kwargs):
@@ -191,48 +194,36 @@ class queryDB(object):
         """
         log.info('Looking for PmtCompCorr')
         PmtTubeCasesFROM = aliased(PmtTubeCases)
-        PmtTubeCasesIN = aliased(PmtTubeCases)
-
-        # Build query
-#         q_text = """SELECT TubeCases.cytnum,
-# TubeCases.date,
-# PmtTubeCasesIN.Antigen as Antigen_IN,
-# PmtTubeCasesIN.Fluorophore as Fluorophore_IN,
-# PmtTubeCasesFROM.Antigen as Antigen_FROM,
-# PmtTubeCasesFROM.Fluorophore as Fluorophore_FROM,
-# PmtCompCorr.*
-# FROM PmtCompCorr
-# INNER JOIN TubeCases USING (case_tube_idx)
-# INNER JOIN PmtTubeCases AS PmtTubeCasesIN ON (PmtTubeCasesIN.case_tube_idx = PmtCompCorr.case_tube_idx
-# AND PmtTubeCasesIN."Channel_Number" = PmtCompCorr."Channel_Number IN")
-# INNER JOIN PmtTubeCases AS PmtTubeCasesFROM ON (PmtTubeCasesFROM.case_tube_idx = PmtCompCorr.case_tube_idx
-# AND PmtTubeCasesFROM."Channel_Number" = PmtCompCorr."Channel_Number FROM")
-# WHERE TubeCases.empty = 0
-# ORDER BY TubeCases.date, PmtCompCorr.case_tube_idx, PmtCompCorr."Channel_Number IN"
-# """
-        # self.q = self.session.query("cytnum", "date",
-        #                             "Antigen_IN", "Fluorophore_IN",
-        #                             "Antigen_FROM", "Fluorophore_FROM",
-        #                             PmtCompCorr).\
-        #     from_statement(text(q_text))
 
         self.q = self.session.query(TubeCases.date.label('date'),
                                     TubeCases.cytnum.label('cytnum'),
-                                    PmtTubeCasesIN.Antigen.label('Antigen_IN'),
-                                    PmtTubeCasesIN.Fluorophore.label('Fluorophore_IN'),
+                                    PmtTubeCases.Antigen.label('Antigen_IN'),
+                                    PmtTubeCases.Fluorophore.label('Fluorophore_IN'),
                                     PmtTubeCasesFROM.Antigen.label('Antigen_FROM'),
                                     PmtTubeCasesFROM.Fluorophore.label('Fluorophore_FROM'),
                                     PmtCompCorr).\
             join(PmtTubeCasesFROM, PmtCompCorr.PMT_FROM).\
-            join(PmtTubeCasesIN, PmtCompCorr.PMT_IN).\
-            join(TubeCases, PmtTubeCasesIN.Tube)
+            join(PmtTubeCases, PmtCompCorr.PMT_IN).\
+            join(TubeCases, PmtTubeCases.Tube)
 
-        self.q.joined_tables = ['TubeCases', 'PmtTubeCasesFROM', 'PmtTubeCasesIN', 'PmtCompCorr']
+        self.q.joined_tables = ['TubeCases', 'PmtTubeCases', 'PmtTubeCasesIN', 'PmtCompCorr']
 
         self.__add_filters_to_query(**kwargs)
 
         df = self.__q2df()
         return df
+
+    def __delCasesByCustom(self):
+        """ Deletes cases not in the CustomCaseData """
+
+        log.info('Excluding cases not in CustomCaseData table')
+
+        self.q = self.session.query(Cases).\
+                 outerjoin(CustomCaseData, Cases.CustomData).\
+                 filter(CustomCaseData.group == None)
+        for case in self.q:
+            self.session.delete(case)
+        self.session.commit()
 
     def __add_filters_to_query(self, **kwargs):
         """ Add filters specified in kwargs to self.q
@@ -248,6 +239,13 @@ class queryDB(object):
             self.q = self.q.filter(TubeTypesInstances.tube_type.in_(tubes_to_select))
             if 'TubeTypesInstances' not in self.q.joined_tables:
                 self.q = self.q.join(TubeTypesInstances)
+
+        if 'antigens' in kwargs and kwargs['antigens'] is not None:
+            antigens_to_select = [unicode(x) for x in kwargs['antigens']]
+            log.info('Looking for antigens: %s' % antigens_to_select)
+            self.q = self.q.filter(PmtTubeCases.Antigen.in_(antigens_to_select))
+            if 'PmtTubeCases' not in self.q.joined_tables:
+                self.q = self.q.join(PmtTubeCases)
 
         if 'daterange' in kwargs and kwargs['daterange'] is not None:
             log.info('Looking for daterange: [%s, %s]' % (kwargs['daterange'][0],
@@ -265,6 +263,9 @@ class queryDB(object):
             if 'TubeCases' not in self.q.joined_tables:
                 self.q = self.q.join(TubeCases)
 
+        if 'custom_set' in kwargs and kwargs['custom_set'] is not None:
+            self.q = self.q.join(CustomCaseData)
+
     def compile_query(self):
         statement = self.q.statement.compile(dialect=sqlite.dialect())
         return statement, statement.params
@@ -277,20 +278,3 @@ class queryDB(object):
                                con=self.db.engine,
                                params=params)
         return df
-
-        # data = pd.DataFrame(self.q.all())
-        # data.columns = self.q.first().keys()
-        # return data
-
-        # data = self.q.first()
-        # if data is not None:
-        #     columns = data.keys()
-        #     data = [tuple(data)]
-        #     for row in self.q.all():
-        #         data.append(row)
-        #     df = pd.DataFrame(data=data, columns=columns)
-        #     df.drop_duplicates(inplace=True)
-        #     print df
-        #     return df
-        # else:
-        #     return {}

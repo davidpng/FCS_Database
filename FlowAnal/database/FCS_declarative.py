@@ -12,8 +12,6 @@ class Base(object):
     def __init__(self):
         super(Base, self).__init__()
 
-    # schema = None
-
     # def __repr__(self):
     #     return "Table(%s)" % ', '.join(
     #         [repr(self.__tablename__)] + [repr(self.metadata)] +
@@ -63,7 +61,7 @@ class TubeCases(Base):
     empty = Column(Boolean, nullable=False)
     version = Column(String(30), nullable=False)
 
-    Pmts = relationship("PmtTubeCases", backref="Tube")
+    Pmts = relationship("PmtTubeCases", backref="Tube", cascade='delete, delete-orphan')
     Stats = relationship("TubeStats", uselist=False, backref="Tube")
 
 Index('ix_TubeCases_case_num', TubeCases.case_number)
@@ -75,6 +73,17 @@ Index('ix_TubeCases_tube_type_instance', TubeCases.tube_type_instance)
 class Cases(Base):
     __tablename__ = 'Cases'
     case_number = Column(String(10), primary_key=True)
+
+    Tubes = relationship("TubeCases", backref='Case', cascade='delete, delete-orphan')
+
+
+class CustomCaseData(Base):
+    __tablename__ = 'CustomCaseData'
+    case_number = Column(String(10), ForeignKey('Cases.case_number'),
+                         nullable=False, primary_key=True)
+    group = Column(String(30))
+
+    Cases = relationship("Cases", uselist=False, backref='CustomData')
 
 
 class TubeTypesInstances(Base):
