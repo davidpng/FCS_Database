@@ -2,10 +2,16 @@
 
 import logging
 import pandas as pd
+from inspect import getsourcelines
+from sqlalchemy import inspect
+from sqlalchemy.orm import sessionmaker
 
 from hsqr.database.database import SqliteConnection
+
 from query_database import queryDB
 from FlowAnal.__init__ import package_data
+from FlowAnal.database.FCS_declarative import *
+
 
 log = logging.getLogger(__name__)
 
@@ -17,14 +23,36 @@ class FCSdatabase(SqliteConnection):
     SqliteConnection
     """
 
-    def __init__(self, db, interrupt=5, rebuild=False):
+    def __init__(self, db, interrupt=5, rebuild=False, build='alchemy'):
         log.debug('initializing FCSdatabase')
         self.tables = ['PmtTubeCases', 'TubeCases', 'Cases', 'TubeTypesInstances',
                        'Antigens', 'Fluorophores']
-        super(FCSdatabase, self).__init__(db=db, tables=self.tables)
+        super(FCSdatabase, self).__init__(db=db, tables=self.tables, build=build)
 
-        if rebuild:
+        if build == 'sql' and rebuild is True:
             self.create()
+        elif build == 'alchemy':
+            self.create_alchem(rebuild=rebuild)
+
+    def create_alchem(self, rebuild=False):
+        """ Drop and recreate FCS database from sqlalchemy statements """
+
+        Base.metadata.bind = self.engine
+        if rebuild is True:
+            log.info("Dropping existing data in DB [%s]" % self.db_file)
+            Base.metadata.drop_all()
+
+        Base.metadata.create_all()
+
+        if self.enforce_foreign_keys:
+            self.enforce_foreign_keys()
+        self.meta = Base.metadata
+
+        self.insp = inspect(self.engine)
+        self.Session = sessionmaker(bind=self.engine)
+
+        self.engine.conn = self.engine.connect()
+        self.engine.conn.execute("ANALYZE")
 
     def create(self, files=['setup_hpmeta.sql']):
         """ Drop and recreate FCS database from <files> """

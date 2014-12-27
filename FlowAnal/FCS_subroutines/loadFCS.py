@@ -59,7 +59,7 @@ class loadFCS(object):
 
         # Load processed data
         self.parameters = self.__parameter_header()
-        self.channels = self.parameters.loc['Channel Name'].tolist()
+        self.channels = self.parameters.loc['Channel_Name'].tolist()
         if 'import_dataframe' in kwargs:
             if kwargs['import_dataframe']:
                 self.data = pd.DataFrame(self.__parse_data(), columns=self.channels)
@@ -231,21 +231,21 @@ class loadFCS(object):
         equal to the number of parameters
         """
         par = int(self.text['par'])  # number of parameters
-        framework = [['s','Channel Name'],
+        framework = [['s','Channel_Name'],
                      ['a','Antigen'],
                      ['p','Fluorophore'],
-                     ['i','Channel Number'],
-                     ['n','Short name'],
+                     ['i','Channel_Number'],
+                     ['n','Short_name'],
                      ['b','Bits'],
-                     ['e','Amp type'],
-                     ['g','Amp gain'],
+                     ['e','Amp_type'],
+                     ['g','Amp_gain'],
                      ['r','Range'],
                      ['v','Voltage'],
-                     ['f','Optical Filter Name'],
-                     ['l','Excitation Wavelength'],
-                     ['o','Excitation Power'],
-                     ['t','Detector Type'],
-                     ['d','suggested scale']]
+                     ['f','Optical_Filter_Name'],
+                     ['l','Excitation_Wavelength'],
+                     ['o','Excitation_Power'],
+                     ['t','Detector_Type'],
+                     ['d','suggested_scale']]
         framework = np.array(framework)
         depth = len(framework)
         columns = []
@@ -264,12 +264,13 @@ class loadFCS(object):
                         header_df[x][y] = temp.replace('CD ','CD') #handles space after 'CD '
                 elif framework[j,0] == 'i':
                     header_df[x][y] = i  # allowance to number the channels
+
         #handles parsing for the channel names
         for i in range(1,par+1):
             x = columns[i-1]
-            if pd.isnull(header_df[x]['Channel Name']):
-                header_df[x]['Channel Name'] = header_df[x]['Short name']
-            unparsed_name = header_df[x]['Channel Name']
+            if pd.isnull(header_df[x]['Channel_Name']):
+                header_df[x]['Channel_Name'] = header_df[x]['Short_name']
+            unparsed_name = header_df[x]['Channel_Name']
             parsed_name = unparsed_name.split(" ", 1)
 
             if 'FSC' in unparsed_name:

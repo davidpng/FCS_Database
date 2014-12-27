@@ -17,5 +17,5 @@ fi
 echo -e "\n################# MAKE STATS #################"
 ./flowanal.py -v add_FCSstats_db $dir
 
-#./flowanal.py -v process_FCSstats -tubes Hodgkin Hodgkins --table-format tall --testing
+./flowanal.py -v process_FCSstats --table-format tall --testing
 

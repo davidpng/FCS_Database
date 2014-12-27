@@ -53,12 +53,16 @@ class FCSstats_to_database(object):
         # Handle PmtStats
         d = self.FCS.PmtStats
         d.reset_index(drop=False, inplace=True, col_level=0)
-        d.columns.values[0] = "Channel Name"
+        d.columns.values[0] = "Channel_Name"
         d['version'] = self.FCS.version
         d['case_tube_idx'] = self.FCS.case_tube_idx
-        d = pd.merge(d, params[['Channel Name', 'Channel Number']],
-                     how='left', on=['Channel Name'])
-        d.drop(['Channel Name'], axis=1, inplace=True)
+        d = pd.merge(d, params[['Channel_Name', 'Channel_Number']],
+                     how='left', on=['Channel_Name'])
+        d.drop(['Channel_Name'], axis=1, inplace=True)
+
+        mis = [i for i, x in enumerate(d.columns) if x[-1] == '%']
+        d.columns = d.columns[range(min(mis))].tolist() + ['X25', 'median', 'X75'] + \
+                    d.columns[range(max(mis) + 1, len(d.columns))].tolist()
         self.db.add_df(df=d, table='PmtStats')
 
         d = self.FCS.TubeStats
@@ -68,6 +72,8 @@ class FCSstats_to_database(object):
         d = d.reset_index(drop=False).T
         d.columns = d.loc['index', :]
         d.drop(['index'], inplace=True)
+#        d.reset_index(inplace=True, drop=True)
+
         self.db.add_df(df=d, table='TubeStats')
 
     def __push_histos(self):
@@ -75,21 +81,21 @@ class FCSstats_to_database(object):
         """
         d = self.FCS.histos.T
         d.reset_index(drop=False, inplace=True, col_level=0)
-        d.columns.values[0] = "Channel Name"
+        d.columns.values[0] = "Channel_Name"
         d['case_tube_idx'] = self.FCS.case_tube_idx
 
         params = self.FCS.parameters.T
-        d = pd.merge(d, params[['Channel Name', 'Channel Number']],
-                     how='left', on=['Channel Name'])
-        d.drop(['Channel Name'], axis=1, inplace=True)
+        d = pd.merge(d, params[['Channel_Name', 'Channel_Number']],
+                     how='left', on=['Channel_Name'])
+        d.drop(['Channel_Name'], axis=1, inplace=True)
 
         # Pivot table (drop NAs and density of 0)
-        d.set_index(["case_tube_idx", "Channel Number"],
+        d.set_index(["case_tube_idx", "Channel_Number"],
                     drop=True, append=False, inplace=True)
         d2 = d.stack(dropna=False)
         d3 = d2.reset_index(drop=False)
-        d3.sort(['case_tube_idx', 'Channel Number'], inplace=True)
-        d3.columns = ['case_tube_idx', 'Channel Number', 'bin', 'density']
+        d3.sort(['case_tube_idx', 'Channel_Number'], inplace=True)
+        d3.columns = ['case_tube_idx', 'Channel_Number', 'bin', 'density']
 
         # Push histo
         self.db.add_df(df=d3, table='PmtHistos')
@@ -101,15 +107,15 @@ class FCSstats_to_database(object):
         d = self.FCS.comp_correlation
         params = self.FCS.parameters.T
 
-        d = pd.merge(d, params[['Channel Name', 'Channel Number']],
-                     how='left', left_on=['spill_in'], right_on=['Channel Name'])
-        d.drop(['spill_in', 'Channel Name'], axis=1, inplace=True)
-        d.columns = d.columns[range(d.shape[1] - 1)].tolist() + ['Channel Number IN']
+        d = pd.merge(d, params[['Channel_Name', 'Channel_Number']],
+                     how='left', left_on=['spill_in'], right_on=['Channel_Name'])
+        d.drop(['spill_in', 'Channel_Name'], axis=1, inplace=True)
+        d.columns = d.columns[range(d.shape[1] - 1)].tolist() + ['Channel_Number_IN']
 
-        d = pd.merge(d, params[['Channel Name', 'Channel Number']],
-                     how='left', left_on=['spill_from'], right_on=['Channel Name'])
-        d.drop(['spill_from', 'Channel Name'], axis=1, inplace=True)
-        d.columns = d.columns[range(d.shape[1] - 1)].tolist() + ['Channel Number FROM']
+        d = pd.merge(d, params[['Channel_Name', 'Channel_Number']],
+                     how='left', left_on=['spill_from'], right_on=['Channel_Name'])
+        d.drop(['spill_from', 'Channel_Name'], axis=1, inplace=True)
+        d.columns = d.columns[range(d.shape[1] - 1)].tolist() + ['Channel_Number_FROM']
 
         d['case_tube_idx'] = self.FCS.case_tube_idx
         self.db.add_df(df=d, table='PmtCompCorr')

@@ -9,16 +9,16 @@ CREATE TABLE IF NOT EXISTS PmtTubeCases (
        case_tube_idx INTEGER NOT NULL,
        Antigen NVARCHAR(10) NULL,
        Fluorophore NVARCHAR(10) NULL,
-       "Channel Name" NVARCHAR(20) NOT NULL,
-       "Channel Number" INTEGER NOT NULL,
-       "Short name" NVARCHAR(20),
+       "Channel_Name" NVARCHAR(20) NOT NULL,
+       "Channel_Number" INTEGER NOT NULL,
+       "Short_name" NVARCHAR(20),
        "Bits" INTEGER,
-       "Amp type" NVARCHAR(10),
-       "Amp gain" REAL,
+       "Amp_type" NVARCHAR(10),
+       "Amp_gain" REAL,
        "Range" INTEGER,
        Voltage INTEGER,
        version VARCHAR(30) NOT NULL,
-       PRIMARY KEY (case_tube_idx, "Channel Number"),
+       PRIMARY KEY (case_tube_idx, "Channel_Number"),
        FOREIGN KEY (case_tube_idx) REFERENCES TubeCases(case_tube_idx),
        FOREIGN KEY (Antigen) REFERENCES Antigens(Antigen),
        FOREIGN KEY (Fluorophore) REFERENCES Fluorophores(Fluorophore)
@@ -28,9 +28,9 @@ CREATE INDEX IF NOT EXISTS ix_PmtTubeCases_case_tube_idx_antigen_fluor
 CREATE INDEX IF NOT EXISTS ix_PmtTubeCases_antigen_fluor
        ON PmtTubeCases (Antigen, Fluorophore);
 CREATE INDEX IF NOT EXISTS ix_PmtTubeCases_number
-       ON PmtTubeCases ("Channel Number");
+       ON PmtTubeCases ("Channel_Number");
 CREATE INDEX IF NOT EXISTS ix_PmtTubeCases_antigen_number
-       ON PmtTubeCases (Antigen, "Channel Number");
+       ON PmtTubeCases (Antigen, "Channel_Number");
 CREATE INDEX IF NOT EXISTS ix_PmtTubeCases_fluor
        ON PmtTubeCases (Fluorophore);
 
@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS Fluorophores (
 -- Pmt event stats
 CREATE TABLE IF NOT EXISTS PmtStats (
        case_tube_idx INTEGER NOT NULL,
-      "Channel Number" INTEGER NOT NULL,
+      "Channel_Number" INTEGER NOT NULL,
        count INTEGER,
        mean FLOAT,
        std FLOAT,
@@ -105,16 +105,16 @@ CREATE TABLE IF NOT EXISTS PmtStats (
        transform_in_limits INTEGER,
        transform_not_nan INTEGER,
        version VARCHAR(30) NOT NULL,
-       PRIMARY KEY (case_tube_idx, "Channel Number"),
+       PRIMARY KEY (case_tube_idx, "Channel_Number"),
        FOREIGN KEY (case_tube_idx) REFERENCES TubeCases(case_tube_idx)
 );
 
 CREATE INDEX IF NOT EXISTS ix_PmtStats_Channel_Number
-       ON PmtStats ("Channel Number");
+       ON PmtStats ("Channel_Number");
 
 -- Tube event stats
 CREATE TABLE IF NOT EXISTS TubeStats (
-       case_tube_idx NVARCHAR(100) PRIMARY KEY,
+       case_tube_idx INTEGER PRIMARY KEY,
        total_events INTEGER NOT NULL,
        transform_not_nan INTEGER NOT NULL,
        transform_in_limits INTEGER NOT NULL,
@@ -127,27 +127,27 @@ CREATE TABLE IF NOT EXISTS TubeStats (
 -- Pmt event histogram
 CREATE TABLE IF NOT EXISTS PmtHistos (
        case_tube_idx INTEGER NOT NULL,
-       "Channel Number" NVARCHAR(5) NOT NULL,
+       "Channel_Number" INTEGER NOT NULL,
        bin NVARCHAR(20) NOT NULL,
        density FLOAT,
-       PRIMARY KEY (case_tube_idx, "Channel Number", bin),
+       PRIMARY KEY (case_tube_idx, "Channel_Number", bin),
        FOREIGN KEY (case_tube_idx) REFERENCES TubeCases(case_tube_idx)
 );
 CREATE INDEX IF NOT EXISTS PmtHistos_bin
-       ON PmtHistos ("Channel Number", bin);
+       ON PmtHistos ("Channel_Number", bin);
 
 -- Pmt Compensation Correlation
 CREATE TABLE IF NOT EXISTS PmtCompCorr (
        case_tube_idx INTEGER NOT NULL,
-       "Channel Number IN" NVARCHAR(5) NOT NULL,
-       "Channel Number FROM" NVARCHAR(5) NOT NULL,
+       "Channel_Number_IN" NVARCHAR(5) NOT NULL,
+       "Channel_Number_FROM" NVARCHAR(5) NOT NULL,
        Pearson_R FLOAT NULL,
        P_value FLOAT NULL,
-       PRIMARY KEY (case_tube_idx, "Channel Number IN", "Channel Number FROM"),
+       PRIMARY KEY (case_tube_idx, "Channel_Number_IN", "Channel_Number_FROM"),
        FOREIGN KEY (case_tube_idx) REFERENCES TubeCases(case_tube_idx)
 );
 
 CREATE INDEX IF NOT EXISTS PmtCompCorr_IN
-       ON PmtCompCorr ("Channel Number IN", "Channel Number FROM");
+       ON PmtCompCorr ("Channel_Number_IN", "Channel_Number_FROM");
 CREATE INDEX IF NOT EXISTS PmtCompCorr_IN
-       ON PmtCompCorr ("Channel Number FROM", "Channel Number IN");
+       ON PmtCompCorr ("Channel_Number_FROM", "Channel_Number_IN");

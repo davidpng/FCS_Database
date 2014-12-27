@@ -26,6 +26,9 @@ def build_parser(parser):
                         action='store_true')
     parser.add_argument('-table-format', '--table-format', dest='table_format',
                         default='tall', type=str)
+    parser.add_argument('-cases', '--cases', help='List of cases to select',
+                        nargs='+', action='store',
+                        default=None, type=str)
 
 
 def action(args):
@@ -41,6 +44,7 @@ def action(args):
             qc.pushQC(db=testdbcon)
         else:
             qc = FlowQC(dbcon=dbcon, **vars(args))
+
         log.debug(qc.histos)
         log.debug(qc.PmtStats)
         log.debug(qc.TubeStats)

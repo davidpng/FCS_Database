@@ -42,12 +42,12 @@ class Test_FCS(TestBase):
         self.assertEqual(a.version, __version__)
         self.assertTrue(hasattr(a, 'data'))
 
-        parameters = {'Optical Filter Name': np.nan, 'Excitation Wavelength': np.nan,
-                      'Amp type': '0,0', 'Excitation Power': np.nan, 'Antigen': 'CD15',
-                      'Detector Type': np.nan, 'Short name': 'FITC-H', 'suggested scale': np.nan,
-                      'Channel Name': 'CD15 FITC',
-                      'Voltage': 465, 'Amp gain': '1.0',
-                      'Range': 262144, 'Channel Number': 5, 'Bits': 32, 'Fluorophore': 'FITC'}
+        parameters = {'Optical_Filter_Name': np.nan, 'Excitation_Wavelength': np.nan,
+                      'Amp_type': '0,0', 'Excitation_Power': np.nan, 'Antigen': 'CD15',
+                      'Detector_Type': np.nan, 'Short_name': 'FITC-H', 'suggested_scale': np.nan,
+                      'Channel_Name': 'CD15 FITC',
+                      'Voltage': 465, 'Amp_gain': '1.0',
+                      'Range': 262144, 'Channel_Number': 5, 'Bits': 32, 'Fluorophore': 'FITC'}
         self.assertEqual(dict(a.parameters.loc[:, 'FITC-H']), parameters)
 
     def test_empty_FCS(self):

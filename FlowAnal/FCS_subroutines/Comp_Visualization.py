@@ -58,8 +58,8 @@ class Comp_Visualization(object):
         self.plot_2d_hist(4,14)
 
     def plot_2d_hist(self,x,y,downsample=0.2):
-        x_lb = self.FCS.parameters.iloc[:,x-1].loc['Channel Name']
-        y_lb = self.FCS.parameters.iloc[:,y-1].loc['Channel Name']
+        x_lb = self.FCS.parameters.iloc[:,x-1].loc['Channel_Name']
+        y_lb = self.FCS.parameters.iloc[:,y-1].loc['Channel_Name']
 
         x_pts = self.FCS.data.iloc[:,x-1]
         y_pts = self.FCS.data.iloc[:,y-1]

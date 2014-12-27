@@ -28,6 +28,9 @@ def build_parser(parser):
                         help="Specify whether to capture data as dictionary or pandas dataframe. \
                         Will force 'df' if --outfile <X>",
                         default="dict_dict", choices=['dict_dict', 'df'])
+    parser.add_argument('-cases', '--cases', help='List of cases to select',
+                        nargs='+', action='store',
+                        default=None, type=str)
 
 
 def action(args):

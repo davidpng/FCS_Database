@@ -6,6 +6,7 @@
 import logging
 from os import path
 import sys
+from sqlalchemy.exc import IntegrityError
 
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
@@ -33,7 +34,7 @@ def build_parser(parser):
                         default="db/fcs_stats.db", type=str)
     parser.add_argument('-tubes', '--tubes', help='List of tube types to select',
                         nargs='+', action='store',
-                        default=None, type=str)
+                        default=['Hodgkin', 'Myeloid 1'], type=str)
     parser.add_argument('-dates', '--daterange',
                         help='Start and end dates to bound selection of cases \
                         [Year-Month-Date Year-Month-Date]',
@@ -46,12 +47,12 @@ def build_parser(parser):
 def action(args):
 
     # Connect to database
-    db = FCSdatabase(db=args.db, rebuild=False)
     log.info("Loading database input %s" % args.db)
+    db = FCSdatabase(db=args.db, rebuild=False)
 
-    # Connect to database
-    out_db = FCSdatabase(db=args.outdb, rebuild=True)
+    # Connect to out database
     log.info("Loading database output %s" % args.outdb)
+    out_db = FCSdatabase(db=args.outdb, rebuild=True)
 
     # Create query
     q = db.query(exporttype='dict_dict', getfiles=True, **vars(args))
@@ -65,16 +66,19 @@ def action(args):
 
                 if fFCS.empty is False:
                     try:
-                        pass
-                        # Need to correct query so that merge is correct
-                        # fFCS.meta_to_db(db=out_db, dir=args.dir, add_lists=True)
-                        # fFCS.comp_scale_FCS_data(compensation_file=comp_file,
-                        #                          gate_coords=coords,
-                        #                          strict=False, auto_comp=False)
-                        # fFCS.extract_FCS_histostats()
-                        # fFCS.histostats_to_db(db=out_db)
+                        fFCS.meta_to_db(db=out_db, dir=args.dir, add_lists=True)
+                        fFCS.comp_scale_FCS_data(compensation_file=comp_file,
+                                                 gate_coords=coords,
+                                                 strict=False, auto_comp=False)
+                        fFCS.extract_FCS_histostats()
+                        fFCS.histostats_to_db(db=out_db)
                     except ValueError, e:
                         print "Skipping FCS %s because of ValueError: %s" % (filepath, e)
+                    except KeyError, e:
+                        print "Skipping FCS %s because of KeyError: %s" % (filepath, e)
+                    except IntegrityError, e:
+                        print "Skipping Case: %s, Tube: %s, Date: %s, filepath: %s because of IntegrityError: %s" % \
+                            (case, tube, date, filepath, e)
                     except:
                         print "Skipping FCS %s because of unknown error related to: %s" % \
                             (filepath, sys.exc_info()[0])

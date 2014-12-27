@@ -50,7 +50,7 @@ class Process_FCS_Data(object):
         self.FCS = FCS
 
         # save columns because data is redfined after comp
-        self.columns = self.__Clean_up_columns(self.FCS.parameters.loc['Channel Name'])
+        self.columns = self.__Clean_up_columns(self.FCS.parameters.loc['Channel_Name'])
 
         self.FCS.total_events = self.FCS.data.shape[0]      # initial number of events before gating
 
