@@ -6,12 +6,11 @@ import logging
 import pandas as pd
 from datetime import datetime
 from sqlalchemy.sql import func
-from sqlalchemy.orm import aliased, lazyload
+from sqlalchemy.orm import aliased
+from sqlalchemy.dialects import sqlite
 
 from FlowAnal.utils import Vividict
 from FlowAnal.database.FCS_declarative import *
-
-from sqlalchemy.dialects import sqlite
 
 log = logging.getLogger(__name__)
 
@@ -36,20 +35,20 @@ class queryDB(object):
     def __init__(self, fcsdb, **kwargs):
         self.db = fcsdb
         self.session = fcsdb.Session()
+        log.info('Querying...')
 
-        if ('getfiles' in kwargs and kwargs['getfiles'] is True):
-            self.results = self.__getfiles(**kwargs)
-        elif ('getPmtStats' in kwargs and kwargs['getPmtStats'] is True):
-            self.results = self.__getPmtStats(**kwargs)
-        elif ('getTubeStats' in kwargs and kwargs['getTubeStats'] is True):
-            self.results = self.__getTubeStats(**kwargs)
-        elif ('getPmtHistos' in kwargs and kwargs['getPmtHistos'] is True):
-            self.results = self.__getPmtHistos(**kwargs)
-        elif ('getPmtCompCorr' in kwargs and kwargs['getPmtCompCorr'] is True):
-            self.results = self.__getPmtCompCorr(**kwargs)
-
-        elif('delCasesByCustom' in kwargs):
-            self.__delCasesByCustom()
+        qmethods = ['getfiles', 'getPmtStats', 'getTubeStats',
+                    'getPmtCompCorr', 'getPmtHistos']
+        qmethod = [m for m in qmethods
+                   if (m in kwargs.keys() and kwargs[m] is True)]
+        if len(qmethod) > 1:
+            print 'Multiple query methods specified: %s by kwargs: %s' % (qmethod,
+                                                                          kwargs)
+        elif len(qmethod) == 1:
+            self.results = getattr(self, '_queryDB__' + qmethod[0])(**kwargs)
+        else:
+            if 'delCasesByCustom' in kwargs.keys():
+                self.__delCasesByCustom()
 
         self.session.close()
 

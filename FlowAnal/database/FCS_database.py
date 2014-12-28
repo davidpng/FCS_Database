@@ -74,7 +74,7 @@ class FCSdatabase(SqliteConnection):
         daterange -- <list> [X,X] Select set based on date between daterange
         """
         if out_file:
-            q = queryDB(self, exporttype='df', **kwargs)
+            q = queryDB(self, exporttype='df', *args, **kwargs)
             q.results.to_csv(out_file, index=False, index_label=None, encoding='utf-8')
             return 0
         else:
