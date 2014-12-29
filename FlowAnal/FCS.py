@@ -48,7 +48,7 @@ class FCS(object):
                 self.load_from_file(**kwargs)
             except Exception, e:
                 warnings.warn("loading FCS as empty because %s" % e)
-                self.make_emptyFCS(**kwargs)
+                self.make_emptyFCS(error_message=str(e), **kwargs)
         elif filepaths is not None:
             raise "Not implemneted yet"
             self.make_inferred_FCS(filepaths=filepaths)
@@ -65,12 +65,13 @@ class FCS(object):
         """
         loadFCS(FCS=self, filepath=self.__filepath, version=self.__version, **kwargs)
 
-    def make_emptyFCS(self, **kwargs):
+    def make_emptyFCS(self, error_message, **kwargs):
         """ Import an "empty" FCS file
 
         This function handles creation of FCS objects when loadFCS fails
         """
-        empty_FCS(FCS=self, filepath=self.__filepath, version=self.__version, **kwargs)
+        empty_FCS(FCS=self, error_message=error_message,
+                  filepath=self.__filepath, version=self.__version, **kwargs)
 
     def load_from_db(self, db):
         """ Import FCS data from db <db> """

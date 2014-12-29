@@ -176,7 +176,6 @@ class Test_FCS(TestBase):
                               gate_coords=coords,rescale_lim=(-0.5,1),
                               strict=False, auto_comp=False)
         a.extract_FCS_histostats()
-        save_directory = self.mkoutdir(clobber=False)
 
         if write_csv:
             a.PmtStats.to_pickle(data('PmtStats.pkl'))
