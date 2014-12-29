@@ -28,12 +28,13 @@ class empty_FCS(object):
     .case_tube
     .version
     """
-    def __init__(self, FCS, filepath, version, **kwargs):
+    def __init__(self, FCS, error_message, filepath, version, **kwargs):
         self.filepath = filepath
         self.filename = basename(filepath)
         self.case_tube = self.filename.strip('.fcs')
         self.case_number = self.__filepath_to_case_number()
         self.version = version
+        self.error_message = error_message
         self.__export(FCS=FCS)
 
     def __export(self, FCS):
@@ -44,6 +45,7 @@ class empty_FCS(object):
         FCS.case_tube = self.case_tube
         FCS.version = self.version
         FCS.empty = True
+        FCS.error_message = self.error_message
 
     def __filepath_to_case_number(self):
         """ Capture case number from filepath

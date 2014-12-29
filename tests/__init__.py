@@ -60,7 +60,7 @@ class TestBase(unittest.TestCase):
 
     outputdir = outputdir
 
-    def mkoutdir(self, clobber=False):
+    def mkoutdir(self, clobber=True):
         """
         Create outdir as outpudir/module.class.method (destructively
         if clobber is True).
