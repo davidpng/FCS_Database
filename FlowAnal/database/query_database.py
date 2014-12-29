@@ -143,13 +143,17 @@ class queryDB(object):
         # Build query
         self.q = self.session.query(TubeCases.cytnum,
                                     TubeCases.date,
+                                    TubeCases.case_number,
+                                    TubeTypesInstances.tube_type,
                                     TubeStats).\
-            join(TubeStats).\
+            join(TubeCases, TubeStats.Tube).\
+            join(TubeTypesInstances, TubeCases.TubeTypesInstance).\
             filter(~TubeCases.empty).\
             order_by(TubeCases.date)
 
         # keep track of explicitly joined tables
-        self.q.joined_tables = ['TubeCases', 'TubeStats']
+        self.q.joined_tables = ['TubeCases', 'TubeStats',
+                                'TubeTypesInstances']
 
         self.__add_filters_to_query(**kwargs)
 
@@ -169,6 +173,8 @@ class queryDB(object):
         # Build query
         self.q = self.session.query(TubeCases.cytnum,
                                     TubeCases.date,
+                                    PmtTubeCases.Antigen,
+                                    PmtTubeCases.Fluorophore,
                                     PmtHistos).\
             join(PmtTubeCases, PmtHistos.Pmt).\
             join(TubeCases, PmtTubeCases.Tube).\
@@ -177,6 +183,7 @@ class queryDB(object):
                      PmtHistos.case_tube_idx,
                      PmtHistos.Channel_Number,
                      PmtHistos.bin)
+
         self.q.joined_tables = ['TubeCases', 'PmtHistos', 'PmtTubeCases']
         self.__add_filters_to_query(**kwargs)
 

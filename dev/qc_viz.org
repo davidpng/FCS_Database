@@ -23,72 +23,121 @@ library(scales)
 sqlite <- dbDriver("SQLite")
 setwd('/home/local/AMC/hermands/repos/flow_anal')
 db <- dbConnect(sqlite, "db/test.db")
+
 histos <- tbl_df(dbReadTable(db, 'full_histos'))
 pmtstats <- tbl_df(dbReadTable(db, 'full_PmtStats'))
 tubestats <- tbl_df(dbReadTable(db, 'full_tubestats'))
-pmtcorr <- tbl_df(dbReadTable(db, 'full_PmtCompCorr'))
 
 histos$date <- as.POSIXct(histos$date, "%Y-%m-%d %H:%M:%S")
 pmtstats$date <- as.POSIXct(pmtstats$date, "%Y-%m-%d %H:%M:%S")
 tubestats$date <- as.POSIXct(tubestats$date, "%Y-%m-%d %H:%M:%S")
-pmtcorr$date <- as.POSIXct(pmtcorr$date, "%Y-%m-%d %H:%M:%S")
 
 histos$cytnum <- as.factor(histos$cytnum)
 pmtstats$cytnum <- as.factor(pmtstats$cytnum)
 tubestats$cytnum <- as.factor(tubestats$cytnum)
-pmtcorr$cytnum <- as.factor(pmtcorr$cytnum)
 
+# Multiple plot function
+#
+# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+# - cols:   Number of columns in layout
+# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+#
+# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+# then plot 1 will go in the upper left, 2 will go in the upper right, and
+# 3 will go all the way across the bottom.
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  require(grid)
+
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+
+  numPlots = length(plots)
+
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                    ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+
+ if (numPlots==1) {
+    print(plots[[1]])
+
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
 #+END_SRC
 
-* TubeStats
-** calcs
+
+* Tubestats
+** Calculations
 #+BEGIN_SRC R
-tmp <- tubestats %>%
+# Calculate percentages
+tubestats <- tubestats %>%
   arrange(date) %>%
     mutate(ptransform_not_nan= transform_not_nan/ total_events * 100,
            ptransform_in_limits= transform_in_limits/ total_events * 100,
            pviable = viable_remain / transform_in_limits * 100,
            psinglet = singlet_remain / viable_remain * 100)
 
-tmp <- tmp %>%
+# Smooth
+tubestats <- tubestats %>%
   filter(cytnum %in% c('1', '2')) %>%
     group_by(cytnum) %>%
       mutate(smooth_total_events = rollmean(total_events, k=10, align='center', fill=NA),
-             smooth_ptransform = rollmean(ptransform, k=10, align='center', fill=NA),
+             smooth_ptransform_in_limits = rollmean(ptransform_in_limits, k=10, align='center', fill=NA),
              smooth_pviable = rollmean(pviable, k=10, align='center', fill=NA),
              smooth_psinglet = rollmean(psinglet, k=10, align='center', fill=NA),
              sd_total_events = rollapply(total_events, width=10, FUN=sd, align='center', fill=NA),
-             sd_ptransform = rollapply(ptransform, width=10, FUN=sd, align='center', fill=NA),
+             sd_ptransform_in_limits = rollapply(ptransform_in_limits, width=10, FUN=sd, align='center', fill=NA),
              sd_pviable = rollapply(pviable, width=10, FUN=sd, align='center', fill=NA),
              sd_psinglet = rollapply(psinglet, width=10, FUN=sd, align='center', fill=NA),
              max_total_events = smooth_total_events + 2*sd_total_events,
-             max_ptransform = smooth_ptransform + 2 * sd_ptransform,
+             max_ptransform_in_limits = smooth_ptransform_in_limits + 2 * sd_ptransform_in_limits,
              max_pviable = smooth_pviable + 2 * sd_pviable,
              max_psinglet = smooth_psinglet + 2 * sd_psinglet,
              min_total_events = smooth_total_events - 2*sd_total_events,
-             min_ptransform = smooth_ptransform - 2 * sd_ptransform,
+             min_ptransform_in_limits = smooth_ptransform_in_limits - 2 * sd_ptransform_in_limits,
              min_pviable = smooth_pviable - 2 * sd_pviable,
              min_psinglet = smooth_psinglet - 2 * sd_psinglet)
 
-names(tmp)[c(4, 9:11)] <- paste('raw', names(tmp)[c(4, 9:11)], sep='_')
-names(tmp) <- sub(x=names(tmp), pattern='total_events', replacement='totalevents')
-#names(tmp)[-c(1, 2, 3, 5:8)] <- sapply(strsplit(names(tmp)[-c(1,2,3,5:8)], split='_'), function(x) { paste(x[2], x[1], sep='_') })
+# Reshape database
+names(tubestats)[c(6, 13:15)] <- paste('raw', names(tubestats)[c(6, 13:15)], sep='_')
+names(tubestats) <- sub(x=names(tubestats), pattern='total_events', replacement='totalevents')
+names(tubestats) <- sub(x=names(tubestats), pattern='ptransform_in_limits', replacement='ptransform')
 
-tmp2 <- reshape(data.frame(tmp),
-                varying = names(tmp)[c(4, seq(12, 24, 4), seq(9, 25, 4), seq(10, 26, 4), seq(11, 27, 4))],
+tubestats2 <- tubestats[,!(names(tubestats) %in% c('version', 'transform_not_nan', 'transform_in_limits', 'viable_remain', 'singlet_remain', 'case_tube_idx', 'ptransform_not_nan'))]
+
+tubestats2 <- reshape(data.frame(tubestats2),
+                varying = names(tubestats2)[5:24],
                 sep='_',
                 timevar='stat',
-                idvar=c('cytnum', 'date', 'case_tube'),
+                idvar=c('cytnum', 'date', 'case_number', 'tube_type'),
                 direction='long',
-                drop=c('version', 'transform_remain', 'viable_remain', 'singlet_remain'))
-row.names(tmp2) <- 1:nrow(tmp2)
-tmp2 <- tbl_df(tmp2)
+                drop=c())
+row.names(tubestats2) <- 1:nrow(tubestats2)
+tubestats2 <- tbl_df(tubestats2)
 
 # Flags
-tmp2$flag_2sd <- with(tmp2, (raw > smooth + 2 * sd) | (raw < smooth - 2 * sd))
-tmp2$flag_1sd <- with(tmp2, (raw > smooth + 1 * sd) | (raw < smooth - 1 * sd))
-tmp2$flag_3sd <- with(tmp2, (raw > smooth + 3 * sd) | (raw < smooth - 3 * sd))
-tmp2$flag <- with(tmp2, ifelse(flag_3sd, '3sd',
+tubestats2$flag_1sd <- with(tubestats2, (raw > smooth + 1 * sd) | (raw < smooth - 1 * sd))
+tubestats2$flag_2sd <- with(tubestats2, (raw > smooth + 2 * sd) | (raw < smooth - 2 * sd))
+tubestats2$flag_3sd <- with(tubestats2, (raw > smooth + 3 * sd) | (raw < smooth - 3 * sd))
+tubestats2$flag <- with(tubestats2, ifelse(flag_3sd, '3sd',
                                ifelse(flag_2sd, '2sd',
                                       ifelse(flag_1sd, '1sd',
                                              'None'))))
@@ -100,77 +149,93 @@ tmp2$flag <- with(tmp2, ifelse(flag_3sd, '3sd',
 #+BEGIN_SRC R
 outdir <- 'output'
 
-# line plots
-pdf(paste(outdir, 'TubeStats_count_lines.pdf', sep='/'), 10, 5)
+# Plotting TubeStat data (total events, percent of events passing various filters) over time
+pdf(paste(outdir, 'TubeStats_count_lines.pdf', sep='/'), 16, 12)
 variables <- c('ptransform', 'pviable', 'psinglet')
+
 for (var in c(variables)) {
-  g <- tmp2 %>%
-    filter(stat == var) %>%
-      arrange(date) %>%
-        ggplot(aes(x=date, y=raw, group=cytnum))
-  g <- g + geom_point(aes(colour=cytnum, shape=flag))
-  g <- g + geom_line(aes(y=smooth, colour=cytnum))
-  g <- g + geom_ribbon(aes(ymin=apply(cbind(smooth-1*sd,0) ,1, max),
-                                  ymax=apply(cbind(smooth + 1 * sd, 100), 1, min),
-                                  alpha=0.1, fill=cytnum)) + scale_alpha_continuous(guide='none')
-  g <- g + labs(title=paste(var, ' over time', sep=''), ylab='Percent')
-  g <- g + ylim(0,100)
-  print(g)
-}
-variables <- c('totalevents')
-for (var in c(variables)) {
-  dat <- tmp2 %>%
+  g <- list()
+  tmp <- tubestats2 %>%
     filter(stat == var) %>%
       arrange(date)
+
+  # group by cytnum
+  g[['cytnum']] <- tmp %>% ggplot(aes(x=date, y=raw, group=cytnum))
+  g[['cytnum']] <- g[['cytnum']] + geom_point(aes(colour=cytnum, shape=flag))
+  g[['cytnum']] <- g[['cytnum']] + geom_line(aes(y=smooth, colour=cytnum))
+  g[['cytnum']] <- g[['cytnum']] + geom_ribbon(aes(ymin=apply(cbind(smooth-1*sd,0) ,1, max),
+                                  ymax=apply(cbind(smooth + 1 * sd, 100), 1, min),
+                                  alpha=0.1, fill=cytnum)) + scale_alpha_continuous(guide='none')
+  g[['cytnum']] <- g[['cytnum']] + labs(title=paste(var, ' over time', sep='')) + ylab('Percent')
+  g[['cytnum']] <- g[['cytnum']] + ylim(0,100)
+  g[['cytnum']] <- g[['cytnum']] + scale_x_datetime()  # breaks = date_breaks("1 week"))
+
+  for (cyt in unique(tmp$cytnum)) {
+      g[[cyt]] <- tmp %>%
+        filter(cytnum == cyt) %>%
+          ggplot(aes(x=date, y=raw, group=tube_type))
+      g[[cyt]] <- g[[cyt]] + geom_point(aes(colour=tube_type, shape=flag))
+      g[[cyt]] <- g[[cyt]] + geom_line(aes(y=smooth, colour=tube_type))
+      g[[cyt]] <- g[[cyt]] + geom_ribbon(aes(ymin=apply(cbind(smooth-1*sd,0) ,1, max),
+                                      ymax=apply(cbind(smooth + 1 * sd, 100), 1, min),
+                                      alpha=0.1, fill=tube_type)) + scale_alpha_continuous(guide='none')
+      g[[cyt]] <- g[[cyt]] + labs(title=paste(var, ' over time for cytometer #', cyt, sep='')) + ylab('Percent')
+      g[[cyt]] <- g[[cyt]] + ylim(0,100)
+      g[[cyt]] <- g[[cyt]] + scale_x_datetime()  # breaks = date_breaks("1 week"))
+    }
+  multiplot(plotlist=g, cols=1)
+}
+
+variables <- c('totalevents')
+for (var in c(variables)) {
+  g <- list()
+  dat <- tubestats2 %>%
+    filter(stat == var) %>%
+      arrange(date)
+
   ymin = max(min(with(dat, raw - 2 * sd), na.rm=T), 100)
   ymax = max(with(dat, raw + 2 * sd), na.rm=T)
-  g <- dat %>%
+
+  # group by cytnum
+  g[['cytnum']] <- dat %>%
         ggplot(aes(x=date, y=raw, group=cytnum))
-  g <- g + geom_point(aes(colour=cytnum, shape=flag))
-  g <- g + geom_line(aes(y=smooth, colour=cytnum))
-  g <- g + geom_ribbon(aes(ymin=smooth - 1 * sd,
+  g[['cytnum']] <- g[['cytnum']] + geom_point(aes(colour=cytnum, shape=flag))
+  g[['cytnum']] <- g[['cytnum']] + geom_line(aes(y=smooth, colour=cytnum))
+  g[['cytnum']] <- g[['cytnum']] + geom_ribbon(aes(ymin=smooth - 1 * sd,
                                   ymax=smooth + 1 * sd,
                                   alpha=0.1, fill=cytnum)) + scale_alpha_continuous(guide='none')
-  g <- g + labs(title=paste(var, ' over time', sep=''), ylab='Count')
-  g <- g + scale_y_log10(limits=c(ymin, ymax))
-  print(g)
+  g[['cytnum']] <- g[['cytnum']] + labs(title=paste(var, ' over time', sep='')) +  ylab('Count')
+  g[['cytnum']] <- g[['cytnum']] + scale_y_log10(limits=c(ymin, ymax))
+  g[['cytnum']] <- g[['cytnum']] + scale_x_datetime()  # breaks = date_breaks("1 week"))
+
+  for (cyt in unique(tmp$cytnum)) {
+      g[[cyt]] <- dat %>%
+        filter(cytnum == cyt) %>%
+          ggplot(aes(x=date, y=raw, group=tube_type))
+      g[[cyt]] <- g[[cyt]] + geom_point(aes(colour=tube_type, shape=flag))
+      g[[cyt]] <- g[[cyt]] + geom_line(aes(y=smooth, colour=tube_type))
+      g[[cyt]] <- g[[cyt]] + geom_ribbon(aes(ymin=smooth - 1 * sd,
+                                             ymax=smooth + 1 * sd,
+                                             alpha=0.1, fill=tube_type))
+      g[[cyt]] <- g[[cyt]] + scale_alpha_continuous(guide='none')
+      g[[cyt]] <- g[[cyt]] + labs(title=paste(var, ' over time', sep='')) +  ylab('Count')
+      g[[cyt]] <- g[[cyt]] + scale_y_log10(limits=c(ymin, ymax))
+      g[[cyt]] <- g[[cyt]] + scale_x_datetime()  # breaks = date_breaks("1 week"))
+    }
+  multiplot(plotlist=g, cols=1)
 }
 dev.off()
-
-## variables <- c('total_events', 'transform_remain', 'viable_remain', 'singlet_remain')
-## cyts <- names(table(tubestats$cytnum))[which(as.numeric(table(tubestats$cytnum)) > 10)]
-## pdf(paste(outdir, 'smooth_lines.pdf', sep='/'), 10, 5)
-## for (var in c(variables)) {
-##   for (cyt in cyts) {
-##     g <- tubestats %>%
-##       arrange(date) %>%
-##         filter(cytnum == cyt) %>%
-##           ggplot(aes_string(x='date', y=var))
-##     g <- g + geom_point()
-##     g <- g + stat_smooth(n=10)
-##     g <- g + labs(title=paste(var, ' for cytometer [', cyt, '] smoothed (n=10) over time', sep=''))
-##     print(g)
-##   }
-## }
-## dev.off()
 #+END_SRC
 
 #+RESULTS:
-#+begin_example
- Warning messages:
-1: Removed 18 rows containing missing values (geom_point).
-2: Removed 18 rows containing missing values (geom_path).
-3: Removed 18 rows containing missing values (geom_point).
-4: Removed 18 rows containing missing values (geom_path).
-5: Removed 18 rows containing missing values (geom_point).
-6: Removed 18 rows containing missing values (geom_path).
- Warning messages:
-1: In scale$trans$trans(x) : NaNs produced
-2: Removed 18 rows containing missing values (geom_point).
-3: Removed 18 rows containing missing values (geom_path).
-png
-  2
-#+end_example
+:  There were 18 warnings (use warnings() to see them)
+:  Warning messages:
+: 1: In scale$trans$trans(x) : NaNs produced
+: 2: Removed 18 rows containing missing values (geom_point).
+: 3: Removed 18 rows containing missing values (geom_path).
+: null device
+:           1
+
 
 * PmtStats
 ** calcs
@@ -312,45 +377,76 @@ dev.off()
 : png
 :   2
 
+
 * Histos
+** TODO
+- Try different scaling (column sum -> density), pick max at 95th percentiles?
+- Add Channel_Number, Antigen, Fluorophore (Each can be primary and labeled with others)
+- Try to make this plot time based
+
 #+BEGIN_SRC R
-tmp <- histos %>%
-  arrange(date, cytnum, case_tube, Channel.Name)
+min_obs <- 2000
 
-tmp$bin <- factor(tmp$bin)
-levels(tmp$bin) <- format(as.numeric(levels(tmp$bin)), digits=1)
+histos <- histos %>%
+  arrange(date, cytnum, case_tube_idx, Channel_Number)
+histos$bin <- factor(histos$bin)
+levels(histos$bin) <- format(as.numeric(levels(histos$bin)), digits=1)
 
-channels <- unique(tmp$Channel.Name)
-channels <- channels[which(!channels %in% c('Time'))]
-cytnums <- names(table(tmp$cytnum))[which(as.numeric(table(tmp$cytnum)) > 10)]
+tmp <- histos %>% group_by(cytnum, Channel_Number) %>%
+      filter(n() > min_obs) %>%
+        ungroup() %>% arrange(date)
 
-bins <- as.character(sort(unique(tmp$bin)))
+channels <- unique(factor(tmp$Channel_Number))
+channels <- as.character(channels[which(!channels %in% c('Time'))])
+cytnums <- as.numeric(unique(factor(tmp$cytnum)))
+bins <- as.character(sort(unique(histos$bin)))
 
-for (cyt in cytnums) {
-  for (channel in channels) {
-    dat <- tmp %>%
-      filter(Channel.Name == channel & cytnum == cyt) %>%
-        arrange(date)
-    if (nrow(dat) >= 10) {
-        png(paste('output/Histos.raster', cyt, channel, 'png', sep='.'),
-            max(ceiling(nrow(dat)/7), 1250),
-            max(ceiling(nrow(dat)/40), 400))
-        g <- dat %>% ggplot(aes(x=case_tube, y=bin, fill=density))
-        g <- g + geom_raster(interpolate=FALSE)
-        g <- g + scale_y_discrete(name = 'bins', breaks=c(bins[seq(0,100,20)]))
-                                            # + scale_y_datetime(breaks=date_breaks("1 year"))
-        g <- g + theme(axis.text.x=element_text(angle=45, hjust=1))
-        g <- g + labs(title=paste(channel, ': Histogram over time for cyt #', cyt, sep=''))
-        print(g)
-        dev.off()
-      }
+
+# Simplify the date information
+tmp2 <- tmp %>% group_by(case_tube_idx) %>%
+  summarize(date = as.POSIXct(first(date), origin='1970-01-01 00:00.00 UTC')) %>% ungroup %>%
+    arrange(date)
+
+tmp2 <- tmp2 %>%
+  mutate(dd = difftime(lead(date), date, units='mins'))
+
+# Plot by channel
+for (channel in channels[1]) {
+  g <- list()
+  dat <- tmp %>%
+    filter(Channel_Number == channel) %>%
+
+  png(paste('output/Histos.raster', channel, 'png', sep='.'),
+      max(ceiling(nrow(dat)/5), 1250),
+      max(ceiling(nrow(dat)/20), 500))
+
+  for (cyt in cytnums) {
+    dat2 <- dat %>% filter(cytnum == cyt) %>%
+      arrange(date) %>% ungroup()
+    dat2$order <- 1:nrow(dat2)/100
+
+    max_density <- as.numeric(quantile(dat2$density,c(0.9999), na.rm=T))  # Truncate so that color range works
+    dat2$density[which(dat2$density >= max_density)] = max_density
+    g[[cyt]] <- dat2 %>%
+        ggplot(aes(x=order, y=bin, fill=density))
+    g[[cyt]] <- g[[cyt]] + geom_raster(interpolate=FALSE)
+    g[[cyt]] <- g[[cyt]] + scale_y_discrete(name = 'bins', breaks=c(bins[seq(0,100,20)]))
+#    g[[cyt]] <- g[[cyt]] + scale_colour_gradient()
+#    g[[cyt]] <- g[[cyt]] + scale_x_datetime()
+#    g[[cyt]] <- g[[cyt]] + theme(axis.text.x=element_text(angle=45, hjust=1))
+    g[[cyt]] <- g[[cyt]] + labs(title=paste(channel, ': Histogram over time for cyt #', cyt, sep=''))
   }
+  multiplot(plotlist=g, cols=1)
+  dev.off()
 }
 
-
+# Let's make the raster back on single page?
+# Let's make the violin plots
+# Could I sample every 30 minutes --> therefore make that the interval and make it consistent?
 #+END_SRC
 
 #+RESULTS:
+
 
 * Reset repository
 Choose repository version
