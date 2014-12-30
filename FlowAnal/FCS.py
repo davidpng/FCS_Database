@@ -14,6 +14,7 @@ from FCS_subroutines.FCSmeta_to_database import FCSmeta_to_database
 from FCS_subroutines.FCSstats_to_database import FCSstats_to_database
 from FCS_subroutines.Extract_HistoStats import Extract_HistoStats
 from FCS_subroutines.Comp_Visualization import Comp_Visualization
+from FCS_subroutines.ND_Feature_Extraction import ND_Feature_Extraction
 from . import __version__
 import warnings
 
@@ -91,7 +92,22 @@ class FCS(object):
                          strict=strict,
                          auto_comp=auto_comp,
                          **kwargs)
-
+                         
+    def feature_extraction(self, extraction_type='Full',bins=10,**kwargs):
+        """
+        Will extract features to an sparse data array
+        overwrite - flag to write new hd5f file or append to file
+        extraction type - flag for 2-D vs N-D binning
+        **kwargs - to pass bin size information etc
+        """ 
+        type_flag = extraction_type.lower()
+        if  type_flag == 'full':
+            return ND_Feature_Extraction(FCS=self, bins=bins, **kwargs)
+        elif type_flag == '2d':
+            raise "Not Implemented yet"
+        else:
+            raise "Extraction type undefined"
+            
     def make_inferred_FCS(self, filepaths):
         """
         filepaths (list)
