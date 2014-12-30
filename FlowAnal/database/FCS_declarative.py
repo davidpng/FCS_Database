@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, create_engine, \
-    ForeignKey, Index, inspect
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, Text, \
+    create_engine, ForeignKey, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.schema import ForeignKeyConstraint
@@ -11,12 +11,6 @@ class Base(object):
     @declared_attr
     def __init__(self):
         super(Base, self).__init__()
-
-    # def __repr__(self):
-    #     return "Table(%s)" % ', '.join(
-    #         [repr(self.__tablename__)] + [repr(self.metadata)] +
-    #         [repr(x) for x in self.__mapper__.columns.keys()] +
-    #         ["%s=%s" % (k, repr(getattr(self, k))) for k in ['schema']])
 
 Base = declarative_base(cls=Base)
 
@@ -59,6 +53,7 @@ class TubeCases(Base):
     cytometer = Column(String(10))
     cytnum = Column(String(3))
     empty = Column(Boolean, nullable=False)
+    error_message = Column(Text)
     version = Column(String(30), nullable=False)
 
     Pmts = relationship("PmtTubeCases", backref="Tube", cascade='delete, delete-orphan')

@@ -57,6 +57,8 @@ class FCSmeta_to_database(object):
             meta_data['num_events'] = self.FCS.num_events
             meta_data['cytometer'] = self.FCS.cytometer
             meta_data['cytnum'] = self.FCS.cytnum
+        else:
+            meta_data['error_message'] = self.FCS.error_message
 
         return meta_data
 
