@@ -75,6 +75,7 @@ class FCSdatabase(SqliteConnection):
         """
         if out_file:
             q = queryDB(self, exporttype='df', **kwargs)
+            log.info('Printing out df to %s', out_file)
             q.results.to_csv(out_file, index=False, index_label=None, encoding='utf-8')
             return 0
         else:

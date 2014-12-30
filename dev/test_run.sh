@@ -19,3 +19,9 @@ echo -e "\n################# MAKE STATS #################"
 
 ./flowanal.py -v process_FCSstats --table-format tall --testing
 
+echo -e "\n################# MAKE PICTURES #################"
+./flowanal.py -v viz-cases-2d $dir -n 1
+
+echo -e "\n################# QUERY DB #################"
+./flowanal.py -v query_db --getTubeInfo -etype df -o db/test.txt
+

@@ -103,7 +103,7 @@ class Test_FCS(TestBase):
             db = FCSdatabase(db=outfile, rebuild=True)
             a.meta_to_db(db=db, dir=root_dir)
         """
-        
+
     def test_comp_vis(self):
         """
         Tests the compensation visualizer subroutine in FCS successfully writes file
@@ -261,3 +261,10 @@ class Test_FCS(TestBase):
         db = FCSdatabase(db=outfile, rebuild=True)
         a.meta_to_db(db=db, dir=root_dir)
         db.addCustomCaseData(file=data('custom_case_data.txt'))
+
+        # Delete other entries
+        db.query(delCasesByCustom=True)
+        db.close()
+
+        # Need to add query here to check
+
