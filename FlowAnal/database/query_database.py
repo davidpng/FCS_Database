@@ -37,8 +37,9 @@ class queryDB(object):
         self.session = fcsdb.Session()
         log.info('Querying...')
 
+        # Choose query message based on kwargs
         qmethods = ['getfiles', 'getPmtStats', 'getTubeStats',
-                    'getPmtCompCorr', 'getPmtHistos']
+                    'getPmtCompCorr', 'getPmtHistos', 'getTubeInfo']
         qmethod = [m for m in qmethods
                    if (m in kwargs.keys() and kwargs[m] is True)]
         if len(qmethod) > 1:
@@ -52,10 +53,10 @@ class queryDB(object):
 
         self.session.close()
 
-    def __getfiles(self, exporttype='dict_dict', **kwargs):
+    def __getTubeInfo(self, exporttype='dict_dict', **kwargs):
         """
-        Gets files based on specified criteria, organizes by case+tube and returns
-        object
+        Gets files based on specified criteria, organizes by case, tube_type, and date and returns
+        object (either dataframe or dict of dict
 
         Notable attributes:
         .results -- stores the result of query; datatype specified by <exporttype>
@@ -97,6 +98,54 @@ class queryDB(object):
                                       axis=1)
             df.drop(['filename', 'dirname'], axis=1, inplace=True)
             df.sort(['case_number', 'tube_type'], inplace=True)
+            return df
+        else:
+            raise "Unknown type"
+
+    def __getfiles(self, exporttype='dict_dict', **kwargs):
+        """
+        Gets files based on specified criteria, organizes by case, case_tube_idx and returns
+        object (either dataframe or dict of dict
+
+        Notable attributes:
+        .results -- stores the result of query; datatype specified by <exporttype>
+
+        Keyword arguments:
+        exporttype ['dict_dict', 'df'] (default: dict_dict)
+        """
+        log.info('Looking for files')
+        # Build query
+        self.q = self.session.query(TubeCases.case_number,
+                                    TubeCases.case_tube_idx,
+                                    TubeCases.filename,
+                                    TubeCases.dirname).\
+            filter(~TubeCases.empty)
+
+        # keep track of explicitly joined tables
+        self.q.joined_tables = ['TubeCases']
+
+        # Add common filters
+        self.__add_filters_to_query(**kwargs)
+
+        log.debug('Query:')
+        log.debug(self.q.statement)
+
+        # Handle export data
+        if exporttype == 'dict_dict':
+            files = Vividict()
+            try:
+                for x in self.q.all():
+                    files[x.case_number][x.case_tube_idx] = path.join(x.dirname, x.filename)
+            except:
+                self.session.rollback()
+                raise "Failed to query TubeCases"
+            return files
+        elif exporttype == 'df':
+            df = self.__q2df()
+            df['filepath'] = df.apply(lambda x: path.join(x.dirname, x.filename),
+                                      axis=1)
+            df.drop(['filename', 'dirname'], axis=1, inplace=True)
+            df.sort(['case_number', 'case_tube_idx'], inplace=True)
             return df
         else:
             raise "Unknown type"

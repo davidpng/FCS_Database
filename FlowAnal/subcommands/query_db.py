@@ -22,7 +22,9 @@ def build_parser(parser):
                         default="db/fcs.db", type=str)
     parser.add_argument('-o', '--outfile', help='File to export query to [optional]',
                         default=None, type=str, dest='out_file')
-    parser.add_argument("-gf", "--getfiles", action="store_true",
+    parser.add_argument("-gf", "--getfiles", action="store_true", dest='getfiles',
+                        help="Query database to get set of files")
+    parser.add_argument("-gti", "--getTubeInfo", action="store_true", dest='getTubeInfo',
                         help="Query database to get information about available .fcs files")
     parser.add_argument("-etype", "--exporttype", action="store",
                         help="Specify whether to capture data as dictionary or pandas dataframe. \
@@ -34,6 +36,11 @@ def build_parser(parser):
 
 
 def action(args):
+
+    # Identify query option
+    if (args.getfiles is False and args.getTubeInfo is False):
+        raise Exception("ERROR: Must select either --getfiles or --getTubeinfo")
+
     # Connect to database
     db = FCSdatabase(db=args.db, rebuild=False)
 
