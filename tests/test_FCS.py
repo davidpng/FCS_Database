@@ -89,9 +89,12 @@ class Test_FCS(TestBase):
         filepath = path.abspath(data(filename))
 
         a = FCS(filepath=filepath)
+        db = FCSdatabase(db=outfile, rebuild=True)
+        a.meta_to_db(db=db, dir=root_dir)
 
+        """
         org_file = data('12_00031_db_file.db')
-        if write_csv:
+        if 1 == 2: #write_csv:
             db = FCSdatabase(db=org_file, rebuild=True)
             a.meta_to_db(db=db,dir=root_dir)
             print("\nTest Meta Info successfully written\n")
@@ -99,7 +102,8 @@ class Test_FCS(TestBase):
             db_original = FCSdatabase(db=org_file, rebuild=False)
             db = FCSdatabase(db=outfile, rebuild=True)
             a.meta_to_db(db=db, dir=root_dir)
-
+        """
+        
     def test_comp_vis(self):
         """
         Tests the compensation visualizer subroutine in FCS successfully writes file
