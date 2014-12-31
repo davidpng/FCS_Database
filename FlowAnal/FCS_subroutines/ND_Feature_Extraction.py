@@ -26,7 +26,8 @@ class ND_Feature_Extraction(object):
         bin_description
         histogram
         """
-        self.type='Full'
+        self.version = FCS.version
+        self.type = 'Full'
         if 'exclude_param' in kwargs:
             exclude = kwargs['exclude_param']
         else:

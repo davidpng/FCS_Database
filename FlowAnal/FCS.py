@@ -15,7 +15,7 @@ from FCS_subroutines.FCSstats_to_database import FCSstats_to_database
 from FCS_subroutines.Extract_HistoStats import Extract_HistoStats
 from FCS_subroutines.Comp_Visualization import Comp_Visualization
 from FCS_subroutines.ND_Feature_Extraction import ND_Feature_Extraction
-from FCS_subroutines.FCShisto_to_HDF5 import FCShisto_to_HDF5
+#from FCS_subroutines.FCShisto_to_HDF5 import FCShisto_to_HDF5
 from . import __version__
 import warnings
 
@@ -111,7 +111,7 @@ class FCS(object):
         else:
             raise "Extraction type undefined"
         
-    def Push_FCS_features_to_HDF5(self,filename, verbose):
+    def Push_FCS_features_to_HDF5(self,case_tube_index, HDF5_object, db_h):
         """
         This will push object described 
         """
@@ -119,9 +119,7 @@ class FCS(object):
             raise ValueError("FCS_features does not exist, did you call \
                    _feature_extraction first to make?")
         
-        FCShisto_to_HDF5(filename=filename,
-                         histo_object = self.FCS_features,
-                         verbose=verbose)
+        HDF5_object.push_FCS_features(case_tube_index=FCS=self,db_h=db_h,)
             
     def make_inferred_FCS(self, filepaths):
         """
