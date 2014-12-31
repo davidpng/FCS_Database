@@ -91,8 +91,13 @@ class Test_FCS(TestBase):
         a.comp_scale_FCS_data(compensation_file=comp_file,
                               gate_coords=coords, rescale_lim=(-0.5,1),
                               strict=False, auto_comp=False)
-        binned_data = a.feature_extraction(extraction_type='FULL',bins=10)
+        a._feature_extraction(extraction_type='FULL',bins=10)
+
+        binned_data = a.FCS_features        
         coords = binned_data.Return_Coordinates([1,2,3,4])
+
+        a.Push_FCS_features_to_HDF5(filename=data('test.hdf5'),
+                                    verbose=True)
         
         if write_csv:
             coords.to_pickle(data('test_coordinates.pkl'))

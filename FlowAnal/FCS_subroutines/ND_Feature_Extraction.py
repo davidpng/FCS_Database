@@ -20,7 +20,13 @@ class ND_Feature_Extraction(object):
 
     def __init__(self,FCS,bins,**kwargs):
         """
+        
+        Accessiable Parameters
+        type
+        bin_description
+        histogram
         """
+        self.type='Full'
         if 'exclude_param' in kwargs:
             exclude = kwargs['exclude_param']
         else:
@@ -47,7 +53,7 @@ class ND_Feature_Extraction(object):
          
     def _Uniform_Bin_Data(self,input_data,bin_dict):
         """
-        fits event parameters to an integer 'binned' value
+        fits event parameters to an Caterhaminteger 'binned' value
         """
         basis = [1]         #intialize a list of basis values
         for i in bin_dict.values:
@@ -83,7 +89,7 @@ class ND_Feature_Extraction(object):
         else:
             raise TypeError("provided bins parameter is not supported")
         return bin_dict
-    
+
     def Return_Coordinates(self,index):
         """
         Returns the bin parameters 
