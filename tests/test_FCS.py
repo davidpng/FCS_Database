@@ -11,6 +11,7 @@ import pandas as pd
 import pickle
 
 from __init__ import TestBase, datadir, write_csv
+from FlowAnal.HDF5_IO import HDF5_IO
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
 from FlowAnal.__init__ import package_data, __version__
@@ -62,13 +63,7 @@ class Test_FCS(TestBase):
 
             parameters = pd.read_pickle(data('parameter_info.pkl'))
             assert_frame_equal(a.parameters, parameters)
-            
-    def test_save_feature_extraction(self):
-        """
-        tests HDF5 file create and data push
-        """
-        outfile = path.join(self.mkoutdir(), 'test_hdf5.hdf')
-
+       
     def test_feature_extraction(self):
         """ tests ND_Feature_Extraction """
         coords = {'singlet': [(0.01, 0.06), (0.60, 0.75), (0.93, 0.977), (0.988, 0.86),
@@ -83,10 +78,6 @@ class Test_FCS(TestBase):
 
         filepath = data(filename)
 
-        db_query_output = {u'12-00031': {u'Myeloid 1':
-                                          {datetime.datetime(2012, 1, 3, 12, 0, 15):
-                                           u'testfiles/12-00031_Myeloid 1.fcs'}}}
-
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
                               gate_coords=coords, rescale_lim=(-0.5,1),
@@ -95,10 +86,7 @@ class Test_FCS(TestBase):
 
         binned_data = a.FCS_features        
         coords = binned_data.Return_Coordinates([1,2,3,4])
-
-        a.Push_FCS_features_to_HDF5(filename=data('test.hdf5'),
-                                    verbose=True)
-        
+               
         if write_csv:
             coords.to_pickle(data('test_coordinates.pkl'))
             print "Test_coordinates was succefully pickled"

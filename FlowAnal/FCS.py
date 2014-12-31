@@ -119,7 +119,7 @@ class FCS(object):
             raise ValueError("FCS_features does not exist, did you call \
                    _feature_extraction first to make?")
         
-        HDF5_object.push_FCS_features(case_tube_index=FCS=self,db_h=db_h,)
+        HDF5_object.push_FCS_features(case_tube_index,FCS=self,db_h=db_h,)
             
     def make_inferred_FCS(self, filepaths):
         """
