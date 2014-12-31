@@ -22,6 +22,8 @@ class HDF5_IO(object):
         
     def push_fcs_features(self,case_tube_idx,FCS,db):
         """
+        This function will push the fcs features stored in CSR matrix form
+        to a given case_tube_idx as well as associated meta information
         """
         self.schema = self.__make_schema(str(case_tube_idx))
         fh = h5py.File(self.filepath,'a')
@@ -34,9 +36,12 @@ class HDF5_IO(object):
         fh.close()
            
     def get_fcs_features(self,case_tube_idx):
+        """
+        This function will return the CSR matrix for a given case_tube_idx
+        """
         self.schema = self.__make_schema(str(case_tube_idx))
         fh = h5py.File(self.filepath,'r')
-
+        #get individual componets of the sparse array
         d = fh[self.schema['sdat']].value
         i = fh[self.schema['sidx']].value
         p = fh[self.schema['sind']].value
@@ -47,15 +52,26 @@ class HDF5_IO(object):
 
     def __push_check_version(self,hdf_fh,FCS,db):
         """
+        This internal function will check to see the header info the 
+        hdf5 object/file is correct per the following logic
         if exists and equal = good
         if exists not equal = fail
-        if not exist, make and equal        
+        if not exist, make and equal
+        
+        Items used: FCS.version, FCS.FCS_features.type, db.date, db.db_file
         """
         if self.schema['db_fp'] in hdf_fh:
             if hdf_fh[self.schema['db_fp']] != db.db_file:
                 raise ValueError('Filepaths do not match')
         else:
             hdf_fh[self.schema['db_fp']] = db.db_file
+        """
+        if self.schema['db_dt'] in hdf_fh:
+            if hdf_fh[self.schema['db_dt']] != db.date
+                raise ValueError('Evn versions do not match')
+        else:
+            hdf_fh[self.schema['db_dt']] = db.date
+        """
             
         if self.schema['env_v'] in hdf_fh:
             if hdf_fh[self.schema['env_v']] != FCS.version:
@@ -69,6 +85,7 @@ class HDF5_IO(object):
         else:
             hdf_fh[self.schema['ex_tp']] = FCS.FCS_features.type
             
+
             
     def __make_schema(self,case_tube_idx):
         """

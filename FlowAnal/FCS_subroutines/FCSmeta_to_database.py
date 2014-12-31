@@ -106,7 +106,7 @@ class FCSmeta_to_database(object):
         self.db.add_dict(self.meta, table='TubeCases')
 
         # Retrieve the case_tube_idx into self.FCS.case_tube_idx
-        self.FCS.get_case_tube_index(db=self.db, dir=dir)
+        self.FCS.get_case_tube_index(db=self.db)
 
     def push_parameters(self):
         """ Export Pmt+Tube+Case parameters from FCS object to DB """

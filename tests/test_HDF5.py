@@ -15,7 +15,6 @@ from FlowAnal.HDF5_IO import HDF5_IO
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
 from FlowAnal.__init__ import package_data, __version__
-from pandas.util.testing import assert_frame_equal,assert_almost_equal
 
 log = logging.getLogger(__name__)
 
@@ -54,7 +53,7 @@ class Test_HDF5(TestBase):
         #db initialization
         DB_obj = FCSdatabase(db=DB_fp, rebuild=True)
         FCS_obj.meta_to_db(db=DB_obj, dir=path.abspath('.'))
-        FCS_obj.get_case_tube_index(db=DB_obj,dir='what')
+        FCS_obj.get_case_tube_index(db=DB_obj)
         log.debug(FCS_obj.case_tube_idx)
         #hdf initialization
         HDF_obj = HDF5_IO(filepath=HDF_fp)

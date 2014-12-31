@@ -161,7 +161,7 @@ class FCS(object):
 
         FCSstats_to_database(FCS=self, db=db)
 
-    def get_case_tube_index(self, db, dir):
+    def get_case_tube_index(self, db):
         """ Read a meta database to get the case_tube_index """
 
         if self.empty is False:
