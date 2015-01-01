@@ -2,9 +2,10 @@
 
 import logging
 import pandas as pd
-from inspect import getsourcelines
+# from inspect import getsourcelines
 from sqlalchemy import inspect
 from sqlalchemy.orm import sessionmaker
+from datetime import datetime
 
 from hsqr.database.database import SqliteConnection
 from hsqr.lab_pred import Lab_pred_table
@@ -26,7 +27,7 @@ class FCSdatabase(SqliteConnection):
     def __init__(self, db, interrupt=5, rebuild=False, build='alchemy'):
         log.debug('initializing FCSdatabase')
         self.tables = ['PmtTubeCases', 'TubeCases', 'Cases', 'TubeTypesInstances',
-                       'Antigens', 'Fluorophores']
+                       'Antigens', 'Fluorophores', 'MetaTable']
         super(FCSdatabase, self).__init__(db=db, tables=self.tables, build=build)
 
         if build == 'sql' and rebuild is True:
@@ -38,21 +39,31 @@ class FCSdatabase(SqliteConnection):
         """ Drop and recreate FCS database from sqlalchemy statements """
 
         Base.metadata.bind = self.engine
+        self.Session = sessionmaker(bind=self.engine)
+
         if rebuild is True:
             log.info("Dropping existing data in DB [%s]" % self.db_file)
             Base.metadata.drop_all()
+            Base.metadata.create_all()
 
-        Base.metadata.create_all()
+            # Add creation datetime
+            s = self.Session()
+            m = MetaTable(creation_date=datetime.now())
+            s.add(m)
+            s.commit()
+            s.close()
+        else:
+            Base.metadata.create_all()
 
         if self.enforce_foreign_keys:
             self.enforce_foreign_keys()
         self.meta = Base.metadata
-
         self.insp = inspect(self.engine)
-        self.Session = sessionmaker(bind=self.engine)
 
         self.engine.conn = self.engine.connect()
         self.engine.conn.execute("ANALYZE")
+
+        # Capture datetime
 
     def create(self, files=['setup_hpmeta.sql']):
         """ Drop and recreate FCS database from <files> """

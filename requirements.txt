@@ -4,5 +4,8 @@ sqlalchemy==0.9.7
 pysqlite==2.6.0
 scipy==0.14.0
 matplotlib==1.4.2
-h5py==2.3.0
+# numexpr==2.4
+# Cython=0.21.2
+# tables
+h5py==2.3.1
 -e git+ssh://git@bitbucket.org/hermands/hsqr.git@flow-dev#egg=hsqr

@@ -63,7 +63,7 @@ class Test_FCS(TestBase):
 
             parameters = pd.read_pickle(data('parameter_info.pkl'))
             assert_frame_equal(a.parameters, parameters)
-       
+
     def test_feature_extraction(self):
         """ tests ND_Feature_Extraction """
         coords = {'singlet': [(0.01, 0.06), (0.60, 0.75), (0.93, 0.977), (0.988, 0.86),
@@ -82,11 +82,11 @@ class Test_FCS(TestBase):
         a.comp_scale_FCS_data(compensation_file=comp_file,
                               gate_coords=coords, rescale_lim=(-0.5,1),
                               strict=False, auto_comp=False)
-        a._feature_extraction(extraction_type='FULL',bins=10)
+        a.feature_extraction(extraction_type='FULL', bins=10)
 
-        binned_data = a.FCS_features        
+        binned_data = a.FCS_features
         coords = binned_data.Return_Coordinates([1,2,3,4])
-               
+
         if write_csv:
             coords.to_pickle(data('test_coordinates.pkl'))
             print "Test_coordinates was succefully pickled"
@@ -101,7 +101,7 @@ class Test_FCS(TestBase):
             f.close()
             np.testing.assert_allclose(coords.values,test_coords.values)
             np.testing.assert_allclose(binned_data.histogram.data,test_histogram.data)
-                        
+
     def test_empty_FCS(self):
         """ Testing loading FCS filepath that does not load properly ==> empty """
 

@@ -195,6 +195,11 @@ Index('ix_PmtCompCorr_IN_FROM', PmtCompCorr.Channel_Number_IN, PmtCompCorr.Chann
 Index('ix_PmtCompCorr_FROM_IN', PmtCompCorr.Channel_Number_FROM, PmtCompCorr.Channel_Number_IN)
 
 
+class MetaTable(Base):
+    __tablename__ = 'MetaTable'
+    creation_date = Column(DateTime, nullable=False, primary_key=True)
+
+
 if __name__ == '__main__':
     sqlalchemy = 'sqlite:////home/local/AMC/hermands/repos/flow_anal/db/test_alchemy.db'
     engine = create_engine(sqlalchemy)

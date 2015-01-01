@@ -15,7 +15,7 @@ from FCS_subroutines.FCSstats_to_database import FCSstats_to_database
 from FCS_subroutines.Extract_HistoStats import Extract_HistoStats
 from FCS_subroutines.Comp_Visualization import Comp_Visualization
 from FCS_subroutines.ND_Feature_Extraction import ND_Feature_Extraction
-#from FCS_subroutines.FCShisto_to_HDF5 import FCShisto_to_HDF5
+
 from . import __version__
 import warnings
 
@@ -93,16 +93,16 @@ class FCS(object):
                          strict=strict,
                          auto_comp=auto_comp,
                          **kwargs)
-                         
-    def _feature_extraction(self, extraction_type='Full', bins=10, **kwargs):
+
+    def feature_extraction(self, extraction_type='Full', bins=10, **kwargs):
         """
         Quasi interal function to FCS, to be accessed by other functions?
         Will extract features to an sparse data array
         extraction type - flag for 2-D vs N-D binning
         **kwargs - to pass bin size information etc
-        """ 
+        """
         type_flag = extraction_type.lower()
-        if  type_flag == 'full':
+        if type_flag == 'full':
             self.FCS_features = ND_Feature_Extraction(FCS=self,
                                                       bins=bins,
                                                       **kwargs)
@@ -110,17 +110,17 @@ class FCS(object):
             raise "Not Implemented yet"
         else:
             raise "Extraction type undefined"
-        
+
     def Push_FCS_features_to_HDF5(self,case_tube_index, HDF5_object, db_h):
         """
-        This will push object described 
+        This will push object described
         """
         if not self.FCS_features:
             raise ValueError("FCS_features does not exist, did you call \
                    _feature_extraction first to make?")
-        
+
         HDF5_object.push_FCS_features(case_tube_index,FCS=self,db_h=db_h,)
-            
+
     def make_inferred_FCS(self, filepaths):
         """
         filepaths (list)
@@ -161,8 +161,12 @@ class FCS(object):
 
         FCSstats_to_database(FCS=self, db=db)
 
-    def get_case_tube_index(self, db):
-        """ Read a meta database to get the case_tube_index """
+    def _get_case_tube_index(self, db):
+        """ Read a meta database to get the case_tube_index that was created by the TubeCases
+        table upon entry
+
+        This relies upon it being the most recent created for a paticular case_tube, filename, date
+        """
 
         if self.empty is False:
             # Capture database-created case_tube_idx

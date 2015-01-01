@@ -17,7 +17,7 @@ abspath(){
 # defaults for options configurable from the command line
 GREP_OPTIONS=--color=never
 VENV=$(basename $(pwd))-env
-# VENV=FlowAnal-env
+venv=$(readlink -f $VENV)
 PYTHON=$(which python)
 PY_VERSION=$($PYTHON -c 'import sys; print "{}.{}.{}".format(*sys.version_info[:3])')
 WHEELSTREET=/usr/local/share/python/wheels
@@ -127,6 +127,23 @@ EOF
     REQFILE=requirements-pgres.txt
 fi
 
+# Install HDF5
+cd src
+wget http://www.hdfgroup.org/ftp/HDF5/current/src/hdf5-1.8.14.tar.gz
+tar -xf hdf5-1.8.14.tar.gz
+cd hdf5-1.8.14
+./configure --prefix=$venv --enable-fortran --enable-cxx
+make
+# make check
+make install
+make check-install
+cd ../..
+export HDF5_DIR=$venv
+export HDF5_VERSION=1.8.14
+cat >> $VENV/bin/activate <<EOF
+export LD_LIBRARY_PATH=$venv
+EOF
+
 # install python packages from pipy or wheels
 grep -v -E '^#|git+|^-e' $REQFILE | while read pkg; do
     if [[ -z $WHEELHOUSE ]]; then
@@ -142,6 +159,11 @@ if [[ ! -z $(grep git+ $REQFILE | grep -v -E '^#') ]]; then
 else
     echo "no packages to install from git repositories"
 fi
+
+# Fix the not checked out repos branches
+cd $venv/src/hsqr
+git checkout flow-dev
+cd ../../../
 
 # correct any more shebang lines
 # virtualenv --relocatable $VENV
