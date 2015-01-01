@@ -50,7 +50,7 @@ class Test_HDF5(TestBase):
         FCS_obj.comp_scale_FCS_data(compensation_file=comp_file,
                                     gate_coords=coords, rescale_lim=(-0.5, 1),
                                     strict=False, auto_comp=False)
-        FCS_obj.feature_extraction(extraction_type='FULL', bins=10)
+        FCS_obj.feature_extraction(extraction_type='Full', bins=10)
         log.debug(FCS_obj.FCS_features.histogram)
 
         # db initialization

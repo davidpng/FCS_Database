@@ -64,6 +64,7 @@ class FCSdatabase(SqliteConnection):
         self.engine.conn.execute("ANALYZE")
 
         # Capture datetime
+        self.creation_date = queryDB(self, getCreationDate=True).results
 
     def create(self, files=['setup_hpmeta.sql']):
         """ Drop and recreate FCS database from <files> """

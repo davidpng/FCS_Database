@@ -101,8 +101,8 @@ class FCS(object):
         extraction type - flag for 2-D vs N-D binning
         **kwargs - to pass bin size information etc
         """
-        type_flag = extraction_type.lower()
-        if type_flag == 'full':
+        type_flag = extraction_type.title()
+        if type_flag == 'Full':
             self.FCS_features = ND_Feature_Extraction(FCS=self,
                                                       bins=bins,
                                                       **kwargs)
@@ -180,7 +180,7 @@ class FCS(object):
                   filter(TubeCases.c.date == str(self.date)).all()
             tmp = zip(*tmp)[0]
             self.case_tube_idx = max(tmp)
-            log.info('Getting case_tube_idx from db for Case_tube: %s, Filename: %s, Date: %s ==> %s'
+            log.debug('Getting case_tube_idx from db for Case_tube: %s, Filename: %s, Date: %s ==> %s'
                      % (self.case_tube,
                         self.filename,
                         self.date,

@@ -39,7 +39,8 @@ class queryDB(object):
 
         # Choose query message based on kwargs
         qmethods = ['getfiles', 'getPmtStats', 'getTubeStats',
-                    'getPmtCompCorr', 'getPmtHistos', 'getTubeInfo']
+                    'getPmtCompCorr', 'getPmtHistos', 'getTubeInfo',
+                    'getCreationDate']
         qmethod = [m for m in qmethods
                    if (m in kwargs.keys() and kwargs[m] is True)]
         if len(qmethod) > 1:
@@ -267,6 +268,13 @@ class queryDB(object):
 
         df = self.__q2df()
         return df
+
+    def __getCreationDate(self, **kwargs):
+        """ Returns creation_date of db """
+        log.info('Looking for db creation_date')
+        self.q = self.session.query(MetaTable)
+        d = self.q.one().creation_date
+        return d
 
     def __delCasesByCustom(self):
         """ Deletes cases not in the CustomCaseData """
