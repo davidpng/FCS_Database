@@ -27,6 +27,9 @@ def build_parser(parser):
     parser.add_argument('-db', '--db', help='Input sqlite db containing flow meta data \
     [default: db/fcs.db]',
                         default="db/fcs.db", type=str)
+    parser.add_argument('-cases', '--cases', help='List of cases to select',
+                        nargs='+', action='store',
+                        default=None, type=str)
 
 
 def action(args):
@@ -37,16 +40,16 @@ def action(args):
     q = db.query(exporttype='dict_dict', getfiles=True, **vars(args))
 
     for case, case_info in q.results.items():
-        for tube, relpath in case_info.items():
-            log.info("Case: %s, Tube: %s, File: %s" % (case, tube, relpath))
+        for case_tube_idx, relpath in case_info.items():
+            log.info("Case: %s, Case_tube_idx: %s, File: %s" % (case, case_tube_idx, relpath))
             filepath = path.join(args.dir, relpath)
             a = FCS(filepath=filepath)
 
             # DO SOMETHING
-            if a.empty is False:
-                print a.empty
-                print a.filepath
-                print a.date
-                print a.case_number
-                print a.case_tube
+            # if a.empty is False:
+            #     print a.empty
+            #     print a.filepath
+            #     print a.date
+            #     print a.case_number
+            #     print a.case_tube
 

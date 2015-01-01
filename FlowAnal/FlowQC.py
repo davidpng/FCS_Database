@@ -9,10 +9,10 @@ class FlowQC(object):
         self.db = dbcon
 
         # Load all QC data
-        self.TubeStats = self.__get_TubeStats(**kwargs)
-        self.PmtStats = self.__get_PmtStats(**kwargs)
+        self.TubeStats = self.__get_query_res('TubeStats', **kwargs)
+        self.PmtStats = self.__get_query_res('PmtStats', **kwargs)
+        self.PmtCompCorr = self.__get_query_res('PmtCompCorr', **kwargs)
         self.histos = self.__get_histos(**kwargs)
-        self.PmtCompCorr = self.__get_PmtCompCorr(**kwargs)
 
     def __get_histos(self, table_format='tall', **kwargs):
         """ Return pandas df from db table PmtHistos
@@ -38,24 +38,11 @@ class FlowQC(object):
 
         return tmp
 
-    def __get_PmtStats(self, **kwargs):
-        """ Return pandas df from db table PmtStats """
-
-        df = self.db.query(getPmtStats=True, **kwargs).results
+    def __get_query_res(self, goal, **kwargs):
+        """ Return pandas df from db table specified by goal """
+        kwargs['get' + goal] = True
+        df = self.db.query(**kwargs).results
         return df
-
-    def __get_TubeStats(self, **kwargs):
-        """ Return pandas df from db table PmtStats """
-
-        df = self.db.query(getTubeStats=True, **kwargs).results
-        return df
-
-    def __get_PmtCompCorr(self, **kwargs):
-        """ Return pandas df from db table CompCorr
-        """
-        tmp = self.db.query(getPmtCompCorr=True, **kwargs).results
-
-        return tmp
 
     def pushQC(self, db):
         """ Push QC tables to a database """

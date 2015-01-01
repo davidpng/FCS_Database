@@ -7,11 +7,11 @@ from sqlalchemy import inspect
 from sqlalchemy.orm import sessionmaker
 
 from hsqr.database.database import SqliteConnection
+from hsqr.lab_pred import Lab_pred_table
 
 from query_database import queryDB
 from FlowAnal.__init__ import package_data
 from FlowAnal.database.FCS_declarative import *
-
 
 log = logging.getLogger(__name__)
 
@@ -75,6 +75,7 @@ class FCSdatabase(SqliteConnection):
         """
         if out_file:
             q = queryDB(self, exporttype='df', **kwargs)
+            log.info('Printing out df to %s', out_file)
             q.results.to_csv(out_file, index=False, index_label=None, encoding='utf-8')
             return 0
         else:
@@ -120,3 +121,25 @@ class FCSdatabase(SqliteConnection):
         self.meta.tables['TubeTypesInstances'].delete()
         s.close()
         self.add_df(df=a, table='TubeTypesInstances')
+
+    def addCustomCaseData(self, file):
+        """ Method to load file (tab-text) into database table CustomCaseData
+
+        This must include <case_number> and <group> columns
+        Note: this will overwrite existing data
+        """
+
+        a = Lab_pred_table(db=self, file=file)
+        a_cols = a.dat.columns.tolist()
+        db_cols = CustomCaseData.__mapper__.columns.keys()
+        cols = [c for c in a_cols if c in db_cols]
+
+        if (len(cols) > 0):
+            log.info('Adding file %s to db %s' % (file, self.db_file))
+
+            a.dat = a.dat[cols]
+            a.dat.to_sql('CustomCaseData', con=self.engine,
+                         if_exists='replace', index=False)
+        else:
+            print "File %s does not have columns 'case_number' and 'group'" % (file)
+            raise

@@ -29,7 +29,7 @@ def build_parser(parser):
                         type=str)
     parser.add_argument('-tubes', '--tubes', help='List of tube types to select',
                         nargs='+', action='store',
-                        default=['Hodgkins'], type=str)
+                        default=None, type=str)
     parser.add_argument('-cases', '--cases', help='List of cases to select',
                         nargs='+', action='store',
                         default=None, type=str)
@@ -40,6 +40,8 @@ def build_parser(parser):
     parser.add_argument('-db', '--db', help='Input sqlite db containing flow meta data \
     [default: db/fcs.db]',
                         default="db/fcs.db", type=str)
+    parser.add_argument('-n', '--n_files', help='For testing purposes only find N files',
+                        default=None, type=int)
 
 
 def action(args):
@@ -49,16 +51,26 @@ def action(args):
     # Create query
     q = db.query(exporttype='dict_dict', getfiles=True, **vars(args))
 
+    i = 0
+    done = False
     for case, case_info in q.results.items():
-        for tube, tube_info in case_info.items():
-            for date, relpath in tube_info.items():
-                log.info("Case: %s, Tube: %s, Date: %s, File: %s" %
-                         (case, tube, date, relpath))
+        for case_tube_idx, relpath in case_info.items():
+            log.info("Case: %s, Case_tube_idx: %s, File: %s" % (case, case_tube_idx, relpath))
+            filepath = path.join(args.dir, relpath)
 
-                filepath = path.join(args.dir, relpath)
-                a = FCS(filepath=filepath, import_dataframe=True)
-                a.comp_scale_FCS_data(compensation_file=comp_file,
-                                      gate_coords=coords,
-                                      strict=False, auto_comp=False)
-                outfile = 'output/' + '_'.join([case, tube, date.strftime("%Y%m%d")]) + '.png'
-                a.comp_visualize_FCS(outfile=outfile)
+            a = FCS(filepath=filepath, import_dataframe=True)
+            a.comp_scale_FCS_data(compensation_file=comp_file,
+                                  gate_coords=coords,
+                                  strict=False, auto_comp=False)
+            outfile = 'output/' + '_'.join([case, str(case_tube_idx),
+                                            a.case_tube.replace(' ', '_'),
+                                            a.date.strftime("%Y%m%d")]) + '.png'
+            a.comp_visualize_FCS(outfile=outfile)
+
+            i += 1
+            if args.n_files is not None and i >= args.n_files:
+                done = True
+                break
+        if done is True:
+            break
+

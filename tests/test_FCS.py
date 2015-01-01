@@ -143,7 +143,7 @@ class Test_FCS(TestBase):
             db = FCSdatabase(db=outfile, rebuild=True)
             a.meta_to_db(db=db, dir=root_dir)
         """
-        
+
     def test_comp_vis(self):
         """
         Tests the compensation visualizer subroutine in FCS successfully writes file
@@ -285,3 +285,26 @@ class Test_FCS(TestBase):
         np.testing.assert_allclose(b.loc[:, cols].values, b_expect.loc[:, cols].values,
                                    rtol=1e-3, atol=0, err_msg="Results are more different \
                                    than tolerable")
+
+    def test_add_CustomCaseData(self):
+        """ Make sure that CustomCaseData can be loaded
+
+        NOTE: not explicitly checking what is loaded
+        """
+
+        root_dir = path.abspath('.')
+        outfile = path.join(self.mkoutdir(), 'test.db')
+        filename = "12-00031_Myeloid 1.fcs"
+        filepath = path.abspath(data(filename))
+
+        a = FCS(filepath=filepath)
+        db = FCSdatabase(db=outfile, rebuild=True)
+        a.meta_to_db(db=db, dir=root_dir)
+        db.addCustomCaseData(file=data('custom_case_data.txt'))
+
+        # Delete other entries
+        db.query(delCasesByCustom=True)
+        db.close()
+
+        # Need to add query here to check
+

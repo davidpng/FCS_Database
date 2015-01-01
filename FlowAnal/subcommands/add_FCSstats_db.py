@@ -34,7 +34,10 @@ def build_parser(parser):
                         default="db/fcs_stats.db", type=str)
     parser.add_argument('-tubes', '--tubes', help='List of tube types to select',
                         nargs='+', action='store',
-                        default=['Hodgkin', 'Myeloid 1'], type=str)
+                        default=None, type=str)
+    parser.add_argument('-antigens', '--antigens', help='List of antigens to select',
+                        nargs='+', action='store',
+                        default=None, type=str)
     parser.add_argument('-dates', '--daterange',
                         help='Start and end dates to bound selection of cases \
                         [Year-Month-Date Year-Month-Date]',
@@ -58,28 +61,27 @@ def action(args):
     q = db.query(exporttype='dict_dict', getfiles=True, **vars(args))
 
     for case, case_info in q.results.items():
-        for tube, tube_info in case_info.items():
-            for date, relpath in tube_info.items():
-                log.info("Case: %s, Tube: %s, Date: %s, File: %s" % (case, tube, date, relpath))
-                filepath = path.join(args.dir, relpath)
-                fFCS = FCS(filepath=filepath, import_dataframe=True)
+        for case_tube_idx, relpath in case_info.items():
+            log.info("Case: %s, Case_tube_idx: %s, File: %s" % (case, case_tube_idx, relpath))
+            filepath = path.join(args.dir, relpath)
+            fFCS = FCS(filepath=filepath, import_dataframe=True)
 
-                if fFCS.empty is False:
-                    try:
-                        fFCS.meta_to_db(db=out_db, dir=args.dir, add_lists=True)
-                        fFCS.comp_scale_FCS_data(compensation_file=comp_file,
-                                                 gate_coords=coords,
-                                                 strict=False, auto_comp=False)
-                        fFCS.extract_FCS_histostats()
-                        fFCS.histostats_to_db(db=out_db)
-                    except ValueError, e:
-                        print "Skipping FCS %s because of ValueError: %s" % (filepath, e)
-                    except KeyError, e:
-                        print "Skipping FCS %s because of KeyError: %s" % (filepath, e)
-                    except IntegrityError, e:
-                        print "Skipping Case: %s, Tube: %s, Date: %s, filepath: %s because of IntegrityError: %s" % \
-                            (case, tube, date, filepath, e)
-                    except:
-                        print "Skipping FCS %s because of unknown error related to: %s" % \
-                            (filepath, sys.exc_info()[0])
+            if fFCS.empty is False:
+                try:
+                    fFCS.meta_to_db(db=out_db, dir=args.dir, add_lists=True)
+                    fFCS.comp_scale_FCS_data(compensation_file=comp_file,
+                                             gate_coords=coords,
+                                             strict=False, auto_comp=False)
+                    fFCS.extract_FCS_histostats()
+                    fFCS.histostats_to_db(db=out_db)
+                except ValueError, e:
+                    print "Skipping FCS %s because of ValueError: %s" % (filepath, e)
+                except KeyError, e:
+                    print "Skipping FCS %s because of KeyError: %s" % (filepath, e)
+                except IntegrityError, e:
+                    print "Skipping Case: %s, Tube: %s, Date: %s, filepath: %s because of IntegrityError: %s" % \
+                        (case, case_tube_idx, filepath, e)
+                except:
+                    print "Skipping FCS %s because of unknown error related to: %s" % \
+                        (filepath, sys.exc_info()[0])
 

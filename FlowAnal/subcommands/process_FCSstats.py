@@ -18,6 +18,9 @@ def build_parser(parser):
     parser.add_argument('-tubes', '--tubes', help='List of tube types to select',
                         nargs='+', action='store',
                         default=None, type=str)
+    parser.add_argument('-antigens', '--antigens', help='List of antigens to select',
+                        nargs='+', action='store',
+                        default=None, type=str)
     parser.add_argument('-dates', '--daterange',
                         help='Start and end dates to bound selection of cases \
                         [Year-Month-Date Year-Month-Date]',
