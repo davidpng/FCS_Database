@@ -19,6 +19,43 @@ from scipy.sparse import csr_matrix
 class HDF5_IO(object):
     def __init__(self,filepath):
         self.filepath = filepath
+    
+    
+    def make_single_tube_analysis(self,case_tube_list):
+        """
+        This function will call a series of case_tube_idx as listed and merge 
+        into a dense array that is the union of sparse matrix columns
+        """
+        fh = h5py.File(self.filepath,'a')
+        #error checking
+        not_in_data = set(case_tube_list) - set(fh['data'].keys()) 
+        if not_in_data:
+            raise "Some of the listed case_tubes are not in the dataset"
+            print not_in_data
+            
+    def __get_check_merge_indices(self,case_tube_list):
+        """
+        This will return a list of the union of index positions for all 
+        listed case_tube
+        """
+       
+        fh = h5py.File(self.filepath,'a')
+        index = []
+        shape = []
+        for i in case_tube_list:        
+            self.schema = self.__make_schema(str(i))
+            index.append(fh[self.schema['sidx']].value)
+            shape.append(fh[self.schema['sshp']].value)
+        fh.close()
+        
+        #check shape matches
+        areTrue = [shape[i]==shape[i-1] for i in range(1,len(shape))]
+        if not np.all(areTrue):
+            print np.array(shape)
+            raise "The lenght/shape of one case does not match the others"
+        else:
+            return np.unique(np.array(index))    
+        
         
     def push_fcs_features(self,case_tube_idx,FCS,db):
         """
