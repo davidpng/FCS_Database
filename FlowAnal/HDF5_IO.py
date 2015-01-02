@@ -13,9 +13,10 @@ __maintainer__ = "David Ng"
 __email__ = "ngdavid@uw.edu"
 __status__ = "Subroutine - prototype"
 
+from scipy.sparse import csr_matrix
+import numpy as np
 import pandas as pd
 import h5py
-from scipy.sparse import *0
 import os
 import logging
 log = logging.getLogger(__name__)
@@ -35,10 +36,10 @@ class HDF5_IO(object):
         fh = h5py.File(self.filepath, 'a')
 
         # error checking
-        not_in_data = set(case_tube_list) - set(fh['data'].keys())
+        not_in_data = set([str(x) for x in case_tube_list]) - set(fh['data'].keys())
         if not_in_data:
-            raise "Some of the listed case_tubes are not in the dataset"
-            print not_in_data
+            raise IOError("Some of the listed case_tubes are not in the \
+                           dataset: {}".format(not_in_data))
         # get union of indices
         index_union = self.__get_check_merge_indices(case_tube_list)
         # intialize bin number dataframe AND merge dataframe
@@ -55,12 +56,12 @@ class HDF5_IO(object):
         merged.fillna(0,inplace=True) # clear out nan to zero             
         return merged
         
-    def __translate_FCS_feature(self,case_tube_idx)
+    def __translate_FCS_feature(self,case_tube_idx):
         """
         makes a dataframe containing the index and data information of the
         original sparse matrix
         """
-        sparse_mtx = get_fcs_features(case_tube_idx)
+        sparse_mtx = self.get_fcs_features(case_tube_idx)
         return pd.DataFrame(data=sparse_mtx.data,
                             index=sparse_mtx.indices,
                             columns=[str(case_tube_idx)])
@@ -77,7 +78,7 @@ class HDF5_IO(object):
         shape = []
         for i in case_tube_list:
             self.schema = self.__make_schema(str(i))
-            index.append(fh[self.schema['sidx']].value)
+            index.extend(fh[self.schema['sidx']].value.tolist())
             shape.append(fh[self.schema['sshp']].value)
         fh.close()
 
@@ -85,7 +86,7 @@ class HDF5_IO(object):
         areTrue = [shape[i]==shape[i-1] for i in range(1,len(shape))]
         if not np.all(areTrue):
             print np.array(shape)
-            raise "The lenght/shape of one case does not match the others"
+            raise "The length/shape of one case does not match the others"
         else:
             return np.sort(np.unique(np.array(index)))
 

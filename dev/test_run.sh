@@ -25,5 +25,8 @@ echo -e "\n################# MAKE PICTURES #################"
 echo -e "\n################# QUERY DB #################"
 ./flowanal.py -v query_db --getTubeInfo -etype df -o db/test.txt
 
-echo -e "\n################# Extract features ##########"
+echo -e "\n################# Extract features ############"
 ./flowanal.py -v make_features $dir
+
+echo -e "\n################# Read features to Memory ##########"
+./flowanal.py -v query_merge_features

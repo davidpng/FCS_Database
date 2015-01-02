@@ -39,9 +39,11 @@ class ND_Feature_Extraction(object):
         #bin the data so that coordinates are generated for every data point in FCS.data
         vector_length,coordinates = self._Uniform_Bin_Data(input_data = FCS.data, bin_dict = bin_dict)
         #generate a sparse array of from the given coordinates
-        self.histogram = self._coord2sparse_histogram(vector_length,coordinates).tocsr()
+        self.histogram = self._coord2sparse_histogram(vector_length,
+                                                      coordinates,
+                                                      **kwargs).tocsr()
         
-    def _coord2sparse_histogram(self,vector_length,coordinates):
+    def _coord2sparse_histogram(self,vector_length,coordinates,normalize=True,**kwargs):
         """
         generates a sparse matrix with normalized histogram counts
         each bin describes the fraction of total events within it (i.e. < 1)
@@ -49,7 +51,10 @@ class ND_Feature_Extraction(object):
         output=sp.sparse.lil_matrix((1,vector_length), dtype=np.float32)
         for i in coordinates:
             output[0,i]+=1
-        return output/ len(coordinates)
+        if normalize:
+            return output/ len(coordinates)
+        else:
+            return output
          
     def _Uniform_Bin_Data(self,input_data,bin_dict):
         """
