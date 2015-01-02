@@ -13,8 +13,9 @@ __maintainer__ = "David Ng"
 __email__ = "ngdavid@uw.edu"
 __status__ = "Subroutine - prototype"
 
+import pandas as pd
 import h5py
-from scipy.sparse import csr_matrix
+from scipy.sparse import *0
 import os
 import logging
 log = logging.getLogger(__name__)
@@ -38,7 +39,33 @@ class HDF5_IO(object):
         if not_in_data:
             raise "Some of the listed case_tubes are not in the dataset"
             print not_in_data
+        # get union of indices
+        index_union = self.__get_check_merge_indices(case_tube_list)
+        # intialize bin number dataframe AND merge dataframe
+        bin_num_df = pd.DataFrame(index_union,columns=['bin_num'])
+        merged = bin_num_df
+        
+        for case in case_tube_list:
+            #load FCS Feature Dataframe
+            FCS_ft_df = self.__translate_FCS_feature(case)
+            # do a relation algebra join on the bin_number on the union of bin 
+            # numbers and index/bin_number of the FCS_features
+            merged = pd.merge(merged,FCS_ft_df,how='left',
+                              left_on='bin_num',right_index=True)
+        merged.fillna(0,inplace=True) # clear out nan to zero             
+        return merged
+        
+    def __translate_FCS_feature(self,case_tube_idx)
+        """
+        makes a dataframe containing the index and data information of the
+        original sparse matrix
+        """
+        sparse_mtx = get_fcs_features(case_tube_idx)
+        return pd.DataFrame(data=sparse_mtx.data,
+                            index=sparse_mtx.indices,
+                            columns=[str(case_tube_idx)])
 
+        
     def __get_check_merge_indices(self, case_tube_list):
         """
         This will return a list of the union of index positions for all
@@ -60,7 +87,7 @@ class HDF5_IO(object):
             print np.array(shape)
             raise "The lenght/shape of one case does not match the others"
         else:
-            return np.unique(np.array(index))
+            return np.sort(np.unique(np.array(index)))
 
     def push_fcs_features(self, case_tube_idx, FCS, db):
         """
