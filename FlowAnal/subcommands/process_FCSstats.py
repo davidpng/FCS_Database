@@ -48,7 +48,7 @@ def action(args):
         else:
             qc = FlowQC(dbcon=dbcon, **vars(args))
 
-        log.debug(qc.histos)
+#        log.debug(qc.histos)
         log.debug(qc.PmtStats)
-        log.debug(qc.TubeStats)
+#        log.debug(qc.TubeStats)
 
