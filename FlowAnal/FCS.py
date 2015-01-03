@@ -15,7 +15,7 @@ from FCS_subroutines.FCSstats_to_database import FCSstats_to_database
 from FCS_subroutines.Extract_HistoStats import Extract_HistoStats
 from FCS_subroutines.Comp_Visualization import Comp_Visualization
 from FCS_subroutines.ND_Feature_Extraction import ND_Feature_Extraction
-
+from FCS_subroutines.p2D_Feature_Extraction import p2D_Feature_Extraction
 from . import __version__
 import warnings
 
@@ -101,15 +101,17 @@ class FCS(object):
         extraction type - flag for 2-D vs N-D binning
         **kwargs - to pass bin size information etc
         """
-        type_flag = extraction_type.title()
+        type_flag = extraction_type.lower()
         if type_flag == 'Full':
             self.FCS_features = ND_Feature_Extraction(FCS=self,
                                                       bins=bins,
                                                       **kwargs)
         elif type_flag == '2d':
-            raise "Not Implemented yet"
+            self.FCS_features = p2D_Feature_Extraction(FCS=self,
+                                                      bins=bins,
+                                                      **kwargs)
         else:
-            raise "Extraction type undefined"
+            raise ValueError("Extraction type undefined")
 
     def Push_FCS_features_to_HDF5(self,case_tube_index, HDF5_object, db_h):
         """
