@@ -94,12 +94,5 @@ class p2D_Feature_Extraction(object):
         """
         Returns the bin parameters 
         """
-        if isinstance(index,int):
-            index = [index] # make sure index is a list
-        
-        coords = self.histogram.indices[index]
-        self.x = np.array(np.unravel_index(coords,list(self.bin_description)),dtype=np.float32).T
-        temp = self.x / np.array(self.bin_description)[np.newaxis]
-
-        return pd.DataFrame(temp,index=coords,columns=self.bin_description.index.values)
+        pass
 

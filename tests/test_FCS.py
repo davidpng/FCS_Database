@@ -104,26 +104,20 @@ class Test_FCS(TestBase):
                               gate_coords=coords, rescale_lim=(-0.5,1),
                               strict=False, auto_comp=False)
         a.feature_extraction(extraction_type='2d', bins=50)
-
+        log.debug("Feature Extraction was successful")
         binned_data = a.FCS_features
-        print binned_data.histogram
-        #coords = binned_data.Return_Coordinates([1,2,3,4])
-        """
+        log.info(binned_data.histogram)
         if write_csv:
-            coords.to_pickle(data('2d_test_coordinates.pkl'))
-            print "Test_coordinates was succefully pickled"
             f = open(data('2d_test_histogram.pkl'),'w')
             pickle.dump(binned_data.histogram,f)
             f.close()
             print "Test histogram was succefully pickled"
         else:
-            test_coords = pd.read_pickle(data('2d_test_coordinates.pkl'))
             f = open(data('2d_test_histogram.pkl'),'r')
             test_histogram = pickle.load(f)
             f.close()
-            np.testing.assert_allclose(coords.values,test_coords.values)
             np.testing.assert_allclose(binned_data.histogram.data,test_histogram.data)
-        """
+            
     def test_empty_FCS(self):
         """ Testing loading FCS filepath that does not load properly ==> empty """
 
