@@ -4,8 +4,6 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.schema import ForeignKeyConstraint
 
-# Base = declarative_base()
-
 
 class Base(object):
     @declared_attr
@@ -204,4 +202,3 @@ if __name__ == '__main__':
     sqlalchemy = 'sqlite:////home/local/AMC/hermands/repos/flow_anal/db/test_alchemy.db'
     engine = create_engine(sqlalchemy)
     Base.metadata.create_all(engine)
-

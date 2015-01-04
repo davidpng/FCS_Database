@@ -37,12 +37,17 @@ class queryDB(object):
         self.session = fcsdb.Session()
         log.info('Querying...')
 
+        # If not specified, default to not_empty to True
+        if 'not_empty' not in kwargs.keys():
+            kwargs['not_empty'] = True
+
         # Choose query message based on kwargs
         qmethods = ['getfiles', 'getPmtStats', 'getTubeStats',
                     'getPmtCompCorr', 'getPmtHistos', 'getTubeInfo',
-                    'getCreationDate']
+                    'getCreationDate', 'getCases']
         qmethod = [m for m in qmethods
                    if (m in kwargs.keys() and kwargs[m] is True)]
+
         if len(qmethod) > 1:
             print 'Multiple query methods specified: %s by kwargs: %s' % (qmethod,
                                                                           kwargs)
@@ -70,9 +75,9 @@ class queryDB(object):
         self.q = self.session.query(TubeCases.case_number, TubeCases.filename,
                                     TubeCases.dirname,
                                     TubeTypesInstances.tube_type,
-                                    TubeCases.date).\
-            join(TubeTypesInstances).\
-            filter(~TubeCases.empty)
+                                    TubeCases.date,
+                                    TubeCases.empty).\
+            join(TubeTypesInstances)
 
         # keep track of explicitly joined tables
         self.q.joined_tables = ['TubeCases', 'TubeTypesInstances']
@@ -119,8 +124,7 @@ class queryDB(object):
         self.q = self.session.query(TubeCases.case_number,
                                     TubeCases.case_tube_idx,
                                     TubeCases.filename,
-                                    TubeCases.dirname).\
-            filter(~TubeCases.empty)
+                                    TubeCases.dirname)
 
         # keep track of explicitly joined tables
         self.q.joined_tables = ['TubeCases']
@@ -151,6 +155,15 @@ class queryDB(object):
         else:
             raise "Unknown type"
 
+    def __getCases(self, **kwargs):
+        """ Return list of cases """
+
+        self.q = self.session.query(Cases.case_number)
+        self.q.joined_tables = ['Cases']
+        self.__add_filters_to_query(**kwargs)
+        d = self.q.all()
+        return d
+
     def __getPmtStats(self, **kwargs):
         """
         Gets PmtStats
@@ -169,7 +182,6 @@ class queryDB(object):
             join(PmtTubeCases, PmtStats.Pmt).\
             join(TubeCases, PmtTubeCases.Tube).\
             join(TubeStats, TubeCases.Stats).\
-            filter(~TubeCases.empty).\
             order_by(TubeCases.date)
 
         # keep track of explicitly joined tables
@@ -198,7 +210,6 @@ class queryDB(object):
                                     TubeStats).\
             join(TubeCases, TubeStats.Tube).\
             join(TubeTypesInstances, TubeCases.TubeTypesInstance).\
-            filter(~TubeCases.empty).\
             order_by(TubeCases.date)
 
         # keep track of explicitly joined tables
@@ -228,7 +239,6 @@ class queryDB(object):
                                     PmtHistos).\
             join(PmtTubeCases, PmtHistos.Pmt).\
             join(TubeCases, PmtTubeCases.Tube).\
-            filter(~TubeCases.empty).\
             order_by(TubeCases.date,
                      PmtHistos.case_tube_idx,
                      PmtHistos.Channel_Number,
@@ -296,6 +306,11 @@ class queryDB(object):
         daterange -- <list> [X,X] Select set based on date between daterange
         """
 
+        if 'not_empty' in kwargs and kwargs['not_empty'] is True:
+            self.q = self.q.filter(TubeCases.empty == 0)
+            if 'TubeCases' not in self.q.joined_tables:
+                self.q = self.q.join(TubeCases)
+
         if 'tubes' in kwargs and kwargs['tubes'] is not None:
             tubes_to_select = [unicode(x) for x in kwargs['tubes']]
             log.info('Looking for tubes: %s' % tubes_to_select)
@@ -341,3 +356,5 @@ class queryDB(object):
                                con=self.db.engine,
                                params=params)
         return df
+
+
