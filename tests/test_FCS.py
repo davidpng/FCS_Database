@@ -16,7 +16,7 @@ from FlowAnal.HDF5_IO import HDF5_IO
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
 from FlowAnal.__init__ import package_data, __version__
-from FlowAnal.Analysis_Variables import coords,comp_file,test_fcs_fn
+from FlowAnal.Analysis_Variables import coords, comp_file, test_fcs_fn
 from pandas.util.testing import assert_frame_equal,assert_almost_equal
 
 log = logging.getLogger(__name__)
@@ -77,10 +77,10 @@ class Test_FCS(TestBase):
         a.feature_extraction(extraction_type='FULL', bins=10)
 
         binned_data = a.FCS_features
-        coords = binned_data.Return_Coordinates([1,2,3,4])
+        out_coords = binned_data.Return_Coordinates([1,2,3,4])
 
         if write_csv:
-            coords.to_pickle(data('test_coordinates.pkl'))
+            out_coords.to_pickle(data('test_coordinates.pkl'))
             print "Test_coordinates was succefully pickled"
             f = open(data('test_histogram.pkl'),'w')
             pickle.dump(binned_data.histogram,f)
@@ -91,12 +91,12 @@ class Test_FCS(TestBase):
             f = open(data('test_histogram.pkl'),'r')
             test_histogram = pickle.load(f)
             f.close()
-            np.testing.assert_allclose(coords.values,test_coords.values)
+            np.testing.assert_allclose(out_coords.values,test_coords.values)
             np.testing.assert_allclose(binned_data.histogram.data,test_histogram.data)
 
     def test_2d_feature_extraction(self):
         """ tests 2D_Feature_Extraction """
-        
+
         filepath = data(test_fcs_fn)
 
         a = FCS(filepath=filepath, import_dataframe=True)
@@ -117,7 +117,7 @@ class Test_FCS(TestBase):
             test_histogram = pickle.load(f)
             f.close()
             np.testing.assert_allclose(binned_data.histogram.data,test_histogram.data)
-            
+
     def test_empty_FCS(self):
         """ Testing loading FCS filepath that does not load properly ==> empty """
 

@@ -102,7 +102,7 @@ class FCS(object):
         **kwargs - to pass bin size information etc
         """
         type_flag = extraction_type.lower()
-        if type_flag == 'Full':
+        if type_flag == 'full':
             self.FCS_features = ND_Feature_Extraction(FCS=self,
                                                       bins=bins,
                                                       **kwargs)

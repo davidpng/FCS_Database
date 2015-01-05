@@ -38,7 +38,6 @@ class ND_Feature_Extraction(object):
         self.bin_description = bin_dict
         #bin the data so that coordinates are generated for every data point in FCS.data
         vector_length,coordinates = self._Uniform_Bin_Data(input_data = FCS.data, bin_dict = bin_dict)
-        print coordinates[0:10]
         #generate a sparse array of from the given coordinates
         self.histogram = self._coord2sparse_histogram(vector_length,
                                                       coordinates,

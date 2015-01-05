@@ -27,6 +27,3 @@ echo -e "\n################# QUERY DB #################"
 
 echo -e "\n################# Extract features ############"
 ./flowanal.py -v make_features $dir
-
-echo -e "\n################# Read features to Memory ##########"
-./flowanal.py -v query_merge_features
