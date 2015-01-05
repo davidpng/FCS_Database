@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue 30 Dec 2014 10:29:41 AM PST
+Created on Tue 30 Dec 2014 10:29:41 AM PST 
 This file describes a feature extraction class for N dimensions
 
 @author: David Ng, MD
@@ -13,14 +13,14 @@ import scipy as sp
 
 import h5py
 import logging
-
+import itertools
 log = logging.getLogger(__name__)
 
-class ND_Feature_Extraction(object):
+class p2D_Feature_Extraction(object):
 
     def __init__(self,FCS,bins,**kwargs):
         """
-
+        bins = number of bins per axis
         Accessiable Parameters
         type
         bin_description
@@ -36,14 +36,27 @@ class ND_Feature_Extraction(object):
         #generate a dictionary describing the bins to be used
         bin_dict = self._Generate_Bin_Dict(columns,bins)
         self.bin_description = bin_dict
-        #bin the data so that coordinates are generated for every data point in FCS.data
-        vector_length,coordinates = self._Uniform_Bin_Data(input_data = FCS.data, bin_dict = bin_dict)
-        print coordinates[0:10]
-        #generate a sparse array of from the given coordinates
-        self.histogram = self._coord2sparse_histogram(vector_length,
-                                                      coordinates,
-                                                      **kwargs).tocsr()
+        self.histogram = self._flattened_2d_histograms(FCS_data=FCS.data,
+                                                       columns=columns,
+                                                       bin_dict=bin_dict,**kwargs)
+        
+    def _flattened_2d_histograms(self,FCS_data,columns,bin_dict,ul=1.0,normalize=True,**kwargs):
+        """
+        """
 
+        feature_space=[]
+        for features in itertools.combinations(columns,2):
+            dim = (bin_dict[features[0]],bin_dict[features[1]])
+            log.info(features)
+            histo2d,xbin,ybin = np.histogram2d(FCS_data[features[0]],
+                                               FCS_data[features[1]],
+                                               bins=dim,
+                                               range=[[0,ul],[0,ul]],
+                                               normed=normalize)
+            #feature_space.extend(np.ravel(1-1/((histo2d*scaling)**0.75+1)))
+            feature_space.extend(np.ravel(histo2d))
+        return sp.sparse.csr_matrix(feature_space)
+        
     def _coord2sparse_histogram(self,vector_length,coordinates,normalize=True,**kwargs):
         """
         generates a sparse matrix with normalized histogram counts
@@ -56,26 +69,7 @@ class ND_Feature_Extraction(object):
             return output/ len(coordinates)
         else:
             return output
-
-    def _Uniform_Bin_Data(self,input_data,bin_dict):
-        """
-        fits event parameters to an integer 'binned' value
-        """
-        basis = [1]         #intialize a list of basis values
-        for i in bin_dict.values:
-            basis.append(i*basis[-1])   # basis values will be generated dependent on previous value
-            # ex base-10 basis = [1,10,100,1000]
-            # logic and algorithm from Donald Kunth's Art of Computer Programming Vol 1
-
-        vector_length = basis.pop()         # this is the highest coordinate value (max length of array)
-        basis = pd.Series(data=basis,index = bin_dict.index.values)
-        rounded = input_data.copy()                 # copy input_data since we will soon operate on it.
-        for key in bin_dict.index.values:
-            rounded[key] = np.floor(rounded[key]*bin_dict[key]) # iterate and round over every column
-        output = rounded[bin_dict.index.values].dot(basis) # apply dot product to multiply columns
-                                                            # by basis vector (see Kunth)
-        return vector_length, output.apply(np.int64)
-
+       
     def _Generate_Bin_Dict(self,columns,bins):
         """
         Performs error checking and type converion for bins
@@ -98,14 +92,7 @@ class ND_Feature_Extraction(object):
 
     def Return_Coordinates(self,index):
         """
-        Returns the bin parameters
+        Returns the bin parameters 
         """
-        if isinstance(index,int):
-            index = [index] # make sure index is a list
-
-        coords = self.histogram.indices[index]
-        self.x = np.array(np.unravel_index(coords,list(self.bin_description)),dtype=np.float32).T
-        temp = self.x / np.array(self.bin_description)[np.newaxis]
-
-        return pd.DataFrame(temp,index=coords,columns=self.bin_description.index.values)
+        pass
 
