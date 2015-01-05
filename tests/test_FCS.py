@@ -16,7 +16,7 @@ from FlowAnal.HDF5_IO import HDF5_IO
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
 from FlowAnal.__init__ import package_data, __version__
-from FlowAnal.Analysis_Variables import coords, comp_file, test_fcs_fn
+from FlowAnal.Analysis_Variables import gate_coords, comp_file, test_fcs_fn
 from pandas.util.testing import assert_frame_equal,assert_almost_equal
 
 log = logging.getLogger(__name__)
@@ -72,7 +72,7 @@ class Test_FCS(TestBase):
 
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
-                              gate_coords=coords, rescale_lim=(-0.5,1),
+                              gate_coords=gate_coords, rescale_lim=(-0.5,1),
                               strict=False, auto_comp=False)
         a.feature_extraction(extraction_type='FULL', bins=10)
 
@@ -101,7 +101,7 @@ class Test_FCS(TestBase):
 
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
-                              gate_coords=coords, rescale_lim=(-0.5,1),
+                              gate_coords=gate_coords, rescale_lim=(-0.5,1),
                               strict=False, auto_comp=False)
         a.feature_extraction(extraction_type='2d', bins=50)
         log.debug("Feature Extraction was successful")
@@ -141,9 +141,8 @@ class Test_FCS(TestBase):
 
         root_dir = path.abspath('.')
         outfile = path.join(self.mkoutdir(), 'test.db')
-        filename = "12-00031_Myeloid 1.fcs"
-        filepath = path.abspath(data(filename))
-
+        
+        filepath = data(test_fcs_fn)
         a = FCS(filepath=filepath)
         db = FCSdatabase(db=outfile, rebuild=True)
         a.meta_to_db(db=db, dir=root_dir)
@@ -165,22 +164,13 @@ class Test_FCS(TestBase):
         Tests the compensation visualizer subroutine in FCS successfully writes file
         """
 
-        coords = {'singlet': [(0.01, 0.06), (0.60, 0.75), (0.93, 0.977), (0.988, 0.86),
-                              (0.456, 0.379), (0.05, 0.0), (0.0, 0.0)],
-                  'viable': [(0.358, 0.174), (0.609, 0.241), (0.822, 0.132), (0.989, 0.298),
-                             (1.0, 1.0), (0.5, 1.0), (0.358, 0.174)]}
-
-        comp_file = {'1': package_data('Spectral_Overlap_Lib_LSRA.txt'),
-                     '2': package_data('Spectral_Overlap_Lib_LSRB.txt'),
-                     '3': package_data('Spectral_Overlap_Lib_LSRB.txt')}
-        filename = "12-00031_Myeloid 1.fcs"
-        filepath = data(filename)
+        filepath = data(test_fcs_fn)
 
         outfile = path.join(self.mkoutdir(), 'test_visualization.png')
 
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
-                              gate_coords=coords, rescale_lim=(-0.5,1),
+                              gate_coords=gate_coords, rescale_lim=(-0.5,1),
                               strict=False, auto_comp=False)
 
         a.comp_visualize_FCS(outfile=outfile)
@@ -192,19 +182,11 @@ class Test_FCS(TestBase):
         that result is the same as when this function was initially setup
         """
 
-        coords = {'singlet': [(0.01, 0.06), (0.60, 0.75), (0.93, 0.977), (0.988, 0.86),
-                              (0.456, 0.379), (0.05, 0.0), (0.0, 0.0)],
-                  'viable': [(0.358, 0.174), (0.609, 0.241), (0.822, 0.132), (0.989, 0.298),
-                             (1.0, 1.0), (0.5, 1.0), (0.358, 0.174)]}
-
-        comp_file = {'1': package_data('Spectral_Overlap_Lib_LSRA.txt'),
-                     '2': package_data('Spectral_Overlap_Lib_LSRB.txt'),
-                     '3': package_data('Spectral_Overlap_Lib_LSRB.txt')}
-        filename = "12-00031_Myeloid 1.fcs"
-        filepath = data(filename)
+        filepath = data(test_fcs_fn)
+        
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
-                              gate_coords=coords,
+                              gate_coords=gate_coords,
                               strict=False,)
 
         if write_csv:
@@ -220,20 +202,12 @@ class Test_FCS(TestBase):
         """ Tests the HistoStats information subroutines
         :return:
         """
-        coords = {'singlet': [(0.01, 0.06), (0.60, 0.75), (0.93, 0.977), (0.988, 0.86),
-                              (0.456, 0.379), (0.05, 0.0), (0.0, 0.0)],
-                  'viable': [(0.358, 0.174), (0.609, 0.241), (0.822, 0.132), (0.989, 0.298),
-                             (1.0, 1.0), (0.5, 1.0), (0.358, 0.174)]}
-
-        comp_file = {'1': package_data('Spectral_Overlap_Lib_LSRA.txt'),
-                     '2': package_data('Spectral_Overlap_Lib_LSRB.txt'),
-                     '3': package_data('Spectral_Overlap_Lib_LSRB.txt')}
-
-        filename = "12-00031_Myeloid 1.fcs"
-        filepath = data(filename)
+        
+        filepath = data(test_fcs_fn)
+        
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
-                              gate_coords=coords,rescale_lim=(-0.5,1),
+                              gate_coords=gate_coords,rescale_lim=(-0.5,1),
                               strict=False, auto_comp=False)
         a.extract_FCS_histostats()
 
@@ -272,23 +246,15 @@ class Test_FCS(TestBase):
         by comp_scale_FCS_data when auto_comp flag is turned on.
         """
 
-        coords = {'singlet': [(0.01, 0.06), (0.60, 0.75), (0.93, 0.977), (0.988, 0.86),
-                              (0.456, 0.379), (0.05, 0.0), (0.0, 0.0)],
-                  'viable': [(0.358, 0.174), (0.609, 0.241), (0.822, 0.132), (0.989, 0.298),
-                             (1.0, 1.0), (0.5, 1.0), (0.358, 0.174)]}
-
-        comp_file = {'1': package_data('Spectral_Overlap_Lib_LSRA.txt'),
-                     '2': package_data('Spectral_Overlap_Lib_LSRB.txt'),
-                     '3': package_data('Spectral_Overlap_Lib_LSRB.txt')}
-
+        
         Convert_CytName = {'H0152':'1', 'H4710082':'3',
                            '1':'1', '2':'2', '3':'3'}
 
-        filename = "12-00031_Myeloid 1.fcs"
-        filepath = data(filename)
+        filepath = data(test_fcs_fn)
+        
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
-                              gate_coords=coords,
+                              gate_coords=gate_coords,
                               strict=False,auto_comp=False)
 
         cols = ['FSC-H', 'CD15 FITC']
@@ -310,8 +276,8 @@ class Test_FCS(TestBase):
 
         root_dir = path.abspath('.')
         outfile = path.join(self.mkoutdir(), 'test.db')
-        filename = "12-00031_Myeloid 1.fcs"
-        filepath = path.abspath(data(filename))
+        
+        filepath = data(test_fcs_fn)
 
         a = FCS(filepath=filepath)
         db = FCSdatabase(db=outfile, rebuild=True)

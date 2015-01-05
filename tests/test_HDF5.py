@@ -15,7 +15,7 @@ from __init__ import TestBase, datadir, write_csv
 from FlowAnal.HDF5_IO import HDF5_IO
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
-from FlowAnal.Analysis_Variables import coords,comp_file,test_fcs_fn
+from FlowAnal.Analysis_Variables import gate_coords,comp_file,test_fcs_fn
 
 from FlowAnal.__init__ import package_data, __version__
 
@@ -39,7 +39,7 @@ class Test_HDF5(TestBase):
         # fcs initilaization
         FCS_obj = FCS(filepath=FCS_fp, import_dataframe=True)
         FCS_obj.comp_scale_FCS_data(compensation_file=comp_file,
-                                    gate_coords=coords, rescale_lim=(-0.5, 1),
+                                    gate_coords=gate_coords, rescale_lim=(-0.5, 1),
                                     strict=False, auto_comp=False)
         FCS_obj.feature_extraction(extraction_type='Full', bins=10)
         log.debug(FCS_obj.FCS_features.histogram)
