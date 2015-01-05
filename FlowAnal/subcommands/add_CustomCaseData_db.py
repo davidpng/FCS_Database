@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-""" Builds sqlite database with the meta information of all flow files from specified file list
+""" Builds sqlite database from input database (meta information of all flow files) that includes
+only cases specified in input <file>. Input <file> data is added to custom data table.
+
+If option --nowhittle is specified then cases not specified in input <file> are included.
+
+INPUT file format: tab-deliminated text with column labels <case_number> and <category>
 
 """
 import logging
@@ -19,8 +24,9 @@ def build_parser(parser):
     parser.add_argument('-outdb', '--outdb', help='Output sqlite3 db for Flow meta data \
     [default: db/fcs_custom.db]',
                         default="db/fcs_custom.db", type=str)
-    parser.add_argument('-w', '--whittle', help='Remove all cases not included in <file> \
-    from <outdb>', action='store_true')
+    parser.add_argument('-nw', '--no-whittle', dest='no_whittle',
+                        help='Keep meta data from cases not included in <file> \
+                        in <outdb>', action='store_true')
 
 
 def action(args):
@@ -31,7 +37,6 @@ def action(args):
     # Add text table
     outdb.addCustomCaseData(file=args.file)
 
-    if args.whittle is True:
-        # Delete other data
-        outdb.query(delCasesByCustom=True)
+    if args.no_whittle is False:
+        outdb.query(delCasesByCustom=True)  # Delete other data
         outdb.close()

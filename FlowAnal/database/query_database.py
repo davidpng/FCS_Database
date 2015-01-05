@@ -48,14 +48,20 @@ class queryDB(object):
         qmethod = [m for m in qmethods
                    if (m in kwargs.keys() and kwargs[m] is True)]
 
+        dmethods = ['delCasesByCustom', 'delEmpty']
+        dmethod = [m for m in dmethods
+                   if (m in kwargs.keys() and kwargs[m] is True)]
+
         if len(qmethod) > 1:
             print 'Multiple query methods specified: %s by kwargs: %s' % (qmethod,
                                                                           kwargs)
         elif len(qmethod) == 1:
             self.results = getattr(self, '_queryDB__' + qmethod[0])(**kwargs)
+        elif len(dmethod) == 1:
+            getattr(self, '_queryDB__' + dmethod[0])()
         else:
-            if 'delCasesByCustom' in kwargs.keys():
-                self.__delCasesByCustom()
+            raise ValueError('query not specified properly: %s' %
+                             '='.join(key, value) for key, value in kwargs.items())
 
         self.session.close()
 
@@ -219,7 +225,35 @@ class queryDB(object):
         self.__add_filters_to_query(**kwargs)
 
         df = self.__q2df()
+        return df
 
+    def __getCaseAnnotations(self, **kwargs):
+        """
+        Gets Case-level annotations
+
+        Notable attributes:
+        .results -- stores the result of query in dataframe
+        """
+        log.info('Looking for Case annotations')
+
+        # Build query
+        self.q = self.session.query(TubeCases.case_tube_idx,
+                                    TubeCases.date,
+                                    TubeCases.date,
+                                    TubeCases.num_events,
+                                    TubeCases.cytnum,
+                                    CustomCaseData).\
+            join(Cases, TubeCases.Case).\
+            join(CustomCaseData, Cases.CustomData).\
+            order_by(TubeCases.case_tube_idx)
+
+        # keep track of explicitly joined tables
+        self.q.joined_tables = ['TubeCases', 'Cases',
+                                'CustomCaseData']
+
+        self.__add_filters_to_query(**kwargs)
+
+        df = self.__q2df()
         return df
 
     def __getPmtHistos(self, **kwargs):
@@ -293,10 +327,50 @@ class queryDB(object):
 
         self.q = self.session.query(Cases).\
                  outerjoin(CustomCaseData, Cases.CustomData).\
-                 filter(CustomCaseData.group == None)
+                 filter(CustomCaseData.category == None)
         for case in self.q:
             self.session.delete(case)
         self.session.commit()
+
+    # def __delEmpty(self):
+    #     """ Deletes case_tubes_idx that are empty (of data) """
+
+    #     raise "This method has not been troubleshot"
+
+    #     log.info('Excluding case_tube_idx that are empty in CustomCaseData db')
+    #     cases_w_tubes_deleted = []
+    #     cases_deleted = []
+
+    #     # Delete TubeCases
+    #     self.q = self.session.query(TubeCases).\
+    #              filter(TubeCases.empty == 1)
+    #     for tube_case in self.q:
+    #         cases_w_tubes_deleted.append(tube_case.case_number)
+    #         self.session.delete(tube_case)
+    #     self.session.commit()
+    #     log.info('Deleted from TubeCases and below: %s' % ', '.join(cases_w_tubes_deleted))
+
+    #     if cases_w_tubes_deleted != []:
+    #         log.info('Excluding case_tube_idx that are empty in CustomCaseData db')
+
+    #         # Delete Cases with no TubeCases
+    #         self.q = self.session.query(Cases).\
+    #                  filter(Cases.case_number.in_(cases_w_tubes_deleted))
+    #         print self.q.statement
+    #         for case in self.q:
+    #             print case.case_number
+    #             cases_deleted.append(case.case_number)
+    #             self.session.delete(case)
+    #         self.session.commit()
+
+    #         self.q = self.session.query(CustomCaseData).\
+    #                  filter(CustomCaseData.case_number.in_(cases_deleted))
+    #         for case_data in self.q:
+    #             self.session.delete(case_data)
+    #         self.session.commit()
+
+    #         log.info('Deleted from Cases, CustomCaseData, and below: %s' %
+    #                  ', '.join(cases_deleted))
 
     def __add_filters_to_query(self, **kwargs):
         """ Add filters specified in kwargs to self.q

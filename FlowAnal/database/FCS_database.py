@@ -5,7 +5,6 @@ import pandas as pd
 from sqlalchemy import inspect
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
-from warnings import warn
 
 from hsqr.database.database import SqliteConnection
 from hsqr.lab_pred import Lab_pred_table
@@ -137,13 +136,14 @@ class FCSdatabase(SqliteConnection):
     def addCustomCaseData(self, file):
         """ Method to load file (tab-text) into database table CustomCaseData
 
-        This must include <case_number> and <group> columns
+        This must include <case_number> and <category> columns
         Note: this will overwrite existing data
         """
 
         a = Lab_pred_table(db=self, file=file)
         a.dat.columns = [c.lower() for c in a.dat.columns.values]
         a_cols = a.dat.columns.tolist()
+        exclusion_file = file + '.excluded'
 
         # Convert 'CASE*' => 'case_number'
         case_index = next((index for index, value in enumerate(a_cols)
@@ -154,7 +154,7 @@ class FCSdatabase(SqliteConnection):
         db_cols = CustomCaseData.__mapper__.columns.keys()
         cols = [c for c in a_cols if c.lower() in db_cols]
 
-        # Add second column if only captured 1 column and rename to group
+        # Add second column if only captured 1 column and rename to <category>
         if (len(db_cols) > 1) and (len(cols) == 1):
             cols.append(db_cols[1])
             a_cols[1] = cols[1]
@@ -169,11 +169,13 @@ class FCSdatabase(SqliteConnection):
             # Don't keep the cases that are not in the meta db
             case_list = zip(*queryDB(self, getCases=True).results)[0]
             cases_to_exclude = a.dat.case_number.loc[~a.dat.case_number.isin(case_list)].tolist()
-            warn('Excluding cases[%s] because they are not in meta database' %
-                 ', '.join(cases_to_exclude))
             a.dat = a.dat.loc[~a.dat.case_number.isin(cases_to_exclude), :]
+            with open(exclusion_file, 'w') as outf:
+                outf.writelines("%s\n" % item for item in cases_to_exclude)
+            log.info('Excluding cases[%s] because they are not in meta database are noted in [%s]' %
+                     (', '.join(cases_to_exclude), exclusion_file))
 
             a.dat.to_sql('CustomCaseData', con=self.engine,
                          if_exists='replace', index=False)
         else:
-            raise ValueError("File %s does not have columns 'case_number' and 'group'" % (file))
+            raise ValueError("File %s does not have columns 'case_number' and 'category'" % (file))

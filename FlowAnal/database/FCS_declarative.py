@@ -74,7 +74,7 @@ class CustomCaseData(Base):
     __tablename__ = 'CustomCaseData'
     case_number = Column(String(10), ForeignKey('Cases.case_number'),
                          nullable=False, primary_key=True)
-    group = Column(String(30))
+    category = Column(String(30))
 
     Cases = relationship("Cases", uselist=False, backref='CustomData')
 
