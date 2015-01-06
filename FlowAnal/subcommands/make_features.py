@@ -100,5 +100,7 @@ def action(args):
                     print "Skipping feature extraction for case: {} because of\
                            ValueError {}".format(case, e)
                     feature_failed_CTIx.append([case, case_tube_idx])
-    # push feature_failed_CTIx to database
+
     log.info("features failed: {}".format(feature_failed_CTIx))
+    # push feature_failed_CTIx to database
+    # NB: feature_failed CTIx is a list of lists
