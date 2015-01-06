@@ -7,7 +7,7 @@ import logging
 from os import path
 import sys
 from sqlalchemy.exc import IntegrityError
-
+import pandas as pd
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
 from FlowAnal.__init__ import package_data
