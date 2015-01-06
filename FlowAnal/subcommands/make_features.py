@@ -97,10 +97,10 @@ def action(args):
                     HDF_obj.push_fcs_features(case_tube_idx=case_tube_idx,
                                               FCS=fFCS, db=db)
                 except ValueError, e:
-                    print "Skipping feature extraction for case: {} because of \
-                           ValueError {}".format(case, e)
-                    feature_failed_CTIx.append([case, case_tube_idx])
+                    print("Skipping feature extraction for case: {}\
+                    because of 'ValueError {}'".format(case, e))
+                    feature_failed_CTIx.append([case, case_tube_idx, e])
 
     log.info("features failed: {}".format(feature_failed_CTIx))
     # push feature_failed_CTIx to database
-    # NB: feature_failed CTIx is a list of lists
+    # NB: feature_failed CTIx is a list of lists with (case, case_tube_idx, error message)
