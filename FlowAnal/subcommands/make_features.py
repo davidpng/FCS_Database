@@ -67,7 +67,7 @@ def action(args):
     HDF_obj = HDF5_IO(filepath=args.hdf5_fp, clobber=True)
 
     # initalize empty list to append case_tube_idx that failed feature extraction
-    failed_case_tube_idx = []
+    feature_failed_CTIx = {}
     for case, case_info in q.results.items():
         for case_tube_idx, relpath in case_info.items():
             log.info("Case: %s, Case_tube_idx: %s, File: %s" % (case, case_tube_idx, relpath))
@@ -98,4 +98,7 @@ def action(args):
                 except ValueError, e:
                     print "Skipping feature extraction for case: {} because of\
                            ValueError {}".format(case, e)
-
+                    feature_failed_CTIx[case] = casecase_tube_idx
+    # push feature_failed_CTIx to database
+    feature_failed_CTIx = pd.DataFrame(feature_failed_CTIx)
+    log.info("features failed: {}".format(feature_failed_CTIx))
