@@ -99,6 +99,6 @@ def action(args):
                 except ValueError, e:
                     print "Skipping feature extraction for case: {} because of\
                            ValueError {}".format(case, e)
-                    feature_failed_CTIx.append = [case, case_tube_idx]
+                    feature_failed_CTIx.append([case, case_tube_idx])
     # push feature_failed_CTIx to database
     log.info("features failed: {}".format(feature_failed_CTIx))
