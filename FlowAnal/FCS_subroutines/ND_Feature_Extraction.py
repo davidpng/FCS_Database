@@ -38,6 +38,7 @@ class ND_Feature_Extraction(object):
         self.bin_description = bin_dict
         #bin the data so that coordinates are generated for every data point in FCS.data
         vector_length,coordinates = self._Uniform_Bin_Data(input_data = FCS.data, bin_dict = bin_dict)
+
         #generate a sparse array of from the given coordinates
         self.histogram = self._coord2sparse_histogram(vector_length,
                                                       coordinates,
@@ -49,6 +50,7 @@ class ND_Feature_Extraction(object):
         each bin describes the fraction of total events within it (i.e. < 1)
         """
         output=sp.sparse.lil_matrix((1,vector_length), dtype=np.float32)
+        
         for i in coordinates:
             output[0,i]+=1
         if normalize:
@@ -73,6 +75,12 @@ class ND_Feature_Extraction(object):
             rounded[key] = np.floor(rounded[key]*bin_dict[key]) # iterate and round over every column
         output = rounded[bin_dict.index.values].dot(basis) # apply dot product to multiply columns
                                                             # by basis vector (see Kunth)
+        log.debug("Vector Length: {}, \nRounded: {}, \nBasis: {}, \
+                   \nCoordinates: {}".format(vector_length,rounded,basis,output))
+        if len(input_data) == 0:
+            raise ValueError("FCS data is empty!")
+        if len(output) == 0:
+            raise ValueError("Coordinate Data is empty!")      
         return vector_length, output.apply(np.int64)
 
     def _Generate_Bin_Dict(self,columns,bins):

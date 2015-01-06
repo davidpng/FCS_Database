@@ -66,6 +66,8 @@ def action(args):
     # Create HDF5 object
     HDF_obj = HDF5_IO(filepath=args.hdf5_fp, clobber=True)
 
+    # initalize empty list to append case_tube_idx that failed feature extraction
+    failed_case_tube_idx = []
     for case, case_info in q.results.items():
         for case_tube_idx, relpath in case_info.items():
             log.info("Case: %s, Case_tube_idx: %s, File: %s" % (case, case_tube_idx, relpath))
@@ -88,10 +90,12 @@ def action(args):
                 except:
                     print "Skipping FCS %s because of unknown error related to: %s" % \
                         (filepath, sys.exc_info()[0])
-
-                fFCS.feature_extraction(extraction_type=args.feature_extraction_method,
-                                        bins=10)
-                HDF_obj.push_fcs_features(case_tube_idx=case_tube_idx,
-                                          FCS=fFCS, db=db)
-
+                try:
+                    fFCS.feature_extraction(extraction_type=args.feature_extraction_method,
+                                            bins=10)
+                    HDF_obj.push_fcs_features(case_tube_idx=case_tube_idx,
+                                              FCS=fFCS, db=db)
+                except ValueError, e:
+                    print "Skipping feature extraction for case: {} because of\
+                           ValueError {}".format(case, e)
 
