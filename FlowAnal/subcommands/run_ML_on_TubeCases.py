@@ -9,7 +9,8 @@ import logging
 
 from FlowAnal.database.FCS_database import FCSdatabase
 from FlowAnal.HDF5_IO import HDF5_IO
-from FlowAnal.Analysis_Variables import coords, comp_file, test_fcs_fn
+from FlowAnal.Analysis_Variables import gate_coords, comp_file, test_fcs_fn
+from __init__ import add_filter_args
 
 log = logging.getLogger(__name__)
 
@@ -24,19 +25,7 @@ def build_parser(parser):
     parser.add_argument('-method', '--feature-extration-method',
                         help='The method to use to extract features [default: Full]',
                         default='Full', type=str, dest='feature_extraction_method')
-    parser.add_argument('-tubes', '--tubes', help='List of tube types to select',
-                        nargs='+', action='store',
-                        default=None, type=str)
-    parser.add_argument('-antigens', '--antigens', help='List of antigens to select',
-                        nargs='+', action='store',
-                        default=None, type=str)
-    parser.add_argument('-dates', '--daterange',
-                        help='Start and end dates to bound selection of cases \
-                        [Year-Month-Date Year-Month-Date]',
-                        nargs=2, action='store', type=str)
-    parser.add_argument('-cases', '--cases', help='List of cases to select',
-                        nargs='+', action='store',
-                        default=None, type=str)
+    add_filter_args(parser)
 
 
 def action(args):

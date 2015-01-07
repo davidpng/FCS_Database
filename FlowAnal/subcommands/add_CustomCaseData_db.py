@@ -18,7 +18,8 @@ log = logging.getLogger(__name__)
 def build_parser(parser):
     parser.add_argument('file', help='Tab-separated text table with Case information. \
     Columns must include <case_number> and <group>', type=str)
-    parser.add_argument('-db', '--db', help='Input sqlite3 db for Flow meta data \
+    parser.add_argument('-db', '--db',
+                        help='Input sqlite3 db for Flow meta data \
     [default: db/fcs.db]',
                         default="db/fcs.db", type=str)
     parser.add_argument('-outdb', '--outdb', help='Output sqlite3 db for Flow meta data \

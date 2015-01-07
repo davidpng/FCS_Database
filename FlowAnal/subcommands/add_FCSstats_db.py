@@ -11,6 +11,8 @@ from sqlalchemy.exc import IntegrityError
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
 from FlowAnal.__init__ import package_data
+from __init__ import add_filter_args
+
 log = logging.getLogger(__name__)
 
 coords = {'singlet': [(0.01, 0.06), (0.60, 0.75), (0.93, 0.977), (0.988, 0.86),
@@ -32,19 +34,7 @@ def build_parser(parser):
     parser.add_argument('-outdb', '--outdb', help='Output sqlite3 db for Flow meta data \
     [default: db/fcs_stats.db]',
                         default="db/fcs_stats.db", type=str)
-    parser.add_argument('-tubes', '--tubes', help='List of tube types to select',
-                        nargs='+', action='store',
-                        default=None, type=str)
-    parser.add_argument('-antigens', '--antigens', help='List of antigens to select',
-                        nargs='+', action='store',
-                        default=None, type=str)
-    parser.add_argument('-dates', '--daterange',
-                        help='Start and end dates to bound selection of cases \
-                        [Year-Month-Date Year-Month-Date]',
-                        nargs=2, action='store', type=str)
-    parser.add_argument('-cases', '--cases', help='List of cases to select',
-                        nargs='+', action='store',
-                        default=None, type=str)
+    add_filter_args(parser)
 
 
 def action(args):

@@ -9,7 +9,7 @@ import logging
 
 from FlowAnal.database.FCS_database import FCSdatabase
 from FlowAnal.HDF5_IO import HDF5_IO
-from FlowAnal.Analysis_Variables import coords, comp_file, test_fcs_fn
+from FlowAnal.Analysis_Variables import gate_coords, comp_file, test_fcs_fn
 
 log = logging.getLogger(__name__)
 
