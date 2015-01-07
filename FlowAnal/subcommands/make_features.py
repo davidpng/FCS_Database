@@ -75,32 +75,30 @@ def action(args):
             filepath = path.join(args.dir, relpath)
             fFCS = FCS(filepath=filepath, import_dataframe=True)
 
-            if fFCS.empty is False:
-                try:
-                    fFCS.comp_scale_FCS_data(compensation_file=comp_file,
-                                             gate_coords=coords,
-                                             rescale_lim=(-0.5, 1),
-                                             strict=False, auto_comp=False)
-                except ValueError, e:
-                    print "Skipping FCS %s because of ValueError: %s" % (filepath, e)
-                except KeyError, e:
-                    print "Skipping FCS %s because of KeyError: %s" % (filepath, e)
-                except IntegrityError, e:
-                    print "Skipping Case: %s, Tube: %s, Date: %s, filepath: %s because of IntegrityError: %s" % \
-                        (case, case_tube_idx, filepath, e)
-                except:
-                    print "Skipping FCS %s because of unknown error related to: %s" % \
-                        (filepath, sys.exc_info()[0])
-
-                try:
-                    fFCS.feature_extraction(extraction_type=args.feature_extraction_method,
-                                            bins=10)
-                    HDF_obj.push_fcs_features(case_tube_idx=case_tube_idx,
-                                              FCS=fFCS, db=db)
-                except ValueError, e:
-                    print("Skipping feature extraction for case: {} \
-                    because of 'ValueError {}'".format(case, e))
-                    feature_failed_CTIx.append([case, case_tube_idx, e])
+            try:
+                fFCS.comp_scale_FCS_data(compensation_file=comp_file,
+                                         gate_coords=coords,
+                                         rescale_lim=(-0.5, 1),
+                                         strict=False, auto_comp=False)
+                fFCS.feature_extraction(extraction_type=args.feature_extraction_method,
+                                        bins=10)
+                HDF_obj.push_fcs_features(case_tube_idx=case_tube_idx,
+                                          FCS=fFCS, db=db)
+            except ValueError, e:
+                print("Skipping feature extraction for case: {} \
+                because of 'ValueError {}'".format(case, e))
+                feature_failed_CTIx.append([case, case_tube_idx, e])
+            except KeyError, e:
+                print "Skipping FCS %s because of KeyError: %s" % (filepath, e)
+                feature_failed_CTIx.append([case, case_tube_idx, e])
+            except IntegrityError, e:
+                print "Skipping Case: {}, Tube: {}, Date: {}, filepath: {} because \
+                of IntegrityError: {}".format(case, case_tube_idx, filepath, e)
+                feature_failed_CTIx.append([case, case_tube_idx, e])
+            except:
+                print "Skipping FCS %s because of unknown error related to: %s" % \
+                    (filepath, sys.exc_info()[0])
+                feature_failed_CTIx.append([case, case_tube_idx, sys.exc_info()[0]])
 
     log.info("Case_tubes that failed feature extraction: {}".format(feature_failed_CTIx))
 

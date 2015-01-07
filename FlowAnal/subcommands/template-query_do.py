@@ -45,11 +45,10 @@ def action(args):
             filepath = path.join(args.dir, relpath)
             a = FCS(filepath=filepath)
 
-            # DO SOMETHING
-            # if a.empty is False:
-            #     print a.empty
-            #     print a.filepath
-            #     print a.date
-            #     print a.case_number
-            #     print a.case_tube
+
+        #     print a.empty
+        #     print a.filepath
+        #     print a.date
+        #     print a.case_number
+        #     print a.case_tube
 

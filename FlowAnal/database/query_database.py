@@ -37,9 +37,9 @@ class queryDB(object):
         self.session = fcsdb.Session()
         log.info('Querying...')
 
-        # If not specified, default to not_empty to True
-        if 'not_empty' not in kwargs.keys():
-            kwargs['not_empty'] = True
+        # If not specified, default to not_flagged to True
+        if 'not_flagged' not in kwargs.keys():
+            kwargs['not_flagged'] = True
 
         # Choose query message based on kwargs
         qmethods = ['getfiles', 'getPmtStats', 'getTubeStats',
@@ -48,7 +48,7 @@ class queryDB(object):
         qmethod = [m for m in qmethods
                    if (m in kwargs.keys() and kwargs[m] is True)]
 
-        dmethods = ['delCasesByCustom', 'delEmpty', 'delCases', 'delTubeCases']
+        dmethods = ['delCasesByCustom', 'delCases', 'delTubeCases']
         dmethod = [m for m in dmethods
                    if (m in kwargs.keys() and kwargs[m] is True)]
 
@@ -82,7 +82,7 @@ class queryDB(object):
                                     TubeCases.dirname,
                                     TubeTypesInstances.tube_type,
                                     TubeCases.date,
-                                    TubeCases.empty).\
+                                    TubeCases.flag).\
             join(TubeTypesInstances)
 
         # keep track of explicitly joined tables
@@ -378,9 +378,8 @@ class queryDB(object):
         tubes -- <list> Select set based on tube types
         daterange -- <list> [X,X] Select set based on date between daterange
         """
-
-        if 'not_empty' in kwargs and kwargs['not_empty'] is True:
-            self.q = self.q.filter(TubeCases.empty == 0)
+        if 'not_flagged' in kwargs and kwargs['not_flagged'] is True:
+            self.q = self.q.filter(TubeCases.flag == 'GOOD')
             if 'TubeCases' not in self.q.joined_tables:
                 self.q = self.q.join(TubeCases)
 
@@ -411,6 +410,13 @@ class queryDB(object):
             cases_to_select = [unicode(x) for x in kwargs['cases']]
             log.info('Looking for cases #%s' % ", ".join(cases_to_select))
             self.q = self.q.filter(TubeCases.case_number.in_(cases_to_select))
+            if 'TubeCases' not in self.q.joined_tables:
+                self.q = self.q.join(TubeCases)
+
+        if 'cytnum' in kwargs and kwargs['cytnum'] is not None:
+            cytnums_to_select = [unicode(x) for x in kwargs['cytnum']]
+            log.info('Looking for cytnum #%s' % ", ".join(cytnums_to_select))
+            self.q = self.q.filter(TubeCases.cytnum.in_(cytnums_to_select))
             if 'TubeCases' not in self.q.joined_tables:
                 self.q = self.q.join(TubeCases)
 

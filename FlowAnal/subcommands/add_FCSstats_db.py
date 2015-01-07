@@ -66,22 +66,21 @@ def action(args):
             filepath = path.join(args.dir, relpath)
             fFCS = FCS(filepath=filepath, import_dataframe=True)
 
-            if fFCS.empty is False:
-                try:
-                    fFCS.meta_to_db(db=out_db, dir=args.dir, add_lists=True)
-                    fFCS.comp_scale_FCS_data(compensation_file=comp_file,
-                                             gate_coords=coords,
-                                             strict=False, auto_comp=False)
-                    fFCS.extract_FCS_histostats()
-                    fFCS.histostats_to_db(db=out_db)
-                except ValueError, e:
-                    print "Skipping FCS %s because of ValueError: %s" % (filepath, e)
-                except KeyError, e:
-                    print "Skipping FCS %s because of KeyError: %s" % (filepath, e)
-                except IntegrityError, e:
-                    print "Skipping Case: %s, Tube: %s, Date: %s, filepath: %s because of IntegrityError: %s" % \
-                        (case, case_tube_idx, filepath, e)
-                except:
-                    print "Skipping FCS %s because of unknown error related to: %s" % \
-                        (filepath, sys.exc_info()[0])
+            try:
+                fFCS.meta_to_db(db=out_db, dir=args.dir, add_lists=True)
+                fFCS.comp_scale_FCS_data(compensation_file=comp_file,
+                                         gate_coords=coords,
+                                         strict=False, auto_comp=False)
+                fFCS.extract_FCS_histostats()
+                fFCS.histostats_to_db(db=out_db)
+            except ValueError, e:
+                print "Skipping FCS %s because of ValueError: %s" % (filepath, e)
+            except KeyError, e:
+                print "Skipping FCS %s because of KeyError: %s" % (filepath, e)
+            except IntegrityError, e:
+                print "Skipping Case: %s, Tube: %s, Date: %s, filepath: %s because of IntegrityError: %s" % \
+                    (case, case_tube_idx, filepath, e)
+            except:
+                print "Skipping FCS %s because of unknown error related to: %s" % \
+                    (filepath, sys.exc_info()[0])
 

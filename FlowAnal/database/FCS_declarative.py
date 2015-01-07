@@ -50,7 +50,7 @@ class TubeCases(Base):
     num_events = Column(Integer)
     cytometer = Column(String(10))
     cytnum = Column(String(3))
-    empty = Column(Boolean, nullable=False)
+    flag = Column(String(30), nullable=False)
     error_message = Column(Text)
     version = Column(String(30), nullable=False)
 
@@ -77,17 +77,6 @@ class CustomCaseData(Base):
     category = Column(String(30))
 
     Cases = relationship("Cases", uselist=False, backref='CustomData')
-
-
-class TubeCases_EXCLUDED(Base):
-    """ Record of case_tube_idx's (and their Cases) excluded since derivation of a child database
-    from the source meta db
-    """
-    __tablename__ = 'CaseTubes_EXCLUDED'
-    case_tube_idx = Column(Integer, primary_key=True)
-    case_number = Column(String(10), nullable=False)
-    failure = Column(String(30), nullable=False)
-    error_message = Column(Text)
 
 
 class TubeTypesInstances(Base):

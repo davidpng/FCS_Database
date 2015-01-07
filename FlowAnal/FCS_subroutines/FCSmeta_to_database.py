@@ -49,16 +49,17 @@ class FCSmeta_to_database(object):
                      'filename': self.FCS.filename,
                      'case_number': self.FCS.case_number,
                      'version': self.FCS.version,
-                     'dirname': relpath(dirname(self.FCS.filepath), start=dir),
-                     'empty': self.FCS.empty}
+                     'dirname': relpath(dirname(self.FCS.filepath), start=dir)}
 
         if self.FCS.empty is False:
             meta_data['date'] = self.FCS.date
             meta_data['num_events'] = self.FCS.num_events
             meta_data['cytometer'] = self.FCS.cytometer
             meta_data['cytnum'] = self.FCS.cytnum
+            meta_data['flag'] = 'GOOD'
         else:
             meta_data['error_message'] = self.FCS.error_message
+            meta_data['flag'] = 'empty'
 
         return meta_data
 
