@@ -122,6 +122,32 @@ class HDF5_IO(object):
         fh.close()
         return csr_matrix((d,i,p),shape=s)
 
+    def get_meta_data(self):
+        """
+        this function will load meta information into memory via a dictionary
+        keyed on the information name and values
+        """
+        meta_schema = self.__make_schema("MetaData") 
+        #create dictionary with meta info, won't use sparse matrix info to make it "MetaData"
+        csr_keys = ['sdat','sidx','sind','sshp']
+        #these are the sparse matrix keys to remove
+        meta_keys = [k for k in meta_schema.keys() if k not in csr_keys]
+
+        fh = h5py.File(self.filepath, 'r')        
+        self.meta_data = {} # intialize empty dictionary and load it in for loop
+        
+        for k in meta_keys:
+            self.meta_data[k] = fh[meta_schema[k]].value
+        
+        self.meta_data['bin_description'] = pd.Series(data = self.meta_data['bd_vl'],
+                                                      index = self.meta_data['bd_ky'])
+        del self.meta_data['bd_vl'] # clean up dictionary
+        del self.meta_data['bd_ky']
+        
+        fh.close()
+        return self.meta_data
+        
+        
     def __push_check_version(self, hdf_fh, FCS, db):
         """
         This internal function will check to see the header info the
@@ -132,44 +158,63 @@ class HDF5_IO(object):
 
         Items used: FCS.version, FCS.FCS_features.type, db.date, db.db_file
         """
-        if self.schema['db_fp'] in hdf_fh:
-            if hdf_fh[self.schema['db_fp']].value != db.db_file:
+        if self.schema['database_filepath'] in hdf_fh:
+            if hdf_fh[self.schema['database_filepath']].value != db.db_file:
                 raise ValueError('Filepaths do not match: %s <==> %s' %
-                                 (hdf_fh[self.schema['db_fp']].value,
+                                 (hdf_fh[self.schema['database_filepath']].value,
                                   db.db_file))
         else:
-            hdf_fh[self.schema['db_fp']] = db.db_file
+            hdf_fh[self.schema['database_filepath']] = db.db_file
 
         db_creation_date = db.creation_date.strftime("%Y-%m-%d")  # HDF5 does not handle datetime
-        if self.schema['db_dt'] in hdf_fh:
-            if hdf_fh[self.schema['db_dt']].value != db_creation_date:
+        if self.schema['database_datetime'] in hdf_fh:
+            if hdf_fh[self.schema['database_datetime']].value != db_creation_date:
                 raise ValueError('DB dates do not match')
         else:
-            hdf_fh[self.schema['db_dt']] = db_creation_date
+            hdf_fh[self.schema['database_datetime']] = db_creation_date
 
-        if self.schema['env_v'] in hdf_fh:
-            if hdf_fh[self.schema['env_v']].value != FCS.version:
+        if self.schema['enviroment_version'] in hdf_fh:
+            if hdf_fh[self.schema['enviroment_version']].value != FCS.version:
                 raise ValueError('Evn versions do not match')
         else:
-            hdf_fh[self.schema['env_v']] = FCS.version
-
-        if self.schema['ex_tp'] in hdf_fh:
-            if hdf_fh[self.schema['ex_tp']].value != FCS.FCS_features.type:
+            hdf_fh[self.schema['enviroment_version']] = FCS.version
+        #chek/add Extraction type
+        if self.schema['extraction_type'] in hdf_fh:
+            if hdf_fh[self.schema['extraction_type']].value != FCS.FCS_features.type:
                 raise ValueError('Evn versions do not match')
         else:
-            hdf_fh[self.schema['ex_tp']] = FCS.FCS_features.type
+            hdf_fh[self.schema['extraction_type']] = FCS.FCS_features.type
+
+        #check/add bin_descriptions
+        bin_values = FCS.FCS_features.bin_description.values
+        bin_keys = FCS.FCS_features.bin_description.index
+        bin_keys = [str(i) for i in bin_keys]
+
+        if self.schema['bd_vl'] in hdf_fh:
+            if hdf_fh[self.schema['bd_vl']].value != bin_values:
+                raise ValueError('Bin Description values does not match')
+        elif self.schema['bd_ky'] in hdf_fh:
+            if hdf_fh[self.schema['bd_ky']].value != bin_keys:
+                raise ValueError('Bin Description columns does not match')
+        else:
+            hdf_fh[self.schema['bd_vl']] = bin_values
+            hdf_fh[self.schema['bd_ky']] = bin_keys
 
         log.debug('Schema: %s' % ', '.join([i + '=' + str(hdf_fh[self.schema[i]].value)
-                                            for i in ['ex_tp', 'env_v', 'db_dt', 'db_fp']]))
+                                            for i in ['extraction_type', 'enviroment_version',
+                                            'database_datetime', 'database_filepath', 
+                                            'bd_ky']]))
 
     def __make_schema(self, case_tube_idx):
         """
-        makes a list containing the storage schema
+        makes a dictionary containing the storage schema
         """
-        schema = {"db_fp": "/database_version/filepath",
-                  "db_dt": "/database_version/date",
-                  "env_v": "/enviroment_version",
-                  "ex_tp": "/extraction_type",
+        schema = {"database_filepath": "/database_version/filepath",
+                  "database_datetime": "/database_version/date",
+                  "enviroment_version": "/enviroment_version",
+                  "extraction_type": "/extraction_type",
+                  "bd_vl": "/bin_description/value",
+                  "bd_ky": "/bin_description/key",
                   "sdat": "/data/"+case_tube_idx+"/data",
                   "sidx": "/data/"+case_tube_idx+"/indices",
                   "sind": "/data/"+case_tube_idx+"/indptr",

@@ -106,6 +106,7 @@ class FCS(object):
             self.FCS_features = ND_Feature_Extraction(FCS=self,
                                                       bins=bins,
                                                       **kwargs)
+            
         elif type_flag == '2d':
             self.FCS_features = p2D_Feature_Extraction(FCS=self,
                                                       bins=bins,
