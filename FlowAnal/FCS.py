@@ -57,7 +57,7 @@ class FCS(object):
         elif db is not None:
             self.load_from_db(db)
         else:
-            log.info("WARNING: did not load any [meta] data")
+            self.make_emptyFCS(**kwargs)
 
     def load_from_file(self, **kwargs):
         """ Import FCS data from filepath

@@ -48,7 +48,8 @@ class queryDB(object):
         qmethod = [m for m in qmethods
                    if (m in kwargs.keys() and kwargs[m] is True)]
 
-        dmethods = ['delCasesByCustom', 'delCases', 'delTubeCases']
+        dmethods = ['delCasesByCustom', 'delCases', 'delTubeCases',
+                    'updateProblemTubeCases']
         dmethod = [m for m in dmethods
                    if (m in kwargs.keys() and kwargs[m] is True)]
 
@@ -369,6 +370,25 @@ class queryDB(object):
                  filter(TubeCases.case_tube_idx.in_(case_tube_idxs))
         for case_tube in self.q:
             self.session.delete(case_tube)
+        self.session.commit()
+
+    def __updateProblemTubeCases(self, df, **kwargs):
+        """ For each case_tube_idx listed update its error_message and flag based on df
+
+        df -- DataFrame with columns 'case_tube_idx' and 'error_message' and 'flag'
+
+        NOTE: df.case_tube_idx must be unique
+        """
+        log.info('Flagging case_tube_idxs because of {}'.format(df.flag.tolist()))
+
+        case_tube_idx_to_change = df.case_tube_idx.tolist()
+        self.q = self.session.query(TubeCases).\
+                 filter(TubeCases.case_tube_idx.in_(case_tube_idx_to_change))
+        for case_tube in self.q:
+            row_mask = df.case_tube_idx == case_tube.case_tube_idx
+            case_tube.flag = df.loc[row_mask, 'flag'].tolist()[0]
+            case_tube.error_message = str(df.loc[row_mask, 'error_message'].tolist()[0])
+
         self.session.commit()
 
     def __add_filters_to_query(self, **kwargs):

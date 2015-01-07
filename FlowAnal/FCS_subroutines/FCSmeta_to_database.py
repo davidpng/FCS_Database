@@ -40,6 +40,8 @@ class FCSmeta_to_database(object):
             self.push_TubeCase(dir=dir)
             self.push_parameters()
         else:  # empty FCS push
+
+            print 'Pushing empty FCS {}'.format(self.meta)
             self.push_TubeCase(dir=dir)
 
     def __make_meta(self, dir):
@@ -48,8 +50,7 @@ class FCSmeta_to_database(object):
         meta_data = {'case_tube': self.FCS.case_tube,
                      'filename': self.FCS.filename,
                      'case_number': self.FCS.case_number,
-                     'version': self.FCS.version,
-                     'dirname': relpath(dirname(self.FCS.filepath), start=dir)}
+                     'version': self.FCS.version}
 
         if self.FCS.empty is False:
             meta_data['date'] = self.FCS.date
@@ -59,7 +60,15 @@ class FCSmeta_to_database(object):
             meta_data['flag'] = 'GOOD'
         else:
             meta_data['error_message'] = self.FCS.error_message
-            meta_data['flag'] = 'empty'
+            if hasattr(self.FCS, 'flag'):
+                meta_data['flag'] = self.FCS.flag
+            else:
+                meta_data['flag'] = 'empty'
+
+        if self.FCS.filepath != 'Does not exist' and dir is not None:
+            meta_data['dirname'] = relpath(dirname(self.FCS.filepath), start=dir)
+        else:
+            meta_data['dirname'] = 'Does not exist'
 
         return meta_data
 

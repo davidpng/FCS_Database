@@ -7,6 +7,7 @@ import logging
 from os import path
 import sys
 from sqlalchemy.exc import IntegrityError
+import pandas as pd
 
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
@@ -73,8 +74,7 @@ def action(args):
                 HDF_obj.push_fcs_features(case_tube_idx=case_tube_idx,
                                           FCS=fFCS, db=db)
             except ValueError, e:
-                print("Skipping feature extraction for case: {} \
-                because of 'ValueError {}'".format(case, e))
+                print("Skipping feature extraction for case: {} because of 'ValueError {}'".format(case, e))
                 feature_failed_CTIx.append([case, case_tube_idx, e])
             except KeyError, e:
                 print "Skipping FCS %s because of KeyError: %s" % (filepath, e)
@@ -88,7 +88,14 @@ def action(args):
                     (filepath, sys.exc_info()[0])
                 feature_failed_CTIx.append([case, case_tube_idx, sys.exc_info()[0]])
 
-    log.info("Case_tubes that failed feature extraction: {}".format(feature_failed_CTIx))
+    if feature_failed_CTIx != []:
+        # Make data.frame for failed case_tube_idx's
+        df = pd.DataFrame(feature_failed_CTIx,
+                          columns=['case_number', 'case_tube_idx', 'error_message'])
+        df['flag'] = 'feat_extract_failed'
+        df.drop_duplicates(inplace=True)
 
-    # push feature_failed_CTIx to database and removed Cases that did not extract for a
-    # NB: feature_failed CTIx is a list of lists with (case, case_tube_idx, error message)
+        log.info("Case_tubes that failed feature extraction: {}".format(df.case_number.unique()))
+
+        # Set db CaseTube entry to flag != 'GOOD' for failed case_tube_idx
+        db.query(updateProblemTubeCases=True, df=df)

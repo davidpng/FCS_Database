@@ -25,13 +25,13 @@ python $FLOWANAL/setup.py -h >> /dev/null
 echo -e "\n################# Add custom data #################"
 $FLOWANAL/flowanal.py -v add_CustomCaseData_db $3 -db $2 -outdb $dbfile
 # outdb will only include cases in the metadb($2) AND the custom cases ($3)
+# outdb TubeCases.flag will be 'GOOD' if nothing has failed
 
 echo -e "\n################# Make features from data #########"
-#$FLOWANAL/flowanal.py -v make_features $1 -db $dbfile -hdf5 $hdf5file
+# $FLOWANAL/flowanal.py -v make_features $1 -db $dbfile -hdf5 $hdf5file
 # if feature_extraction fails
 # 1. will not include in HDF5
-# 2. added case (via case_tube_idx) to exclude list and flag reason why
-# 3. Remove case from dbfile
+# 2. Flag TubeCases.case_tube_idx
 
 echo -e "\n################# pick correct case_tube_idx #########"
 #this will be a dbfile search that deletes a subset of case_tube_idx that are repeated

@@ -12,6 +12,7 @@ from hsqr.lab_pred import Lab_pred_table
 from query_database import queryDB
 from FlowAnal.__init__ import package_data
 from FlowAnal.database.FCS_declarative import *
+from FlowAnal.FCS import FCS
 
 log = logging.getLogger(__name__)
 
@@ -159,7 +160,7 @@ class FCSdatabase(SqliteConnection):
 
         a = Lab_pred_table(db=self, file=file)
 
-        # Handle column names
+        # ### Handle column names ###
         a.dat.columns = [c.lower() for c in a.dat.columns.values]
         a_cols = a.dat.columns.tolist()
 
@@ -179,35 +180,27 @@ class FCSdatabase(SqliteConnection):
 
         a.dat.columns = a_cols
 
+        # ### If one of columns matches use it ###
         if (len(cols) > 0):
             log.info('Adding file %s to db %s' % (file, self.db_file))
 
             a.dat = a.dat[cols]
 
-            # Don't keep the cases that are not in the meta db
-            db_case_list = zip(*queryDB(self, getCases=True).results)[0]
-            cases_to_exclude = a.dat.case_number.loc[~a.dat.case_number.isin(db_case_list)].\
+            # Identify cases in custom data but not in meta db
+            db_case_list = zip(*queryDB(self, getCases=True, not_flagged=False).results)[0]
+            cases_missing_in_db = a.dat.case_number.loc[~a.dat.case_number.isin(db_case_list)].\
                                tolist()
-            exclusions = []
-            for c in cases_to_exclude:
-                exclusions.append([c, 'Excluding case from custom list because \
-                it is not in the metadb or is empty'])
-            exclusions_df = pd.DataFrame.from_records(exclusions,
-                                                          columns=['case_number', 'error_message'])
-            exclusions_df['failure'] = 'addCustomCaseData'
-            a.dat = a.dat.loc[~a.dat.case_number.isin(cases_to_exclude), :]
 
             # Write custom data
             a.dat.to_sql('CustomCaseData', con=self.engine,
                          if_exists='replace', index=False)
 
-            # Write exclusions
-            print exclusions_df
-            # Write this to db
-
-            print 'whittle {}'.format(whittle)
-            if whittle is True:
-                # Remove cases in cases_to_exclude
-                self.query(cases=cases_to_exclude, delCases=True)
+            # Add empty FCS objects to db for each in cases_to_exclude
+            for c in cases_missing_in_db:
+                log.info('Making empty FCS for {}'.format(c))
+                fFCS = FCS(case_number=c,
+                           flag='CustomData_ONLY',
+                           error_message='Added to db because in custom list but not in metadb')
+                fFCS.meta_to_db(db=self, add_lists=True)
         else:
             raise ValueError("File %s does not have columns 'case_number' and 'category'" % (file))

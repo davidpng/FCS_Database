@@ -59,7 +59,7 @@ class TubeCases(Base):
 
 Index('ix_TubeCases_case_num', TubeCases.case_number)
 Index('ix_TubeCases_date_cytnum', TubeCases.date, TubeCases.cytnum)
-Index('ix_TubeCases_file', TubeCases.filename, TubeCases.dirname, unique=True)
+Index('ix_TubeCases_file', TubeCases.filename, TubeCases.dirname)  # , unique=True)
 Index('ix_TubeCases_tube_type_instance', TubeCases.tube_type_instance)
 
 
