@@ -106,7 +106,7 @@ class Test_FCS(TestBase):
         a.feature_extraction(extraction_type='2d', bins=50)
         log.debug("Feature Extraction was successful")
         binned_data = a.FCS_features
-        log.info(binned_data.histogram)
+        log.debug(binned_data.histogram)
         if write_csv:
             f = open(data('2d_test_histogram.pkl'),'w')
             pickle.dump(binned_data.histogram,f)
@@ -141,7 +141,7 @@ class Test_FCS(TestBase):
 
         root_dir = path.abspath('.')
         outfile = path.join(self.mkoutdir(), 'test.db')
-        
+
         filepath = data(test_fcs_fn)
         a = FCS(filepath=filepath)
         db = FCSdatabase(db=outfile, rebuild=True)
@@ -183,7 +183,7 @@ class Test_FCS(TestBase):
         """
 
         filepath = data(test_fcs_fn)
-        
+
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
                               gate_coords=gate_coords,
@@ -202,9 +202,9 @@ class Test_FCS(TestBase):
         """ Tests the HistoStats information subroutines
         :return:
         """
-        
+
         filepath = data(test_fcs_fn)
-        
+
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
                               gate_coords=gate_coords,rescale_lim=(-0.5,1),
@@ -246,12 +246,12 @@ class Test_FCS(TestBase):
         by comp_scale_FCS_data when auto_comp flag is turned on.
         """
 
-        
+
         Convert_CytName = {'H0152':'1', 'H4710082':'3',
                            '1':'1', '2':'2', '3':'3'}
 
         filepath = data(test_fcs_fn)
-        
+
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
                               gate_coords=gate_coords,
@@ -276,7 +276,7 @@ class Test_FCS(TestBase):
 
         root_dir = path.abspath('.')
         outfile = path.join(self.mkoutdir(), 'test.db')
-        
+
         filepath = data(test_fcs_fn)
 
         a = FCS(filepath=filepath)
