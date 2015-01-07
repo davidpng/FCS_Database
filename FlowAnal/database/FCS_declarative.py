@@ -79,6 +79,17 @@ class CustomCaseData(Base):
     Cases = relationship("Cases", uselist=False, backref='CustomData')
 
 
+class TubeCases_EXCLUDED(Base):
+    """ Record of case_tube_idx's (and their Cases) excluded since derivation of a child database
+    from the source meta db
+    """
+    __tablename__ = 'CaseTubes_EXCLUDED'
+    case_tube_idx = Column(Integer, primary_key=True)
+    case_number = Column(String(10), nullable=False)
+    failure = Column(String(30), nullable=False)
+    error_message = Column(Text)
+
+
 class TubeTypesInstances(Base):
     __tablename__ = 'TubeTypesInstances'
     tube_type_instance = Column(Integer, primary_key=True)

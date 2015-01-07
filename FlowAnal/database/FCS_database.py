@@ -133,7 +133,24 @@ class FCSdatabase(SqliteConnection):
         s.close()
         self.add_df(df=a, table='TubeTypesInstances')
 
-    def addCustomCaseData(self, file):
+    def removeCases(self, df=None, ll=None):
+        """ Method to remove a set of cases from the database based on a dataframe (or list of lists)
+
+        df --
+        ll -- list of [case, case_tube_idx, error_message]
+        """
+
+        if ll is not None:
+            a = pd.DataFrame.from_records(data=ll)
+        elif df is not None:
+            a = df
+        else:
+            raise ValueError('No cases specified to remove, must provide df or ll')
+
+        print a
+        quit()
+
+    def addCustomCaseData(self, file, whittle=True):
         """ Method to load file (tab-text) into database table CustomCaseData
 
         This must include <case_number> and <category> columns
@@ -141,9 +158,10 @@ class FCSdatabase(SqliteConnection):
         """
 
         a = Lab_pred_table(db=self, file=file)
+
+        # Handle column names
         a.dat.columns = [c.lower() for c in a.dat.columns.values]
         a_cols = a.dat.columns.tolist()
-        exclusion_file = file + '.excluded'
 
         # Convert 'CASE*' => 'case_number'
         case_index = next((index for index, value in enumerate(a_cols)
@@ -167,15 +185,29 @@ class FCSdatabase(SqliteConnection):
             a.dat = a.dat[cols]
 
             # Don't keep the cases that are not in the meta db
-            case_list = zip(*queryDB(self, getCases=True).results)[0]
-            cases_to_exclude = a.dat.case_number.loc[~a.dat.case_number.isin(case_list)].tolist()
+            db_case_list = zip(*queryDB(self, getCases=True).results)[0]
+            cases_to_exclude = a.dat.case_number.loc[~a.dat.case_number.isin(db_case_list)].\
+                               tolist()
+            exclusions = []
+            for c in cases_to_exclude:
+                exclusions.append([c, 'Excluding case from custom list because \
+                it is not in the metadb or is empty'])
+            exclusions_df = pd.DataFrame.from_records(exclusions,
+                                                          columns=['case_number', 'error_message'])
+            exclusions_df['failure'] = 'addCustomCaseData'
             a.dat = a.dat.loc[~a.dat.case_number.isin(cases_to_exclude), :]
-            with open(exclusion_file, 'w') as outf:
-                outf.writelines("%s\n" % item for item in cases_to_exclude)
-            log.info('Excluding cases[%s] because they are not in meta database are noted in [%s]' %
-                     (', '.join(cases_to_exclude), exclusion_file))
 
+            # Write custom data
             a.dat.to_sql('CustomCaseData', con=self.engine,
                          if_exists='replace', index=False)
+
+            # Write exclusions
+            print exclusions_df
+            # Write this to db
+
+            print 'whittle {}'.format(whittle)
+            if whittle is True:
+                # Remove cases in cases_to_exclude
+                self.query(cases=cases_to_exclude, delCases=True)
         else:
             raise ValueError("File %s does not have columns 'case_number' and 'category'" % (file))

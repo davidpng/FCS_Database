@@ -91,6 +91,7 @@ def action(args):
                 except:
                     print "Skipping FCS %s because of unknown error related to: %s" % \
                         (filepath, sys.exc_info()[0])
+
                 try:
                     fFCS.feature_extraction(extraction_type=args.feature_extraction_method,
                                             bins=10)
@@ -101,6 +102,7 @@ def action(args):
                     because of 'ValueError {}'".format(case, e))
                     feature_failed_CTIx.append([case, case_tube_idx, e])
 
-    log.info("features failed: {}".format(feature_failed_CTIx))
-    # push feature_failed_CTIx to database
+    log.info("Case_tubes that failed feature extraction: {}".format(feature_failed_CTIx))
+
+    # push feature_failed_CTIx to database and removed Cases that did not extract for a
     # NB: feature_failed CTIx is a list of lists with (case, case_tube_idx, error message)

@@ -34,9 +34,11 @@ def action(args):
     shutil.copyfile(args.db, args.outdb)
     outdb = FCSdatabase(db=args.outdb, rebuild=False)
 
-    # Add text table
-    outdb.addCustomCaseData(file=args.file)
+    # Add text table and whittle cases not in db (unless args says otherwise)
+    outdb.addCustomCaseData(file=args.file, whittle=not args.no_whittle)
 
     if args.no_whittle is False:
-        outdb.query(delCasesByCustom=True)  # Delete other data
-        outdb.close()
+        # Delete cases in db not in Custom table [do not add to exclusions table]
+        outdb.query(delCasesByCustom=True)
+
+    outdb.close()

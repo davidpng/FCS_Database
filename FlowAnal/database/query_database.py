@@ -48,7 +48,7 @@ class queryDB(object):
         qmethod = [m for m in qmethods
                    if (m in kwargs.keys() and kwargs[m] is True)]
 
-        dmethods = ['delCasesByCustom', 'delEmpty']
+        dmethods = ['delCasesByCustom', 'delEmpty', 'delCases', 'delTubeCases']
         dmethod = [m for m in dmethods
                    if (m in kwargs.keys() and kwargs[m] is True)]
 
@@ -58,7 +58,7 @@ class queryDB(object):
         elif len(qmethod) == 1:
             self.results = getattr(self, '_queryDB__' + qmethod[0])(**kwargs)
         elif len(dmethod) == 1:
-            getattr(self, '_queryDB__' + dmethod[0])()
+            getattr(self, '_queryDB__' + dmethod[0])(**kwargs)
         else:
             raise ValueError('query not specified properly: %s' %
                              '='.join(key, value) for key, value in kwargs.items())
@@ -320,8 +320,13 @@ class queryDB(object):
         d = self.q.one().creation_date
         return d
 
-    def __delCasesByCustom(self):
-        """ Deletes cases not in the CustomCaseData """
+    def __delCasesByCustom(self, **kwargs):
+        """ Deletes cases not in the CustomCaseData
+
+        NOTE: Currently using session.delete() to make use of in-python CASCADE DELETION.
+        This is likely much slower than self.q.delete() would, but I would have to turn on the the
+        passive and set ON DELETE CASCADE on the foreign_keys [TODO]
+        """
 
         log.info('Excluding cases not in CustomCaseData table')
 
@@ -332,45 +337,39 @@ class queryDB(object):
             self.session.delete(case)
         self.session.commit()
 
-    # def __delEmpty(self):
-    #     """ Deletes case_tubes_idx that are empty (of data) """
+    def __delCases(self, cases, **kwargs):
+        """ Delete cases passed in <cases>
 
-    #     raise "This method has not been troubleshot"
+        cases -- list()
 
-    #     log.info('Excluding case_tube_idx that are empty in CustomCaseData db')
-    #     cases_w_tubes_deleted = []
-    #     cases_deleted = []
+        NOTE: Currently using session.delete() to make use of in-python CASCADE DELETION.
+        This is likely much slower than self.q.delete() would, but I would have to turn on the the
+        passive and set ON DELETE CASCADE on the foreign_keys [TODO]
+        """
+        log.info('Excluding from db cases [{}]'.format(cases))
 
-    #     # Delete TubeCases
-    #     self.q = self.session.query(TubeCases).\
-    #              filter(TubeCases.empty == 1)
-    #     for tube_case in self.q:
-    #         cases_w_tubes_deleted.append(tube_case.case_number)
-    #         self.session.delete(tube_case)
-    #     self.session.commit()
-    #     log.info('Deleted from TubeCases and below: %s' % ', '.join(cases_w_tubes_deleted))
+        self.q = self.session.query(Cases).\
+                 filter(Cases.case_number.in_(cases))
+        for case in self.q:
+            self.session.delete(case)
+        self.session.commit()
 
-    #     if cases_w_tubes_deleted != []:
-    #         log.info('Excluding case_tube_idx that are empty in CustomCaseData db')
+    def __delTubeCases(self, case_tube_idxs, **kwargs):
+        """ Delete case_tubes passed in <cases>
 
-    #         # Delete Cases with no TubeCases
-    #         self.q = self.session.query(Cases).\
-    #                  filter(Cases.case_number.in_(cases_w_tubes_deleted))
-    #         print self.q.statement
-    #         for case in self.q:
-    #             print case.case_number
-    #             cases_deleted.append(case.case_number)
-    #             self.session.delete(case)
-    #         self.session.commit()
+        cases -- list()
 
-    #         self.q = self.session.query(CustomCaseData).\
-    #                  filter(CustomCaseData.case_number.in_(cases_deleted))
-    #         for case_data in self.q:
-    #             self.session.delete(case_data)
-    #         self.session.commit()
+        NOTE: Currently using session.delete() to make use of in-python CASCADE DELETION.
+        This is likely much slower than self.q.delete() would, but I would have to turn on the the
+        passive and set ON DELETE CASCADE on the foreign_keys [TODO]
+        """
+        log.info('Excluding case_tube_idx [{}]'.format(case_tube_idxs))
 
-    #         log.info('Deleted from Cases, CustomCaseData, and below: %s' %
-    #                  ', '.join(cases_deleted))
+        self.q = self.session.query(TubeCases).\
+                 filter(TubeCases.case_tube_idx.in_(case_tube_idxs))
+        for case_tube in self.q:
+            self.session.delete(case_tube)
+        self.session.commit()
 
     def __add_filters_to_query(self, **kwargs):
         """ Add filters specified in kwargs to self.q
