@@ -40,8 +40,7 @@ class FCSmeta_to_database(object):
             self.push_TubeCase(dir=dir)
             self.push_parameters()
         else:  # empty FCS push
-
-            print 'Pushing empty FCS {}'.format(self.meta)
+            log.info('Pushing empty FCS {}'.format(self.meta))
             self.push_TubeCase(dir=dir)
 
     def __make_meta(self, dir):
