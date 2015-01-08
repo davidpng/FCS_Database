@@ -5,13 +5,21 @@ This file describes a feature extraction class for N dimensions
 
 @author: David Ng, MD
 """
-import os.path
+__author__ = "David Ng, MD"
+__copyright__ = "Copyright 2014"
+__license__ = "GPL v3"
+__version__ = "1.0"
+__maintainer__ = "Daniel Herman"
+__email__ = "ngdavid@uw.edu"
+__status__ = "Production"
 
+"""Installed Packages"""
 import pandas as pd
 import numpy as np
 import scipy as sp
-
 import h5py
+"""Built in packages"""
+import os.path
 import logging
 
 log = logging.getLogger(__name__)
@@ -19,12 +27,25 @@ log = logging.getLogger(__name__)
 class ND_Feature_Extraction(object):
 
     def __init__(self,FCS,bins,**kwargs):
-        """
-
-        Accessiable Parameters
-        type
-        bin_description
-        histogram
+        """ Performs N-Dimenstional Feature Extration on FCS.data
+        
+        This class takes a data FCS object which as been compensated and
+        normalized and generates a sparse array indexed on bin_number and
+        normalized number of events in that bin.
+        
+        Accessiable Parameters:
+            .type --            <string> containing a short name for this type
+                                         of feature extraction
+            .bin_description -- <pd.Series> indexed on data.column names and
+                                            storing number of bins on that 
+                                            channel/column
+            .histogram --       <csr_matrix> indexed on bin_number and the 
+                                             normalized number of events in 
+                                             that bin.
+        
+        Accessiable Functions:
+            .Return_Coordinates -- Returns the bin centroid for a given index
+                                   or bin number (I think...)
         """
         self.type = 'Full'
         if 'exclude_param' in kwargs:

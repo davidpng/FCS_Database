@@ -7,7 +7,7 @@ Subroutine to FCS that loads an FCS into memory
 __author__ = "David Ng, MD"
 __copyright__ = "Copyright 2014, David Ng"
 __license__ = "GPL v3"
-__version__ = "1.1"
+__version__ = "1.3"
 __maintainer__ = "David Ng"
 __email__ = "ngdavid@uw.edu"
 __status__ = "Production"
@@ -21,6 +21,9 @@ from datetime import datetime
 from warnings import warn
 from struct import calcsize, unpack
 from os.path import basename
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class loadFCS(object):

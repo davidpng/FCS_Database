@@ -11,7 +11,7 @@ __license__ = "GPL v3"
 __version__ = "1.0"
 __maintainer__ = "David Ng"
 __email__ = "ngdavid@uw.edu"
-__status__ = "Subroutine - prototype"
+__status__ = "Production"
 
 from scipy.sparse import csr_matrix
 import numpy as np
@@ -24,6 +24,20 @@ log = logging.getLogger(__name__)
 
 class HDF5_IO(object):
     def __init__(self, filepath, clobber=False):
+        """ HDF5 input/output inferface
+        
+        This class provides an inferface for pushing feature extracted sparse
+        histograms from an FCS object to an HDF5 file object and pulling this
+        data from an HDF5 object to an dense 'feature' dataframe for input to
+        Machine Learning Algorithms
+        
+        Keyword Arguements:
+        filepath -- <str> Absolute filepath to an HDF5 file for reading and 
+                          writing
+        clobber -- <bool> Flag to overwrite a HDF5 file object
+        
+        
+        """
         self.filepath = filepath
         if clobber is True and os.path.exists(filepath):
             os.remove(filepath)

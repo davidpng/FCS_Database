@@ -9,12 +9,13 @@ __author__ = "Daniel Herman, MD"
 __copyright__ = "Copyright 2014"
 __license__ = "GPL v3"
 __version__ = "1.0"
-__maintainer__ = "David Ng"
+__maintainer__ = "Daniel Herman"
 __email__ = "hermands@uw.edu"
 __status__ = "Subroutine - prototype"
 
 from os.path import relpath, dirname
-
+import logging
+log = logging.getLogger(__name__)
 
 class FCSmeta_to_database(object):
     """ Export the meta information in an FCS object to database
@@ -40,7 +41,7 @@ class FCSmeta_to_database(object):
             self.push_TubeCase(dir=dir)
             self.push_parameters()
         else:  # empty FCS push
-            log.info('Pushing empty FCS {}'.format(self.meta))
+            #print('Pushing empty FCS {}'.format(self.meta))
             self.push_TubeCase(dir=dir)
 
     def __make_meta(self, dir):

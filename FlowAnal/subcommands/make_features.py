@@ -1,21 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-""" Builds HDF5 file with features from FCS data
+""" 
+Created on Sat 27 DEC 2014 02:07:37 PM PST 
+Builds HDF5 file with features from FCS data
 
 """
-import logging
-from os import path
+
+__author__ = "David Ng, MD"
+__copyright__ = "Copyright 2014"
+__license__ = "GPL v3"
+__version__ = "1.0"
+__maintainer__ = "Daniel Herman"
+__email__ = "ngdavid@uw.edu"
+__status__ = "Subroutine - prototype"
+
 import sys
-from sqlalchemy.exc import IntegrityError
+import logging
 import pandas as pd
 
+from os import path
+from sqlalchemy.exc import IntegrityError
+
+from __init__ import add_filter_args
+
+from FlowAnal.__init__ import package_data
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
-from FlowAnal.__init__ import package_data
 from FlowAnal.HDF5_IO import HDF5_IO
-from __init__ import add_filter_args
 from FlowAnal.Analysis_Variables import gate_coords,comp_file
-
 
 log = logging.getLogger(__name__)
 

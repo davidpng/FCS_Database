@@ -12,7 +12,8 @@ __status__ = "Subroutine - prototype"
 
 from os.path import basename
 from re import findall
-
+import logging
+log = logging.getLogger(__name__)
 
 class empty_FCS(object):
     """ load FCS object for which loadFCS() fails
