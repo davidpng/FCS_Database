@@ -3,7 +3,7 @@
 """
 This set up analysis variables for testing and analysis
 imported from
-from FlowAnal.Analysis_Variables import coords,comp_file,test_fcs_fn
+from FlowAnal.Analysis_Variables import gate_coords,comp_file,test_fcs_fn
 """
 from FlowAnal.__init__ import package_data
 
