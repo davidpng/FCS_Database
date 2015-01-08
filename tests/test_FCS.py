@@ -272,6 +272,8 @@ class Test_FCS(TestBase):
         """ Make sure that CustomCaseData can be loaded
 
         NOTE: not explicitly checking what is loaded
+        N.B. Right now this is adding custom_case_data to the meta_db 
+        as empty FCS objects with error code "Added to db because in custom list but not in metadb"
         """
 
         root_dir = path.abspath('.')
