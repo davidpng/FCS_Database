@@ -60,6 +60,12 @@ class Test_HDF5(TestBase):
         output = HDF_obj.get_fcs_features(FCS_obj.case_tube_idx)
         log.debug(output)
         np.testing.assert_allclose(output.data, FCS_obj.FCS_features.histogram.data)
+        
+        # pull meta data from HDF5 file
+        meta_data = HDF_obj.get_meta_data()
+        log.debug("File meta data is {}".format(meta_data))
+        
+        
 
 
 
