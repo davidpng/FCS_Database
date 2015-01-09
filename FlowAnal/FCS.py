@@ -41,18 +41,20 @@ class FCS(object):
                  filepaths=None,
                  filepath=None,
                  db=None,
+                 case_tube_idx=0,
                  **kwargs):
         self.__version = version
         self.__filepath = filepath
 
         if filepath is not None:
+            self.case_tube_idx = case_tube_idx
             try:
                 self.load_from_file(**kwargs)
             except Exception, e:
                 warnings.warn("loading FCS as empty because %s" % e)
                 self.make_emptyFCS(error_message=str(e), **kwargs)
         elif filepaths is not None:
-            raise "Not implemneted yet"
+            raise Exception("Not implemneted yet!!!!!!!!!")
             self.make_inferred_FCS(filepaths=filepaths)
         elif db is not None:
             self.load_from_db(db)
@@ -106,7 +108,7 @@ class FCS(object):
             self.FCS_features = ND_Feature_Extraction(FCS=self,
                                                       bins=bins,
                                                       **kwargs)
-            
+
         elif type_flag == '2d':
             self.FCS_features = p2D_Feature_Extraction(FCS=self,
                                                       bins=bins,
@@ -163,35 +165,6 @@ class FCS(object):
         """ Add histostats to db """
 
         FCSstats_to_database(FCS=self, db=db)
-
-    def _get_case_tube_index(self, db):
-        """ Read a meta database to get the case_tube_index that was created by the TubeCases
-        table upon entry
-
-        This relies upon it being the most recent created for a paticular case_tube, filename, date
-        """
-
-        if self.empty is False:
-            # Capture database-created case_tube_idx
-            s = db.Session()
-            TubeCases = db.meta.tables['TubeCases']
-
-            # Pick last appropriate index
-            tmp = s.query(TubeCases.c.case_tube_idx).\
-                  filter(TubeCases.c.case_tube == unicode(self.case_tube)).\
-                  filter(TubeCases.c.filename == unicode(self.filename)).\
-                  filter(TubeCases.c.date == str(self.date)).all()
-            tmp = zip(*tmp)[0]
-            self.case_tube_idx = max(tmp)
-            log.debug('Getting case_tube_idx from db for Case_tube: %s, Filename: %s, Date: %s ==> %s'
-                     % (self.case_tube,
-                        self.filename,
-                        self.date,
-                        self.case_tube_idx))
-            s.close()
-        else:
-            self.case_tube_idx = None
-
 
 if __name__ == '__main__':
     import os

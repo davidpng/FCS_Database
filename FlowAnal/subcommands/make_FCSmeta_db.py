@@ -31,11 +31,11 @@ def action(args):
     print "Building database %s" % db.db_file
 
     # Process files/dirs
-    i = 0
+    case_tube_idx = 0
     for f in Finder.filenames:
-        fFCS = FCS(filepath=f)
+
+        fFCS = FCS(filepath=f, case_tube_idx=case_tube_idx)
         fFCS.meta_to_db(db=db, dir=args.dir, add_lists=True)
-        print("{:6d} Cases uploaded\r".format(i)),
+        print("{:6d} Cases uploaded\r".format(case_tube_idx)),
 
-
-
+        case_tube_idx += 1

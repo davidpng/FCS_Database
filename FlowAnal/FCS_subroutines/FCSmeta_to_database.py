@@ -17,6 +17,7 @@ from os.path import relpath, dirname
 import logging
 log = logging.getLogger(__name__)
 
+
 class FCSmeta_to_database(object):
     """ Export the meta information in an FCS object to database
 
@@ -41,7 +42,7 @@ class FCSmeta_to_database(object):
             self.push_TubeCase(dir=dir)
             self.push_parameters()
         else:  # empty FCS push
-            #print('Pushing empty FCS {}'.format(self.meta))
+            log.info('Pushing empty FCS {}'.format(self.FCS.case_tube))
             self.push_TubeCase(dir=dir)
 
     def __make_meta(self, dir):
@@ -50,7 +51,8 @@ class FCSmeta_to_database(object):
         meta_data = {'case_tube': self.FCS.case_tube,
                      'filename': self.FCS.filename,
                      'case_number': self.FCS.case_number,
-                     'version': self.FCS.version}
+                     'version': self.FCS.version,
+                     'case_tube_idx': self.FCS.case_tube_idx}
 
         if self.FCS.empty is False:
             meta_data['date'] = self.FCS.date
@@ -114,9 +116,6 @@ class FCSmeta_to_database(object):
 
         # Push case+tube meta information
         self.db.add_dict(self.meta, table='TubeCases')
-
-        # Retrieve the case_tube_idx into self.FCS.case_tube_idx
-        self.FCS._get_case_tube_index(db=self.db)
 
     def push_parameters(self):
         """ Export Pmt+Tube+Case parameters from FCS object to DB """
