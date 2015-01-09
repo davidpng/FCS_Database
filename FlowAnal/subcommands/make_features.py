@@ -12,7 +12,7 @@ __license__ = "GPL v3"
 __version__ = "1.0"
 __maintainer__ = "Daniel Herman"
 __email__ = "ngdavid@uw.edu"
-__status__ = "Subroutine - prototype"
+__status__ = "Production"
 
 import sys
 import logging
