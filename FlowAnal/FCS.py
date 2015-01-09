@@ -1,11 +1,20 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Sep 30 18:34:54 2014
+This files descrbies the FCS class which contains IO handling for 
+FCS type data, post processing, statistics extraction to a database,
+meta_info extraction to a database, visualization and Feature Extraction
+(i.e. binning) to an HDF5 file
 
-
-@author: David Ng, MD
+@author: ngdavid
 """
-import logging
+__author__ = "David Ng, MD"
+__copyright__ = "Copyright 2014, David Ng"
+__license__ = "GPL v3"
+__version__ = "1.7"
+__maintainer__ = "David Ng"
+__email__ = "ngdavid@uw.edu"
+__status__ = "Production"
 
 from FCS_subroutines.loadFCS import loadFCS
 from FCS_subroutines.Process_FCS_Data import Process_FCS_Data
@@ -17,8 +26,9 @@ from FCS_subroutines.Comp_Visualization import Comp_Visualization
 from FCS_subroutines.ND_Feature_Extraction import ND_Feature_Extraction
 from FCS_subroutines.p2D_Feature_Extraction import p2D_Feature_Extraction
 from . import __version__
-import warnings
 
+import warnings
+import logging
 log = logging.getLogger(__name__)
 
 

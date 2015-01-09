@@ -2,12 +2,20 @@
 # -*- coding: utf-8 -*-
 """ Collects and process flow QC data
 
+@author: Daniel Herman MD, PhD
 """
-import logging
+__author__ = "Daniel Herman, MD"
+__copyright__ = "Copyright 2014, Daniel Herman"
+__license__ = "GPL v3"
+__version__ = "1.0"
+__maintainer__ = "Daniel Herman"
+__email__ = "hermands@uw.edu"
+__status__ = "Production"
 
 from FlowAnal.database.FCS_database import FCSdatabase
 from FlowAnal.FlowQC import FlowQC
 
+import logging
 log = logging.getLogger(__name__)
 
 

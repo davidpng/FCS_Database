@@ -1,10 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-This set up analysis variables for testing and analysis
+Created on: Fri 09 Jan 2015 11:19:55 AM PST 
+This file sets up analysis variables for testing and analysis
 imported from
+
 from FlowAnal.Analysis_Variables import gate_coords,comp_file,test_fcs_fn
+
+@author: ngdavid
 """
+__author__ = "David Ng, MD"
+__copyright__ = "Copyright 2014, David Ng"
+__license__ = "GPL v3"
+__version__ = "1.0"
+__maintainer__ = "David Ng"
+__email__ = "ngdavid@uw.edu"
+__status__ = "Production"
+
 from FlowAnal.__init__ import package_data
 
 # set global variables
