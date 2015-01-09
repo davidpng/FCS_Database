@@ -11,7 +11,7 @@ custom_data=$3 # Custom data text file
 
 # OUTPUT files
 wdir=`pwd`
-dbfile=$wdir/fcs_custom_test.db
+project_dbfile=$wdir/project.db
 hdf5file=$wdir/fcs_features.hdf5
 rm $dbfile
 rm $hdf5file
@@ -22,22 +22,32 @@ FLOWANAL=$script_dir/..
 
 python $FLOWANAL/setup.py -h >> /dev/null
 
+echo -e "\n################# Query +/- whittle #################"
+# copy meta_db ($2) to outdb
+# if flagged (--whittle) run query and whittle out cases not found (outside scope of experiment)
+#  $FLOWANAL/flowanal.py -v build_Project_db -db $2 -outdb $project_dbfile
+
 echo -e "\n################# Add custom data #################"
-$FLOWANAL/flowanal.py -v add_CustomCaseData_db $3 -db $2 -outdb $dbfile
-# outdb will only include cases in the metadb($2) AND the custom cases ($3)
+$FLOWANAL/flowanal.py -v add_CustomCaseData_db $3 -db $project_dbfile [--no-whittle]
+# Just add table, cases in CustomCaseData but not in dbfile get added with a comment
 # outdb TubeCases.flag will be 'GOOD' if nothing has failed
+
+## NEED to version control the database here
 
 echo -e "\n################# Make features from data #########"
 $FLOWANAL/flowanal.py -v make_features $1 -db $dbfile -hdf5 $hdf5file
 # if feature_extraction fails
 # 1. will not include in HDF5
-# 2. Flag TubeCases.case_tube_idx
+# 2. Flag TubeCases.flag = failed feature extraction
 
-echo -e "\n################# pick correct case_tube_idx #########"
-#this will be a dbfile search that deletes a subset of case_tube_idx that are repeated
-#due to repeat processes (pick most recent rpt file)
+# I want dbfile and hdf5file to be separable
+# Need to be able to query hdf5file and get list of case_tube_idx's
+# Don't store feature_failures in db
 
 
-echo -e "\n################# Merge features #########"
+echo -e "\n################# Make features and annotations #########"
 #$FLOWANAL/flowanal.py -v run_ML_on_TubeCases -db $dbfile -hdf5 $hdf5file
 # build checks to make sure HDF5 has case_tube_idx that is being query.
+# Make table of features and table of annotations
+
+# Build logic in that will select most recent run of tube_type [as default option]
