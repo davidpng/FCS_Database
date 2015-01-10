@@ -267,27 +267,27 @@ class Test_FCS(TestBase):
                                    rtol=1e-3, atol=0, err_msg="Results are more different \
                                    than tolerable")
 
-    def test_add_CustomCaseData(self):
-        """ Make sure that CustomCaseData can be loaded
+    # def test_add_CustomCaseData(self):
+    #     """ Make sure that CustomCaseData can be loaded
 
-        NOTE: not explicitly checking what is loaded
-        N.B. Right now this is adding custom_case_data to the meta_db 
-        as empty FCS objects with error code "Added to db because in custom list but not in metadb"
-        """
+    #     NOTE: not explicitly checking what is loaded
+    #     N.B. Right now this is adding custom_case_data to the meta_db
+    #     as empty FCS objects with error code "Added to db because in custom list but not in metadb"
+    #     """
 
-        root_dir = path.abspath('.')
-        outfile = path.join(self.mkoutdir(), 'test.db')
+    #     root_dir = path.abspath('.')
+    #     outfile = path.join(self.mkoutdir(), 'test.db')
 
-        filepath = data(test_fcs_fn)
+    #     filepath = data(test_fcs_fn)
 
-        a = FCS(filepath=filepath)
-        db = FCSdatabase(db=outfile, rebuild=True)
-        a.meta_to_db(db=db, dir=root_dir)
-        db.addCustomCaseData(file=data('custom_case_data.txt'))
+    #     a = FCS(filepath=filepath)
+    #     db = FCSdatabase(db=outfile, rebuild=True)
+    #     a.meta_to_db(db=db, dir=root_dir)
+    #     db.addCustomCaseData(file=data('custom_case_data.txt'))
 
-        # Delete other entries
-        db.query(delCasesByCustom=True)
-        db.close()
+    #     # Delete other entries
+    #     db.query(delCasesByCustom=True)
+    #     db.close()
 
-        # Need to add query here to check
+    #     # Need to add query here to check
 

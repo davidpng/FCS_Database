@@ -35,12 +35,8 @@ def action(args):
         for case_tube_idx, relpath in case_info.items():
             log.info("Case: %s, Case_tube_idx: %s, File: %s" % (case, case_tube_idx, relpath))
             filepath = path.join(args.dir, relpath)
-            a = FCS(filepath=filepath)
+            a = FCS(filepath=filepath, case_tube_idx=case_tube_idx)
 
-
-        #     print a.empty
-        #     print a.filepath
-        #     print a.date
-        #     print a.case_number
-        #     print a.case_tube
+            # Do something
+            print a.case_tube
 

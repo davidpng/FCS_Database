@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue 30 Dec 2014 10:29:41 AM PST 
+Created on Tue 30 Dec 2014 10:29:41 AM PST
 This file describes a feature extraction class for N dimensions
 
 @author: David Ng, MD
@@ -39,7 +39,7 @@ class p2D_Feature_Extraction(object):
         self.histogram = self._flattened_2d_histograms(FCS_data=FCS.data,
                                                        columns=columns,
                                                        bin_dict=bin_dict,**kwargs)
-        
+
     def _flattened_2d_histograms(self,FCS_data,columns,bin_dict,ul=1.0,normalize=True,**kwargs):
         """
         """
@@ -47,7 +47,7 @@ class p2D_Feature_Extraction(object):
         feature_space=[]
         for features in itertools.combinations(columns,2):
             dim = (bin_dict[features[0]],bin_dict[features[1]])
-            log.info(features)
+            log.debug(features)
             histo2d,xbin,ybin = np.histogram2d(FCS_data[features[0]],
                                                FCS_data[features[1]],
                                                bins=dim,
@@ -56,7 +56,7 @@ class p2D_Feature_Extraction(object):
             #feature_space.extend(np.ravel(1-1/((histo2d*scaling)**0.75+1)))
             feature_space.extend(np.ravel(histo2d))
         return sp.sparse.csr_matrix(feature_space)
-        
+
     def _coord2sparse_histogram(self,vector_length,coordinates,normalize=True,**kwargs):
         """
         generates a sparse matrix with normalized histogram counts
@@ -69,7 +69,7 @@ class p2D_Feature_Extraction(object):
             return output/ len(coordinates)
         else:
             return output
-       
+
     def _Generate_Bin_Dict(self,columns,bins):
         """
         Performs error checking and type converion for bins
@@ -92,7 +92,7 @@ class p2D_Feature_Extraction(object):
 
     def Return_Coordinates(self,index):
         """
-        Returns the bin parameters 
+        Returns the bin parameters
         """
         pass
 

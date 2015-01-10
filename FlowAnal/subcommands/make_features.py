@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-""" 
-Created on Sat 27 DEC 2014 02:07:37 PM PST 
+"""
+Created on Sat 27 DEC 2014 02:07:37 PM PST
 Builds HDF5 file with features from FCS data
 
 """
@@ -66,7 +66,7 @@ def action(args):
         for case_tube_idx, relpath in case_info.items():
             log.info("Case: %s, Case_tube_idx: %s, File: %s" % (case, case_tube_idx, relpath))
             filepath = path.join(args.dir, relpath)
-            fFCS = FCS(filepath=filepath, import_dataframe=True)
+            fFCS = FCS(filepath=filepath, case_tube_idx=case_tube_idx, import_dataframe=True)
 
             try:
                 fFCS.comp_scale_FCS_data(compensation_file=comp_file,

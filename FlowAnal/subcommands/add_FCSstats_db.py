@@ -16,6 +16,7 @@ import logging
 from os import path
 import sys
 from sqlalchemy.exc import IntegrityError
+import shutil
 
 from FlowAnal.Analysis_Variables import gate_coords,comp_file,test_fcs_fn
 from FlowAnal.FCS import FCS
@@ -43,9 +44,9 @@ def action(args):
     log.info("Loading database input %s" % args.db)
     db = FCSdatabase(db=args.db, rebuild=False)
 
-    # Connect to out database
-    log.info("Loading database output %s" % args.outdb)
-    out_db = FCSdatabase(db=args.outdb, rebuild=True)
+    # Copy database to out database
+    shutil.copyfile(args.db, args.outdb)
+    out_db = FCSdatabase(db=args.outdb, rebuild=False)
 
     # Create query
     q = db.query(exporttype='dict_dict', getfiles=True, **vars(args))
@@ -54,10 +55,9 @@ def action(args):
         for case_tube_idx, relpath in case_info.items():
             log.info("Case: %s, Case_tube_idx: %s, File: %s" % (case, case_tube_idx, relpath))
             filepath = path.join(args.dir, relpath)
-            fFCS = FCS(filepath=filepath, import_dataframe=True)
+            fFCS = FCS(filepath=filepath, case_tube_idx=case_tube_idx, import_dataframe=True)
 
             try:
-                fFCS.meta_to_db(db=out_db, dir=args.dir, add_lists=True)
                 fFCS.comp_scale_FCS_data(compensation_file=comp_file,
                                          gate_coords=gate_coords,
                                          strict=False, auto_comp=False)
@@ -68,9 +68,8 @@ def action(args):
             except KeyError, e:
                 print "Skipping FCS %s because of KeyError: %s" % (filepath, e)
             except IntegrityError, e:
-                print "Skipping Case: %s, Tube: %s, Date: %s, filepath: %s because of IntegrityError: %s" % \
+                print "Skipping Case: %s, Tube: %s, filepath: %s because of IntegrityError: %s" % \
                     (case, case_tube_idx, filepath, e)
             except:
                 print "Skipping FCS %s because of unknown error related to: %s" % \
                     (filepath, sys.exc_info()[0])
-
