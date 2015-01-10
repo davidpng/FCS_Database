@@ -54,7 +54,7 @@ class FCS(object):
                  **kwargs):
         self.__version = version
         self.__filepath = filepath
-        self.__comp_scale_ran
+        self.__comp_scale_ran = False
         if filepath is not None:
             try:
                 self.load_from_file(**kwargs)
@@ -107,6 +107,7 @@ class FCS(object):
             self.__comp_scale_ran = True
         else:
             raise RuntimeError("Comp_Scale_FCS_Data method has already been run")
+            
     def feature_extraction(self, extraction_type='Full', bins=10, **kwargs):
         """
         Quasi interal function to FCS, to be accessed by other functions?
