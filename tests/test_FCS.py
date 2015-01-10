@@ -12,7 +12,6 @@ import pickle
 
 
 from __init__ import TestBase, datadir, write_csv
-from FlowAnal.HDF5_IO import HDF5_IO
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
 from FlowAnal.__init__ import package_data, __version__

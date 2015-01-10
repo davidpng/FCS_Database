@@ -26,7 +26,7 @@ from __init__ import add_filter_args
 from FlowAnal.__init__ import package_data
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
-from FlowAnal.HDF5_IO import HDF5_IO
+from FlowAnal.Feature_IO import Feature_IO
 from FlowAnal.Analysis_Variables import gate_coords,comp_file
 
 log = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ def action(args):
     q = db.query(exporttype='dict_dict', getfiles=True, **vars(args))
 
     # Create HDF5 object
-    HDF_obj = HDF5_IO(filepath=args.hdf5_fp, clobber=True)
+    HDF_obj = Feature_IO(filepath=args.hdf5_fp, clobber=True)
 
     # initalize empty list to append case_tube_idx that failed feature extraction
     feature_failed_CTIx = []
@@ -70,7 +70,7 @@ def action(args):
 
             try:
                 fFCS.comp_scale_FCS_data(compensation_file=comp_file,
-                                         gate_coords=coords,
+                                         gate_coords=gate_coords,
                                          rescale_lim=(-0.5, 1),
                                          strict=False, auto_comp=False)
                 fFCS.feature_extraction(extraction_type=args.feature_extraction_method,
@@ -94,12 +94,13 @@ def action(args):
 
     if feature_failed_CTIx != []:
         # Make data.frame for failed case_tube_idx's
-        df = pd.DataFrame(feature_failed_CTIx,
-                          columns=['case_number', 'case_tube_idx', 'error_message'])
-        df['flag'] = 'feat_extract_failed'
-        df.drop_duplicates(inplace=True)
-
-        log.info("Case_tubes that failed feature extraction: {}".format(df.case_number.unique()))
-
-        # Set db CaseTube entry to flag != 'GOOD' for failed case_tube_idx
-        db.query(updateProblemTubeCases=True, df=df)
+        
+        failed_DF = pd.DataFrame(feature_failed_CTIx,
+                                 columns=['case_number', 'case_tube_idx', 'error_message'])
+        #failed_DF.drop_duplicates(inplace=True)
+        log.info("Case_numbers that failed feature extraction: {}".format(failed_DF.case_number.unique()))
+        log.info("Case_tubes that failed feature extraction: {}".format(failed_DF.case_tube_idx.unique()))
+        # push this to HDF5 file
+        print failed_DF
+        HDF_obj.push_failed_cti_list(failed_DF)
+        
