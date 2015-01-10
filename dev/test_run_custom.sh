@@ -32,7 +32,7 @@ cmd="$FLOWANAL/flowanal.py -v make_features $1
   $q_options
 "
 echo $cmd
-$cmd
+#$cmd
 
 echo -e "\n################# Make clinical data #########"
 cmd="cp $3 $custom_annot"
@@ -40,10 +40,10 @@ echo $cmd
 $cmd
 
 echo -e "\n################# Make data for ML #########"
-cmd="$FLOWANAL/flowanal.py -v make_ML_input
+cmd="$FLOWANAL/flowanal.py -vv make_ML_input
   -db $2
   --feature-hdf5 $feature_hdf5file
   -annot $custom_annot
   -ml-hdf5 $ML_input_hdf5file"
 echo $cmd
-#$cmd
+$cmd

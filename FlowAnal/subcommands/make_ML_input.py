@@ -6,6 +6,7 @@ NOTE: There are some files that are not found because of discordance of filename
 and filename internal to .fcs file (meta info)
 """
 import logging
+from sets import Set
 
 from FlowAnal.database.FCS_database import FCSdatabase
 from FlowAnal.HDF5_IO import HDF5_IO
@@ -41,23 +42,20 @@ def action(args):
     feature_cti = [8];     print "TESTING!"
 
     # Get feature cases list
-    feature_cases = db.query(getCases=True,
-                             case_tube_idx=feature_cti,
-                             aslist=True).results
-    # ? unique ?
+    feature_cases = Set(db.query(getCases=True,
+                                 case_tube_idx=feature_cti,
+                                 aslist=True).results)
 
     # Load annotations (row-index is case_number)
     ann = CustomData(args.case_annot).dat
-    ann_cases = ann.index.tolist()
+    ann_cases = Set(ann.index.tolist())
 
     # Identify annotation cases not represented in HDF5
     exclusions = dict()
-    exclusions['no_features'] = [c for c in ann_cases
-                                 if c not in feature_cases]
+    exclusions['no_features'] = ann_cases - feature_cases
 
     # Cases to consider (insersection of annotations and HDF5 features)
-    cases_to_consider = [c for c in ann_cases
-                         if c in feature_cases]
+    cases_to_consider = ann_cases & feature_cases
 
     # Get/pick case, case_tube_idx list
     if args.cases is None:
@@ -68,11 +66,10 @@ def action(args):
                  **vars(args))
 
     case_tube_index_list = q.results.case_tube_idx.tolist()
-    case_list = q.results.case_number.tolist()
+    case_list = Set(q.results.case_number.tolist())
 
     # Keep track of cases that were excluded at the query step
-    exclusions['excluded by DB query'] = [c for c in cases_to_consider
-                                          if c not in case_list]
+    exclusions['excluded by DB query'] = cases_to_consider - case_list
 
     # Get features [assuming that features are returned in order!]
     features_df = HDF_feature_obj.make_single_tube_analysis(case_tube_index_list)
