@@ -162,14 +162,18 @@ class queryDB(object):
         else:
             raise "Unknown type"
 
-    def __getCases(self, **kwargs):
+    def __getCases(self, aslist=False, **kwargs):
         """ Return list of cases """
 
         self.q = self.session.query(Cases.case_number)
         self.q.joined_tables = ['Cases']
         self.__add_filters_to_query(**kwargs)
         d = self.q.all()
-        return d
+        print aslist
+        if aslist is False:
+            return d
+        else:
+            return [c.case_number for c in d]
 
     def __getPmtStats(self, **kwargs):
         """
@@ -437,6 +441,13 @@ class queryDB(object):
             cytnums_to_select = [unicode(x) for x in kwargs['cytnum']]
             log.info('Looking for cytnum #%s' % ", ".join(cytnums_to_select))
             self.q = self.q.filter(TubeCases.cytnum.in_(cytnums_to_select))
+            if 'TubeCases' not in self.q.joined_tables:
+                self.q = self.q.join(TubeCases)
+
+        if 'case_tube_idx' in kwargs and kwargs['case_tube_idx'] is not None:
+            case_tube_idxs_to_select = [int(x) for x in kwargs['case_tube_idx']]
+            log.info('Looking for case_tube_idx #{}'.format(case_tube_idxs_to_select))
+            self.q = self.q.filter(TubeCases.case_tube_idx.in_(case_tube_idxs_to_select))
             if 'TubeCases' not in self.q.joined_tables:
                 self.q = self.q.join(TubeCases)
 

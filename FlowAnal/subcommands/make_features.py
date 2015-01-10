@@ -31,13 +31,14 @@ from FlowAnal.Analysis_Variables import gate_coords,comp_file
 
 log = logging.getLogger(__name__)
 
+
 def build_parser(parser):
     parser.add_argument('dir', help='Directory with Flow FCS files [required]',
                         type=str)
     parser.add_argument('-db', '--db', help='Input sqlite3 db for Flow meta data \
     [default: db/fcs.db]',
                         default="db/fcs.db", type=str)
-    parser.add_argument('-hdf5', '--feature-hdf5', help='Output hdf5 filepath for FCS features \
+    parser.add_argument('-feature-hdf5', '--feature-hdf5', help='Output hdf5 filepath for FCS features \
     [default: db/fcs_features.hdf5]', dest='hdf5_fp',
                         default="db/fcs_features.hdf5", type=str)
     parser.add_argument('-method', '--feature-extration-method',
@@ -92,7 +93,7 @@ def action(args):
                     (filepath, sys.exc_info()[0])
                 feature_failed_CTIx.append([case, case_tube_idx, sys.exc_info()[0]])
 
-    if feature_failed_CTIx != []:
+    if feature_failed_CTIx != []:   # I don't know if we want this if clause for HDF5?
         # Make data.frame for failed case_tube_idx's
         df = pd.DataFrame(feature_failed_CTIx,
                           columns=['case_number', 'case_tube_idx', 'error_message'])
@@ -101,5 +102,5 @@ def action(args):
 
         log.info("Case_tubes that failed feature extraction: {}".format(df.case_number.unique()))
 
-        # Set db CaseTube entry to flag != 'GOOD' for failed case_tube_idx
-        db.query(updateProblemTubeCases=True, df=df)
+        # Push information regarding failures to HDF_obj
+#        db.query(updateProblemTubeCases=True, df=df)

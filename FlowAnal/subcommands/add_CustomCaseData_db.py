@@ -31,6 +31,9 @@ def build_parser(parser):
 
 
 def action(args):
+
+    raise Exception("DEPRECATED METHOD")
+
     # Copy database
     shutil.copyfile(args.db, args.outdb)
     outdb = FCSdatabase(db=args.outdb, rebuild=False)
