@@ -64,17 +64,11 @@ def action(args):
         args.cases = cases_to_consider
     else:
         raise Exception('Not able to handle this -- should I be able to pass cases here?')
-    q = db.query(exporttype='dict_dict', getfiles=True,
+    q = db.query(pick_cti=True,
                  **vars(args))
-    print "WARNING: not yet picking case, case_tube_idx in smart way [so only works for 1:1]"
 
-    case_tube_index_list = []
-    case_list = []
-    for case, case_info in q.results.items():
-        for case_tube_idx, x in case_info.items():
-            log.info("Case: %s, Case_tube_idx: %s" % (case, case_tube_idx))
-            case_tube_index_list.append(case_tube_idx)
-            case_list.append(case)
+    case_tube_index_list = q.results.case_tube_idx.tolist()
+    case_list = q.results.case_number.tolist()
 
     # Keep track of cases that were excluded at the query step
     exclusions['excluded by DB query'] = [c for c in cases_to_consider

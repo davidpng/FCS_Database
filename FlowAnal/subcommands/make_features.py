@@ -23,11 +23,10 @@ from sqlalchemy.exc import IntegrityError
 
 from __init__ import add_filter_args
 
-from FlowAnal.__init__ import package_data
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
 from FlowAnal.HDF5_IO import HDF5_IO
-from FlowAnal.Analysis_Variables import gate_coords,comp_file
+from FlowAnal.Analysis_Variables import gate_coords, comp_file
 
 log = logging.getLogger(__name__)
 
