@@ -73,7 +73,7 @@ def action(args):
     exclusions_dic['excluded_by_DB_query'] = list(cases_to_consider - case_list)
 
     # Get features [assuming that features are returned in order!]
-    features_df = HDF_feature_obj.make_single_tube_analysis(case_tube_index_list)
+    features_df,not_in_data,merge_fail = HDF_feature_obj.make_single_tube_analysis(case_tube_index_list)
     features_df.set_index('bin_num', drop=True, inplace=True)
     features_df.columns = case_list
     features_df = features_df.T

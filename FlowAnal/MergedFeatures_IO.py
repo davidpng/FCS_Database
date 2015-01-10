@@ -121,7 +121,7 @@ class MergedFeatures_IO(HDF5_IO):
         log.debug("Succesfully retrived feature dataframe: {}".format(DF.head()))
         return DF
         
-    def __check_file_schema(self);
+    def __check_file_schema(self):
         """
         This checks to make sure the base schema of the input HDF5 file matches
         the given schema
@@ -146,6 +146,6 @@ class MergedFeatures_IO(HDF5_IO):
         makes a dictionary containing the storage schema
         """
         schema = {"Annotation_DF": "/annotations/",
-                  "Feature_DF" : "/features/"
+                  "Feature_DF" : "/features/",
                   "Not_Found" : "/missing_because/"}
         return schema
