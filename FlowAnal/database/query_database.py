@@ -200,12 +200,11 @@ class queryDB(object):
 
     def __getCases(self, aslist=False, **kwargs):
         """ Return list of cases """
-
         self.q = self.session.query(Cases.case_number)
         self.q.joined_tables = ['Cases']
         self.__add_filters_to_query(**kwargs)
         d = self.q.all()
-        print aslist
+
         if aslist is False:
             return d
         else:
@@ -497,9 +496,9 @@ def add_filters_to_query(q, **kwargs):
         if 'TubeCases' not in q.joined_tables:
             q = q.join(TubeCases)
 
-    if 'case_tube_idx' in kwargs and kwargs['case_tube_idx'] is not None:
-        case_tube_idxs_to_select = [int(x) for x in kwargs['case_tube_idx']]
-        log.info('Looking for case_tube_idx #{}'.format(case_tube_idxs_to_select))
+    if 'case_tube_idxs' in kwargs and kwargs['case_tube_idxs'] is not None:
+        case_tube_idxs_to_select = [int(x) for x in kwargs['case_tube_idxs']]
+        log.info('Looking for case_tube_idxs #{}'.format(case_tube_idxs_to_select))
         q = q.filter(TubeCases.case_tube_idx.in_(case_tube_idxs_to_select))
         if 'TubeCases' not in q.joined_tables:
             q = q.join(TubeCases)

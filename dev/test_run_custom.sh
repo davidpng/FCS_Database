@@ -15,9 +15,6 @@ wdir=`pwd`
 feature_hdf5file=$wdir/fcs_features.hdf5
 ML_input_hdf5file=$wdir/ML_input.hdf5
 custom_annot=$wdir/annots.txt
-rm $feature_hdf5file
-rm $ML_input_hdf5file
-rm $custom_annot
 
 # ENTRY python script
 script_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
@@ -26,6 +23,7 @@ FLOWANAL=$script_dir/..
 python $FLOWANAL/setup.py -h >> /dev/null
 
 echo -e "\n################# Make features from data #########"
+#rm $feature_hdf5file
 cmd="$FLOWANAL/flowanal.py -v make_features $1
   -db $2
   --feature-hdf5 $feature_hdf5file
@@ -33,13 +31,16 @@ cmd="$FLOWANAL/flowanal.py -v make_features $1
 "
 echo $cmd
 #$cmd
+# This is commented out because $q_options is not passing single quotes properly
 
 echo -e "\n################# Make clinical data #########"
+rm $custom_annot
 cmd="cp $3 $custom_annot"
 echo $cmd
 $cmd
 
 echo -e "\n################# Make data for ML #########"
+rm $ML_input_hdf5file
 cmd="$FLOWANAL/flowanal.py -vv make_ML_input
   -db $2
   --feature-hdf5 $feature_hdf5file

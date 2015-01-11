@@ -17,6 +17,7 @@ __status__ = "Production"
 import sys
 import logging
 import pandas as pd
+from itertools import chain
 
 from os import path
 from sqlalchemy.exc import IntegrityError
@@ -25,7 +26,7 @@ from __init__ import add_filter_args
 
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
-from FlowAnal.HDF5_IO import HDF5_IO
+from FlowAnal.Feature_IO import Feature_IO
 from FlowAnal.Analysis_Variables import gate_coords, comp_file
 
 log = logging.getLogger(__name__)
@@ -62,9 +63,14 @@ def action(args):
 
     # initalize empty list to append case_tube_idx that failed feature extraction
     feature_failed_CTIx = []
+
+    num_results = len(list(chain(*q.results.values())))
+    i = 1
+    log.info("Found {} case_tube_idx's".format(num_results))
     for case, case_info in q.results.items():
         for case_tube_idx, relpath in case_info.items():
-            log.info("Case: %s, Case_tube_idx: %s, File: %s" % (case, case_tube_idx, relpath))
+            log.info("Case: %s, Case_tube_idx: %s, File: %s [%s of %s]" %
+                     (case, case_tube_idx, relpath, i, num_results))
             filepath = path.join(args.dir, relpath)
             fFCS = FCS(filepath=filepath, case_tube_idx=case_tube_idx, import_dataframe=True)
 
@@ -78,30 +84,30 @@ def action(args):
                 HDF_obj.push_fcs_features(case_tube_idx=case_tube_idx,
                                           FCS=fFCS, db=db)
             except ValueError, e:
-                print("Skipping feature extraction for case: {} because of 'ValueError {}'".format(case, e))
-                feature_failed_CTIx.append([case, case_tube_idx, e])
+                print("Skipping feature extraction for case: {} because of 'ValueError {}'".
+                      format(case, str(e)))
             except KeyError, e:
-                print "Skipping FCS %s because of KeyError: %s" % (filepath, e)
-                feature_failed_CTIx.append([case, case_tube_idx, e])
+                print "Skipping FCS %s because of KeyError: %s" % (filepath, str(e))
             except IntegrityError, e:
                 print "Skipping Case: {}, Tube: {}, Date: {}, filepath: {} because \
-                of IntegrityError: {}".format(case, case_tube_idx, filepath, e)
-                feature_failed_CTIx.append([case, case_tube_idx, e])
+                of IntegrityError: {}".format(case, case_tube_idx, filepath, str(e))
             except:
                 print "Skipping FCS %s because of unknown error related to: %s" % \
                     (filepath, sys.exc_info()[0])
-                feature_failed_CTIx.append([case, case_tube_idx, sys.exc_info()[0]])
+                e = sys.exc_info()[0]
 
-    if feature_failed_CTIx != []:   # I don't know if we want this if clause for HDF5?
-        # Make data.frame for failed case_tube_idx's
-               
+            if 'e' in locals():
+                feature_failed_CTIx.append([case, case_tube_idx, e])
+            i += 1
+
+    if feature_failed_CTIx != []:
         failed_DF = pd.DataFrame(feature_failed_CTIx,
                                  columns=['case_number', 'case_tube_idx', 'error_message'])
-        #failed_DF.drop_duplicates(inplace=True)
-        #log.info("Case_numbers that failed feature extraction: {}".format(failed_DF.case_number.unique()))
-        #log.info("Case_tubes that failed feature extraction: {}".format(failed_DF.case_tube_idx.unique()))
-        # push this to HDF5 file
-        log.info("Dataframe containing failed case_num, cti, and \
-                  error code {}".format(failed_DF))
+        log.debug("Case_numbers that failed feature extraction: {}".
+                  format(failed_DF.case_number.unique()))
+        log.debug("Case_tubes that failed feature extraction: {}".
+                  format(failed_DF.case_tube_idx.unique()))
+
         HDF_obj.push_failed_cti_list(failed_DF)
+
 

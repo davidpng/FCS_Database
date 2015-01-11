@@ -32,4 +32,8 @@ def add_filter_args(parser):
                         help='List of cytnums (cytometer numbers) to include',
                         nargs='+', action='store',
                         default=None, type=str)
+    parser.add_argument('-case_tube_idxs', '--case_tube_idxs',
+                        help='List of case_tube_idxs to select',
+                        nargs='+', action='store',
+                        default=None, type=str)
 

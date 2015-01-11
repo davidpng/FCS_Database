@@ -26,21 +26,21 @@ log = logging.getLogger(__name__)
 
 class Feature_IO(HDF5_IO):
     def __init__(self, filepath, clobber=False):
-        """ HDF5 input/output inferface 
-        
+        """ HDF5 input/output inferface
+
         This class provides an inferface for pushing feature extracted sparse
         histograms from an FCS object to an HDF5 file object and pulling this
         data from an HDF5 object to an dense 'feature' dataframe for input to
         Machine Learning Algorithms
-        
+
         Keyword Arguements:
-        filepath -- <str> Absolute filepath to an HDF5 file for reading and 
+        filepath -- <str> Absolute filepath to an HDF5 file for reading and
                           writing
         clobber -- <bool> Flag to overwrite a HDF5 file object
-                
+
         """
         HDF5_IO.__init__(self,filepath)
-        
+
         #self.filepath = filepath
         if clobber is True and os.path.exists(filepath):
             os.remove(filepath)
@@ -67,13 +67,13 @@ class Feature_IO(HDF5_IO):
             #load FCS Feature Dataframe
             try:
                 FCS_ft_df = self.__translate_FCS_feature(case)
-                # do a relation algebra join on the bin_number on the union of bin 
+                # do a relation algebra join on the bin_number on the union of bin
                 # numbers and index/bin_number of the FCS_features
                 merged = pd.merge(merged,FCS_ft_df,how='left', \
                                   left_on='bin_num',right_index=True)
             except:
                 merge_failure.append(case)
-        merged.fillna(0,inplace=True) # clear out nan to zero             
+        merged.fillna(0,inplace=True) # clear out nan to zero
         return merged, not_in_data, merge_failure
 
 
@@ -85,24 +85,24 @@ class Feature_IO(HDF5_IO):
         self.schema = self.__make_schema(str(case_tube_idx))
         fh = h5py.File(self.filepath, 'a')
         self.__push_check_version(hdf_fh=fh, FCS=FCS, db=db)
-        
+
         # push sparse data into dir named for case_tube_idx
         fh[self.schema['sdat']] = FCS.FCS_features.histogram.data
         fh[self.schema['sidx']] = FCS.FCS_features.histogram.indices
         fh[self.schema['sind']] = FCS.FCS_features.histogram.indptr
         fh[self.schema['sshp']] = FCS.FCS_features.histogram.shape
         fh.close()
-        
+
     def push_failed_cti_list(self, cti_list):
         """
-        This function will push a dataframe containing the case_num, 
+        This function will push a dataframe containing the case_num,
         case_tube_idx and error message associated with inputed case_tube_idx
         that failed feature extraction and/or push into HDF5 object
         """
-        meta_schema = self.__make_schema("MetaData") 
+        meta_schema = self.__make_schema("MetaData")
         self.push_DataFrame(DF = cti_list,
                             path = meta_schema["Case_Tube_Failures_DF"])
-        
+
     def get_fcs_features(self, case_tube_idx):
         """
         This function will return the CSR matrix for a given case_tube_idx
@@ -118,30 +118,32 @@ class Feature_IO(HDF5_IO):
 
         fh.close()
         return csr_matrix((d,i,p),shape=s)
-    
-    
-    def get_case_tube_idx(self):
-        """This function returns the case_tube_indices present in the file"""
-        
+
+    def get_case_tube_idxs(self):
+        """This function returns the case_tube_indices present in the file
+
+        RETURN list of int()'s
+        """
+
         fh = h5py.File(self.filepath, 'r')
-        cti = [str(i) for i in fh['data'].keys()]
+        cti = [int(i) for i in fh['data'].keys()]
         fh.close()
         return cti
-    
+
     def get_meta_data(self):
         """
         this function will load meta information into memory via a dictionary
         keyed on the information name and values
         """
-        meta_schema = self.__make_schema("MetaData") 
+        meta_schema = self.__make_schema("MetaData")
         #create dictionary with meta info, won't use sparse matrix info to make it "MetaData"
         csr_keys = ['sdat','sidx','sind','sshp']
         #these are the sparse matrix keys to remove
         meta_keys = [k for k in meta_schema.keys() if k not in csr_keys]
 
-        fh = h5py.File(self.filepath, 'r')        
+        fh = h5py.File(self.filepath, 'r')
         self.meta_data = {} # intialize empty dictionary and load it in for loop
-        
+
         for k in meta_keys:
             try:
                 self.meta_data[k] = fh[meta_schema[k]].value
@@ -150,16 +152,16 @@ class Feature_IO(HDF5_IO):
             except:
                 raise ValueError("{} is undefined in the hdf5 object {}".format(
                                  k, fh))
-        
+
         self.meta_data['bin_description'] = pd.Series(data = self.meta_data['bd_vl'],
                                                       index = self.meta_data['bd_ky'])
         del self.meta_data['bd_vl'] # clean up dictionary
         del self.meta_data['bd_ky']
-        
+
         fh.close()
         return self.meta_data
-        
-        
+
+
     def __translate_FCS_feature(self,case_tube_idx):
         """
         makes a dataframe containing the index and data information of the
@@ -170,7 +172,7 @@ class Feature_IO(HDF5_IO):
                             index=sparse_mtx.indices,
                             columns=[str(case_tube_idx)])
 
-        
+
     def __get_check_merge_indices(self, case_tube_list):
         """
         This will return a list of the union of index positions for all
@@ -193,7 +195,7 @@ class Feature_IO(HDF5_IO):
             raise "The length/shape of one case does not match the others"
         else:
             return np.sort(np.unique(np.array(index)))
-        
+
     def __push_check_version(self, hdf_fh, FCS, db):
         """
         This internal function will check to see the header info the
@@ -248,7 +250,7 @@ class Feature_IO(HDF5_IO):
 
         log.debug('Schema: %s' % ', '.join([i + '=' + str(hdf_fh[self.schema[i]].value)
                                             for i in ['extraction_type', 'enviroment_version',
-                                            'database_datetime', 'database_filepath', 
+                                            'database_datetime', 'database_filepath',
                                             'bd_ky']]))
 
     def __make_schema(self, case_tube_idx):
