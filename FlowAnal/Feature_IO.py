@@ -157,12 +157,15 @@ class Feature_IO(HDF5_IO):
             try:
                 meta_data[k] = fh[meta_schema[k]].value
             except AttributeError:  #if the meta_schema name failed, try extracting with DF
-                meta_data[k] = self.pull_DataFrame(meta_schema[k],ext_filehandle=fh)
+                try:
+                    meta_data[k] = self.pull_DataFrame(meta_schema[k],ext_filehandle=fh)
+                except KeyError:
+                    meta_data[k] = self.pull_Series(meta_schema[k],ext_filehandle=fh)
             except:
                 raise ValueError("{} is undefined in the hdf5 object {}".format(
                                  k, fh))
         fh.close()
-        return self.meta_data
+        return meta_data
 
 
     def __translate_FCS_feature(self,case_tube_idx):
@@ -243,13 +246,12 @@ class Feature_IO(HDF5_IO):
             if not bin_desc.equals(fh_bin_desc):
                 raise ValueError('Bin Descriptions do not match')
         else:
-            push_DataFrame(DF=bin_desc, path=self.schema['bin_description'],ext_filehandle=hdf_fh)
+            self.push_Series(SR=bin_desc, path=self.schema['bin_description'],ext_filehandle=hdf_fh)
 
 
         log.debug('Schema: %s' % ', '.join([i + '=' + str(hdf_fh[self.schema[i]].value)
                                             for i in ['extraction_type', 'enviroment_version',
-                                            'database_datetime', 'database_filepath',
-                                            'bin_description']]))
+                                            'database_datetime', 'database_filepath']]))
 
     def __make_schema(self, case_tube_idx):
         """
