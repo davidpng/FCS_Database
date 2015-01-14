@@ -49,21 +49,30 @@ class Feature_IO(HDF5_IO):
         """
         This function will call a series of case_tube_idx as listed and merge
         into a dense array that is the union of sparse matrix columns
+        outputs a tuple of:
+        merged features <pd.DataFrame>
+        not_in_data <list>
+        merge_failure <list>
+        
         """
         fh = h5py.File(self.filepath, 'a')
 
         # error checking
         not_in_data = set([str(x) for x in case_tube_list]) - set(fh['data'].keys())
+        not_in_data = [int(i) for i in not_in_data] 
         if not_in_data:
-            raise IOError("Some of the listed case_tubes are not in the \
-                           dataset: {}".format(not_in_data))
+            log.info("Some of the listed case_tubes are not in the dataset: {}".format(not_in_data))
+        cleaned_up_cti_list = [i for i in case_tube_list if i not in not_in_data]
+        if cleaned_up_cti_list == []:
+            raise ValueError("Aborting single tube analysis creation; provide cases do not \
+                              exist in the data file")
         # get union of indices
-        index_union = self.__get_check_merge_indices(case_tube_list)
+        index_union = self.__get_check_merge_indices(cleaned_up_cti_list)
         # intialize bin number dataframe AND merge dataframe
         bin_num_df = pd.DataFrame(index_union,columns=['bin_num'])
         merged = bin_num_df
         merge_failure = []
-        for case in case_tube_list:
+        for case in cleaned_up_cti_list:
             #load FCS Feature Dataframe
             try:
                 FCS_ft_df = self.__translate_FCS_feature(case)
@@ -142,22 +151,16 @@ class Feature_IO(HDF5_IO):
         meta_keys = [k for k in meta_schema.keys() if k not in csr_keys]
 
         fh = h5py.File(self.filepath, 'r')
-        self.meta_data = {} # intialize empty dictionary and load it in for loop
+        meta_data = {} # intialize empty dictionary and load it in for loop
 
         for k in meta_keys:
             try:
-                self.meta_data[k] = fh[meta_schema[k]].value
+                meta_data[k] = fh[meta_schema[k]].value
             except AttributeError:  #if the meta_schema name failed, try extracting with DF
-                self.meta_data[k] = self.pull_DataFrame(meta_schema[k])
+                meta_data[k] = self.pull_DataFrame(meta_schema[k],ext_filehandle=fh)
             except:
                 raise ValueError("{} is undefined in the hdf5 object {}".format(
                                  k, fh))
-
-        self.meta_data['bin_description'] = pd.Series(data = self.meta_data['bd_vl'],
-                                                      index = self.meta_data['bd_ky'])
-        del self.meta_data['bd_vl'] # clean up dictionary
-        del self.meta_data['bd_ky']
-
         fh.close()
         return self.meta_data
 
@@ -183,9 +186,9 @@ class Feature_IO(HDF5_IO):
         index = []
         shape = []
         for i in case_tube_list:
-            self.schema = self.__make_schema(str(i))
-            index.extend(fh[self.schema['sidx']].value.tolist())
-            shape.append(fh[self.schema['sshp']].value)
+            schema = self.__make_schema(str(i))
+            index.extend(fh[schema['sidx']].value.tolist())
+            shape.append(fh[schema['sshp']].value)
         fh.close()
 
         #check shape matches
@@ -234,24 +237,19 @@ class Feature_IO(HDF5_IO):
             hdf_fh[self.schema['extraction_type']] = FCS.FCS_features.type
 
         #check/add bin_descriptions
-        bin_values = FCS.FCS_features.bin_description.values
-        bin_keys = FCS.FCS_features.bin_description.index
-        bin_keys = [str(i) for i in bin_keys]
-
-        if self.schema['bd_vl'] in hdf_fh:
-            if np.all(hdf_fh[self.schema['bd_vl']].value != bin_values): #use np.all because we are comapring arrays
-                raise ValueError('Bin Description values does not match')
-        elif self.schema['bd_ky'] in hdf_fh:
-            if np.all(hdf_fh[self.schema['bd_ky']].value != bin_keys):
-                raise ValueError('Bin Description columns does not match')
+        bin_desc = FCS.FCS_features.bin_description
+        if self.schema['bin_description'] in hdf_fh:
+            fh_bin_desc = get_DataFrame(path=self.schema['bin_description'],ext_filehandle=hdf_fh)
+            if not bin_desc.equals(fh_bin_desc):
+                raise ValueError('Bin Descriptions do not match')
         else:
-            hdf_fh[self.schema['bd_vl']] = bin_values
-            hdf_fh[self.schema['bd_ky']] = bin_keys
+            push_DataFrame(DF=bin_desc, path=self.schema['bin_description'],ext_filehandle=hdf_fh)
+
 
         log.debug('Schema: %s' % ', '.join([i + '=' + str(hdf_fh[self.schema[i]].value)
                                             for i in ['extraction_type', 'enviroment_version',
                                             'database_datetime', 'database_filepath',
-                                            'bd_ky']]))
+                                            'bin_description']]))
 
     def __make_schema(self, case_tube_idx):
         """
@@ -262,8 +260,7 @@ class Feature_IO(HDF5_IO):
                   "enviroment_version": "/enviroment_version",
                   "extraction_type": "/extraction_type",
                   "Case_Tube_Failures_DF": "/failed_cti",
-                  "bd_vl": "/bin_description/value",
-                  "bd_ky": "/bin_description/key",
+                  "bin_description": "/bin_description/",
                   "sdat": "/data/"+case_tube_idx+"/data",
                   "sidx": "/data/"+case_tube_idx+"/indices",
                   "sind": "/data/"+case_tube_idx+"/indptr",

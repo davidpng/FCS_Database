@@ -100,7 +100,13 @@ def action(args):
                 feature_failed_CTIx.append([case, case_tube_idx, e])
             i += 1
 
-    if feature_failed_CTIx != []:
+    if feature_failed_CTIx:
+        # if no features failed, we will create a dummy dataframe to load
+        # otherwise when reading this will cause a failure
+        failed_DF = pd.DataFrame(['NaN','NaN','NaN'],
+                                 columns=['case_number', 'case_tube_idx', 'error_message'])
+        log.debug("Nothing failed feature extraction!")
+    else:
         failed_DF = pd.DataFrame(feature_failed_CTIx,
                                  columns=['case_number', 'case_tube_idx', 'error_message'])
         log.debug("Case_numbers that failed feature extraction: {}".
@@ -108,6 +114,6 @@ def action(args):
         log.debug("Case_tubes that failed feature extraction: {}".
                   format(failed_DF.case_tube_idx.unique()))
 
-        HDF_obj.push_failed_cti_list(failed_DF)
+    HDF_obj.push_failed_cti_list(failed_DF)
 
 

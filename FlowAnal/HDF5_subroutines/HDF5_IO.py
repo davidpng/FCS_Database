@@ -29,23 +29,33 @@ class HDF5_IO(object):
         if clobber is True and os.path.exists(filepath):
             os.remove(filepath)
 
-    def push_DataFrame(self, DF, path):
+    def push_DataFrame(self, DF, path, ext_filehandle=None):
         """
         Method for pushing a full pandas dataframe to the hdf5 file
         """
-        fh = h5py.File(self.filepath, 'a')
+        if ext_filehandle:
+            fh = ext_filehandle
+        else:
+            fh = h5py.File(self.filepath, 'a')
         fh[os.path.join(path,'index')] = [str(i) for i in DF.index]
         fh[os.path.join(path,'columns')] = [str(i) for i in DF.columns]
         fh[os.path.join(path,'data')] = DF.values.astype(str)
-        fh.close()
+        
+        if not ext_filehandle:                          
+            fh.close()
           
-    def pull_DataFrame(self, path):
+    def pull_DataFrame(self, path, ext_filehandle=None):
         """
         Method for returning a full pandas dataframe from teh files       
         """
-        fh = h5py.File(self.filepath, 'r')
+        if ext_filehandle:
+            fh = ext_filehandle
+        else:
+            fh = h5py.File(self.filepath, 'r')
+            
         DF = pd.DataFrame(data = fh[os.path.join(path,'data')].value,
                           index = fh[os.path.join(path,'index')].value,
                           columns = fh[os.path.join(path,'columns')].value)
-        fh.close()
+        if not ext_filehandle:                          
+            fh.close()
         return DF

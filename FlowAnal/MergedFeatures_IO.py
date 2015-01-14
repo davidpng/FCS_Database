@@ -3,6 +3,12 @@
 Created on Wed 31 Dec 2014 05:54:41 AM PST
 This file describes a HDF5 interface class for pushing and pulling 'binned' histograms
 to an HDF5 file format
+Contains methods:
+push_all, get_all
+push_features, get_features
+push_not_found, get_not_found
+push_annotations, get_annotations
+
 @author: David Ng, MD
 """
 __author__ = "David Ng, MD"
@@ -140,6 +146,13 @@ class MergedFeatures_IO(HDF5_IO):
                 
         if schema_check_fail:
             raise IOError("Input file schema does not match")
+
+    def push_meta_data(self,FTIO_obj):
+        
+        FTIO_meta = FTIO_obj.get_meta_data()
+        FTIO_meta.keys()
+        
+        FTIO_obj.filepath
         
     def __make_schema(self):
         """
@@ -147,5 +160,12 @@ class MergedFeatures_IO(HDF5_IO):
         """
         schema = {"Annotation_DF": "/annotations/",
                   "Feature_DF" : "/features/",
-                  "Not_Found" : "/missing_because/"}
+                  "Not_Found" : "/missing_because/",
+                  "database_filepath": "/database_version/filepath",
+                  "database_datetime": "/database_version/date",
+                  "enviroment_version": "/enviroment_version",
+                  "bin_description": "/bin_description/",
+                  "extraction_type": "/extraction_type",
+                  "feature_filepath": "/Feature_HDF5/filepath/",
+                  "feature_datatime": "/Feature_HDF5/date/"}
         return schema
