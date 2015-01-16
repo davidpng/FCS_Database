@@ -44,6 +44,8 @@ def build_parser(parser):
     parser.add_argument('-method', '--feature-extration-method',
                         help='The method to use to extract features [default: Full]',
                         default='Full', type=str, dest='feature_extraction_method')
+    parser.add_argument('-ow','--overwrite',help='Overwrite Feature-hdf5 file',type=bool,
+                         default=True, dest='clobber')
     add_filter_args(parser)
 
 
@@ -59,7 +61,7 @@ def action(args):
     q = db.query(exporttype='dict_dict', getfiles=True, **vars(args))
 
     # Create HDF5 object
-    HDF_obj = Feature_IO(filepath=args.hdf5_fp, clobber=True)
+    HDF_obj = Feature_IO(filepath=args.hdf5_fp, clobber=args.clobber)
 
     # initalize empty list to append case_tube_idx that failed feature extraction
     feature_failed_CTIx = []
@@ -95,15 +97,18 @@ def action(args):
                 print "Skipping FCS %s because of unknown error related to: %s" % \
                     (filepath, sys.exc_info()[0])
                 e = sys.exc_info()[0]
-
+            
+            print("{:6d} of {:6d} cases found and loaded\r".format(i,num_results))
             if 'e' in locals():
                 feature_failed_CTIx.append([case, case_tube_idx, e])
-            i += 1
+            else:
+                i += 1
 
-    if feature_failed_CTIx:
+    print feature_failed_CTIx
+    if feature_failed_CTIx == []:
         # if no features failed, we will create a dummy dataframe to load
         # otherwise when reading this will cause a failure
-        failed_DF = pd.DataFrame(['NaN','NaN','NaN'],
+        failed_DF = pd.DataFrame([['NaN','NaN','NaN']],
                                  columns=['case_number', 'case_tube_idx', 'error_message'])
         log.debug("Nothing failed feature extraction!")
     else:

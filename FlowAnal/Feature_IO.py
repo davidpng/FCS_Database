@@ -93,8 +93,9 @@ class Feature_IO(HDF5_IO):
         """
         self.schema = self.__make_schema(str(case_tube_idx))
         fh = h5py.File(self.filepath, 'a')
+	
         self.__push_check_version(hdf_fh=fh, FCS=FCS, db=db)
-
+        
         # push sparse data into dir named for case_tube_idx
         fh[self.schema['sdat']] = FCS.FCS_features.histogram.data
         fh[self.schema['sidx']] = FCS.FCS_features.histogram.indices
@@ -212,6 +213,7 @@ class Feature_IO(HDF5_IO):
 
         Items used: FCS.version, FCS.FCS_features.type, db.date, db.db_file
         """
+	        
         if self.schema['database_filepath'] in hdf_fh:
             if hdf_fh[self.schema['database_filepath']].value != db.db_file:
                 raise ValueError('Filepaths do not match: %s <==> %s' %
@@ -219,32 +221,38 @@ class Feature_IO(HDF5_IO):
                                   db.db_file))
         else:
             hdf_fh[self.schema['database_filepath']] = db.db_file
-
+        
         db_creation_date = db.creation_date.strftime("%Y-%m-%d")  # HDF5 does not handle datetime
         if self.schema['database_datetime'] in hdf_fh:
             if hdf_fh[self.schema['database_datetime']].value != db_creation_date:
                 raise ValueError('DB dates do not match')
         else:
             hdf_fh[self.schema['database_datetime']] = db_creation_date
-
+        
         if self.schema['enviroment_version'] in hdf_fh:
             if hdf_fh[self.schema['enviroment_version']].value != FCS.version:
                 raise ValueError('Evn versions do not match')
         else:
             hdf_fh[self.schema['enviroment_version']] = FCS.version
         #chek/add Extraction type
+        
         if self.schema['extraction_type'] in hdf_fh:
             if hdf_fh[self.schema['extraction_type']].value != FCS.FCS_features.type:
                 raise ValueError('Evn versions do not match')
         else:
             hdf_fh[self.schema['extraction_type']] = FCS.FCS_features.type
-
+        
         #check/add bin_descriptions
         bin_desc = FCS.FCS_features.bin_description
         if self.schema['bin_description'] in hdf_fh:
-            fh_bin_desc = get_DataFrame(path=self.schema['bin_description'],ext_filehandle=hdf_fh)
-            if not bin_desc.equals(fh_bin_desc):
-                raise ValueError('Bin Descriptions do not match')
+            pass
+            #Error handling for these things is not working well, the pull returns objects
+            #rather than integers, will likely see this error with pull_DataFrame as well
+            #punt this problem for now!
+            #fh_bin_desc = self.pull_Series(path=self.schema['bin_description'],ext_filehandle=hdf_fh)
+            #print fh_bin_desc
+	    #if not bin_desc.equals(fh_bin_desc):
+            #    raise ValueError('Bin Descriptions do not match')
         else:
             self.push_Series(SR=bin_desc, path=self.schema['bin_description'],ext_filehandle=hdf_fh)
 

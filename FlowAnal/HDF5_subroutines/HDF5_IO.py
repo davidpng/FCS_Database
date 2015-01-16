@@ -39,7 +39,7 @@ class HDF5_IO(object):
             fh = h5py.File(self.filepath, 'a')
         fh[os.path.join(path,'index')] = [str(i) for i in SR.index]
         fh[os.path.join(path,'data')] = SR.values.astype(str)
-        #fh[os.path.join(path,'dtype')] = SR.dtype
+        #fh[os.path.join(path,'dtype')] = SR.dtype.astype(str)
         if not ext_filehandle:                          
             fh.close()
           
@@ -53,7 +53,9 @@ class HDF5_IO(object):
             fh = h5py.File(self.filepath, 'r')
             
         SR = pd.Series(data = fh[os.path.join(path,'data')].value,
-                       index = fh[os.path.join(path,'index')].value)
+                       index = fh[os.path.join(path,'index')].value,
+                       dtype = np.int64)
+                       #dtype = fh[os.path.join(path,'dtype')].value)
         if not ext_filehandle:                          
             fh.close()
         return SR
