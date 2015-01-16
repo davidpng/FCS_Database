@@ -71,6 +71,7 @@ def action(args):
     log.info("Found {} case_tube_idx's".format(num_results))
     for case, case_info in q.results.items():
         for case_tube_idx, relpath in case_info.items():
+            # this nested for loop iterates over all case_tube_idx
             log.info("Case: %s, Case_tube_idx: %s, File: %s [%s of %s]" %
                      (case, case_tube_idx, relpath, i, num_results))
             filepath = path.join(args.dir, relpath)
@@ -98,12 +99,12 @@ def action(args):
                     (filepath, sys.exc_info()[0])
                 e = sys.exc_info()[0]
             
-            print("{:6d} of {:6d} cases found and loaded\r".format(i,num_results))
+            print("{:6d} of {} cases found and loaded\r".format(i,num_results))
             if 'e' in locals():
                 feature_failed_CTIx.append([case, case_tube_idx, e])
+                del(e) #need to delect e otherwise it will persist forever in locals()
             else:
                 i += 1
-
     print feature_failed_CTIx
     if feature_failed_CTIx == []:
         # if no features failed, we will create a dummy dataframe to load
