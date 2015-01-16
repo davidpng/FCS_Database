@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-""" 
-Template for selecting a set of 
+"""
+Template for selecting a set of
 NOTE: There are some files that are not found because of discordance of filename \
 and filename internal to .fcs file (meta info)
 """
@@ -25,7 +25,7 @@ def build_parser(parser):
     parser.add_argument('-mf', '--ML_input_hdf5', help="Output hdf5 filepath for \
                         Merged Data [default: db/ML_input.hdf5]",
                         dest='MLinput_fp', default="db/ML_input.hdf5", type=str)
-                        
+
     parser.add_argument('-method', '--feature-extration-method',
                         help='The method to use to extract features [default: Full]',
                         default='Full', type=str, dest='feature_extraction_method')
@@ -51,19 +51,19 @@ def action(args):
 
     # Get features
     Feature_obj = Feature_IO(filepath=args.feature_fp, clobber=False)
-    features_df, not_in_cti, merge_fail_cti = Feature_obj.make_single_tube_analysis(case_tube_list)  
+    features_df, not_in_cti, merge_fail_cti = Feature_obj.make_single_tube_analysis(case_tube_list)
     log.debug("Feature DF: {} \n Case_tube_indices that failed: {}".format(
-                                           features_df.head(),merge_fail_cti))
+                                           features_df.head(), merge_fail_cti))
 
     # Get annotations [ordered by case_tube_idx]
     annotation_df = db.query(exporttype='df', getCaseAnnotations=True, **vars(args)).results
-    log.debug(annotation_df.head())    
+    log.debug(annotation_df.head())
 
     # this is a dummy for now, not sure where to generate this list from.
     """Function to convert merge_fail_cti to merge_fail_case_nums"""
     """Not sure what error codes to provide"""
-    not_found_df = pd.DataFrame(['12-12345','Not found'],columns=["case_num","error_code"])
-    
+    not_found_df = pd.DataFrame(['12-12345', 'Not found'], columns=["case_num", "error_code"])
+
     """This has only been partially tested, can not be done without an annotation_df"""
     # Open/Create MergedData
     MLinput_obj = MergedFeatures_IO(filepath=args.MLinput_fp, clobber=True)
