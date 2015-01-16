@@ -4,6 +4,9 @@
 
 """
 import logging
+from sqlalchemy.exc import IntegrityError
+import sys
+
 from FlowAnal.Find_Clinical_FCS_Files import Find_Clinical_FCS_Files
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
@@ -33,9 +36,18 @@ def action(args):
     # Process files/dirs
     case_tube_idx = 0
     for f in Finder.filenames:
+        try:
+            fFCS = FCS(filepath=f, case_tube_idx=case_tube_idx)
+            fFCS.meta_to_db(db=db, dir=args.dir, add_lists=True)
+        except ValueError, e:
+            print "Skipping FCS %s because of ValueError: %s" % (f, e)
+        except KeyError, e:
+            print "Skipping FCS %s because of KeyError: %s" % (f, e)
+        except IntegrityError, e:
+            print "Skipping cti: %s, f: %s because of IntegrityError: %s" % (case_tube_idx, f, e)
+        except:
+            print "Skipping FCS %s because of unknown error related to: %s" % \
+                (f, sys.exc_info()[0])
 
-        fFCS = FCS(filepath=f, case_tube_idx=case_tube_idx)
-        fFCS.meta_to_db(db=db, dir=args.dir, add_lists=True)
         print("{:6d} Cases uploaded\r".format(case_tube_idx)),
-
         case_tube_idx += 1
