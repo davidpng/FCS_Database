@@ -99,7 +99,7 @@ def action(args):
                     (filepath, sys.exc_info()[0])
                 e = sys.exc_info()[0]
             
-            print("{:6d} of {} cases found and loaded\r".format(i,num_results))
+            print("{:6d} of {} cases found and loaded\r".format(i,num_results)),
             if 'e' in locals():
                 feature_failed_CTIx.append([case, case_tube_idx, e])
                 del(e) #need to delect e otherwise it will persist forever in locals()
