@@ -15,6 +15,7 @@ __email__ = "ngdavid@uw.edu"
 __status__ = "Production"
 
 import pandas as pd
+import numpy as np
 import h5py
 import os
 import logging
