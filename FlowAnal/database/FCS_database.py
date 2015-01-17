@@ -61,7 +61,8 @@ class FCSdatabase(SqliteConnection):
         self.insp = inspect(self.engine)
 
         self.engine.conn = self.engine.connect()
-        self.engine.conn.execute("ANALYZE")
+        if rebuild is True:
+            self.engine.conn.execute("ANALYZE")
 
         # Capture datetime
         self.creation_date = queryDB(self, getCreationDate=True).results
