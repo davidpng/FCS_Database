@@ -98,27 +98,27 @@ def action(args):
                 print "Skipping FCS %s because of unknown error related to: %s" % \
                     (filepath, sys.exc_info()[0])
                 e = sys.exc_info()[0]
-            
-            print("{:6d} of {} cases found and loaded\r".format(i,num_results)),
+
+            print("{:6d} of {} cases found and loaded\r".format(i, num_results)),
             if 'e' in locals():
                 feature_failed_CTIx.append([case, case_tube_idx, e])
-                del(e) #need to delect e otherwise it will persist forever in locals()
-            else:
-                i += 1
-    print feature_failed_CTIx
+                del(e)
+
+            i += 1
+
     if feature_failed_CTIx == []:
         # if no features failed, we will create a dummy dataframe to load
         # otherwise when reading this will cause a failure
-        failed_DF = pd.DataFrame([['NaN','NaN','NaN']],
+        failed_DF = pd.DataFrame([['NaN', 'NaN', 'NaN']],
                                  columns=['case_number', 'case_tube_idx', 'error_message'])
-        log.debug("Nothing failed feature extraction!")
+        log.info("Nothing failed feature extraction!")
     else:
         failed_DF = pd.DataFrame(feature_failed_CTIx,
                                  columns=['case_number', 'case_tube_idx', 'error_message'])
-        log.debug("Case_numbers that failed feature extraction: {}".
-                  format(failed_DF.case_number.unique()))
-        log.debug("Case_tubes that failed feature extraction: {}".
-                  format(failed_DF.case_tube_idx.unique()))
+        log.info("Case_numbers that failed feature extraction: {}".
+                 format(failed_DF.case_number.unique()))
+        log.info("Case_tubes that failed feature extraction: {}".
+                 format(failed_DF.case_tube_idx.unique()))
 
     HDF_obj.push_failed_cti_list(failed_DF)
 
