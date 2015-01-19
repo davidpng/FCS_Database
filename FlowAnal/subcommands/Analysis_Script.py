@@ -1,138 +1,44 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
-Created on Wed 07 Jan 2015 02:34:58 PM PST 
-Assembles analysis scripts and provides top-level script.
-
-Author: David Ng, MD
+Template for selecting a set of
+NOTE: There are some files that are not found because of discordance of filename \
+and filename internal to .fcs file (meta info)
 """
-
-import argparse
-from argparse import RawDescriptionHelpFormatter
 import logging
-import pkgutil
-import sys
-from importlib import import_module
-from FlowAnal import analysis_scripts, __version__ as version, __doc__ as docstring
-from FlowAnal.utils import Opener
 
-import logging
-from os import path
-import pandas as pd
-
-
+from FlowAnal.database.FCS_database import FCSdatabase
+from FlowAnal.Feature_IO import Feature_IO
+from FlowAnal.MergedFeatures_IO import MergedFeatures_IO
+from __init__ import add_filter_args
 
 log = logging.getLogger(__name__)
 
-def action(arg):
-    print "hello"
 
 def build_parser(parser):
-    """
-    Create the argument parser
-    """
-    argv= sys.argv[1:]
-    argv = [i for i in argv if i not in __name__.split('.')]
+    #parser.add_argument('-db', '--db', help='Input sqlite3 db for Flow meta data \
+    #[default: db/fcs.db]',
+    #                    default="db/fcs.db", type=str)
+    #parser.add_argument('-ft', '--feature_hdf5', help="HDF5 filepath for FCS \
+    #                    features [default: db/fcs_features.hdf5]",
+    #                    dest='feature_fp', default="db/fcs_features.hdf5", type=str)
+    parser.add_argument('-mf', '--ML_input_hdf5', help="Output hdf5 filepath for \
+                        Merged Data [default: db/ML_input.hdf5]",
+                        dest='MLinput_fp', default="ML_input.hdf5", type=str)
 
-    #parser = argparse.ArgumentParser(description=docstring)
+    #parser.add_argument('-method', '--feature-extration-method',
+    #                    help='The method to use to extract features [default: Full]',
+    #                    default='Full', type=str, dest='feature_extraction_method')
+    #add_filter_args(parser)
 
-    parser.add_argument('-V', '--version', action='version',
-                        version=version,
-                        help='Print the version number and exit')
-    parser.add_argument('-v', '--verbose',
-                        action='count', dest='verbosity', default=1,
-                        help='Increase verbosity of screen output (eg, -v is verbose, '
-                        '-vv more so)')
-    parser.add_argument('-q', '--quiet',
-                        action='store_const', dest='verbosity', const=0,
-                        help='Suppress output')
-    parser.add_argument('--logfile', default=sys.stderr,
-                        type=Opener('w'), metavar='FILE',
-                        help='Write logging messages to FILE [default stderr]')
 
-    ##########################
-    # Setup all sub-commands #
-    ##########################
+def action(args):
 
-    subparsers = parser.add_subparsers(dest='subparser_name', title='actions')
-
-    # Begin help sub-command
-    parser_help = subparsers.add_parser(
-        'help', help='Detailed help for actions using `help <action>`')
-    parser_help.add_argument('action', nargs=1)
-    # End help sub-command
-
-    # Organize submodules by argv
-    modules = [name for _, name, _ in pkgutil.iter_modules(analysis_scripts.__path__)]
-
-    modules = [m for m in modules if not m.startswith('_')]
-    run = filter(lambda name: name in argv, modules)
-
-    actions = {}
-
-    # `run` will contain the module corresponding to a single
-    # subcommand if provided; otherwise, generate top-level help
-    # message from all submodules in `modules`.
-    for name in run or modules:
-        # set up subcommand help text. The first line of the dosctring
-        # in the module is displayed as the help text in the
-        # script-level help message (`script -h`). The entire
-        # docstring is displayed in the help message for the
-        # individual subcommand ((`script action -h`))
-        # if no individual subcommand is specified (run_action[False]),
-        # a full list of docstrings is displayed
-        mod = import_module('{}.{}'.format(analysis_scripts.__name__, name))
-
-        if mod.__doc__.strip():
-            helpstr = mod.__doc__.lstrip().split('\n', 1)[0]
-        else:
-            helpstr = '<add help text in docstring>'
-        
-        subparser = subparsers.add_parser(name, help=helpstr,
-                                          description=mod.__doc__,
-                                          formatter_class=RawDescriptionHelpFormatter)
-
-        mod.build_parser(subparser)
-
-        actions[name] = mod.action
-
-    # Determine we have called ourself (e.g. "help <action>")
-    # Set arguments to display help if parameter is set
-    #           *or*
-    # Set arguments to perform an action with any specified options.
-    print "IM HERE"
-    print argv
-    arguments = parser.parse_args(argv)
-
-    # Determine which action is in play.
-    action = arguments.subparser_name
-
-    # Support help <action> by simply having this function call itself and
-    # translate the arguments into something that argparse can work with.
-    if action == 'help':
-        return parse_arguments([str(arguments.action[0]), '-h'])
-
-    return actions[action], arguments
-
-"""
-#def main(argv=None):
-def action(argv=None):
-    if argv is None:
-        argv = sys.argv[1:]
-
-    action, arguments = parse_arguments(argv)
-
-    loglevel = {
-        0: logging.ERROR,
-        1: logging.WARNING,
-        2: logging.INFO,
-        3: logging.DEBUG,
-    }.get(arguments.verbosity, logging.DEBUG)
-
-    if arguments.verbosity > 1:
-        logformat = '%(levelname)s %(module)s %(lineno)s %(message)s'
-    else:
-        logformat = '%(message)s'
-
-    logging.basicConfig(stream=arguments.logfile, format=logformat, level=loglevel)
-
-    return action(arguments)
-"""
+    # Import  MergedData
+    MLinput_obj = MergedFeatures_IO(filepath=args.MLinput_fp, clobber=False)
+    Feature_DF = MLinput_obj.get_features()
+    Annotation_DF = MLinput_obj.get_annotations()
+    not_found = MLinput_obj.get_not_found()
+    print Feature_DF
+    print Annotation_DF
+	
