@@ -64,7 +64,7 @@ def action(args):
             q_list.append((path.join(args.dir, relpath),case_tube_idx))
         
     print("Length of q_list is {}".format(len(q_list)))
-    for filepath,case_tube_idx in q_list[:1]:
+    for filepath,case_tube_idx in q_list[:3]:
         fFCS = FCS(filepath=filepath, case_tube_idx=case_tube_idx, import_dataframe=True)
         fFCS.comp_scale_FCS_data(compensation_file=comp_file,
                                  gate_coords=gate_coords,

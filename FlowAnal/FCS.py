@@ -185,10 +185,6 @@ class FCS(object):
         Use with caution, no other functions can run after this has been executed
         """
         try:
-            del self.FCS.data
-        except:
-            log.info("FCS.FCS.data does not exist")
-        try:
             del self.data
         except:
             log.info("FCS.data does not exist")
