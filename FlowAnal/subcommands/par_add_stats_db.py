@@ -37,9 +37,9 @@ def build_parser(parser):
     [default: db/fcs_stats.db]',
                         default="db/fcs_stats.db", type=str)
     parser.add_argument('-w', '--workers', help='Number of workers [default 4]',
-                        default=4,type=int)
+                        default=10,type=int)
     parser.add_argument('-d', '--depth', help='worker load per worker [default 20]',
-                        default=20,type=int)
+                        default=5,type=int)
                         
     add_filter_args(parser)
 
@@ -51,7 +51,6 @@ def worker(in_list):
                              gate_coords=gate_coords,
                              strict=False, auto_comp=False)
     fFCS.extract_FCS_histostats()
-    #fFCS.histostats_to_db(db=out_db)
     fFCS.clear_FCS_cache()
     print fFCS.case_number
     return fFCS
@@ -75,12 +74,19 @@ def action(args):
             q_list.append((path.join(args.dir, relpath),case_tube_idx))
         
     print("Length of q_list is {}".format(len(q_list)))
-        
-    p = Pool(args.workers) 
-    fcs_obj_list = p.map(worker,q_list[:20])
-    p.close()
-    p.join()
-    print fcs_obj_list
+    
+    
+    sublists = [q_list[i:i+n] for i in range(0, len(q_list), args.workers*args.depth)]  
+    print("number of sublists to process: {}".format(len(sub_lists))
+    for sublist in sublists[:3]:
+        p = Pool(args.workers) 
+        fcs_obj_list = p.map(worker,sublist)
+        p.close()
+        p.join()
+        for f in fcs_obj_list:
+            f.histostats_to_db(db=out_db)
+            print("{} has been pushed".format(f.case_number))
+        del fcs_obj_list
 '''
             try:
                 fFCS.comp_scale_FCS_data(compensation_file=comp_file,
