@@ -78,7 +78,8 @@ def action(args):
         
     p = Pool(args.workers) 
     fcs_obj_list = p.map(worker,q_list[:20])
-    
+    p.close()
+    p.join()
     print fcs_obj_list
 '''
             try:
