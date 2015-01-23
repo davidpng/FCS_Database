@@ -275,11 +275,14 @@ class loadFCS(object):
                 header_df[x]['Channel_Name'] = header_df[x]['Short_name']
             unparsed_name = header_df[x]['Channel_Name']
             #handling for empty antigen names
+            
             unparsed_name = unparsed_name.replace("Pacific Blue","PB") #"Pacific_Blue"
             unparsed_name = unparsed_name.replace("PE-Texas Red","PE-TR") #"PE-Texas_Red"
+            # PB and PE-TR are the names used for channels with assoc antigens.
             unparsed_name = unparsed_name.replace("cyto Kappa","cyto_Kappa")
             unparsed_name = unparsed_name.replace("cyto Lambda","cyto_Lambda")
             unparsed_name = unparsed_name.replace("SYTO 16","Syto16")
+            #end of handling for empty antigen names
             parsed_name = unparsed_name.split(" ", 1)
 
             if 'FSC' in unparsed_name:
