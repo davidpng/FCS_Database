@@ -45,7 +45,7 @@ def build_parser(parser):
 
 def worker(in_list):
     filepath = in_list[0]
-    case_tube_index = in_list[1]
+    case_tube_idx = in_list[1]
     fFCS = FCS(filepath=filepath, case_tube_idx=case_tube_idx, import_dataframe=True)
     fFCS.comp_scale_FCS_data(compensation_file=comp_file,
                              gate_coords=gate_coords,
