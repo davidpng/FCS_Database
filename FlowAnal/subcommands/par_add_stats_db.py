@@ -75,8 +75,8 @@ def action(args):
         
     print("Length of q_list is {}".format(len(q_list)))
     
-    
-    sublists = [q_list[i:i+n] for i in range(0, len(q_list), args.workers*args.depth)]  
+    n = args.workers*args.depth #length of sublists
+    sublists = [q_list[i:i+n] for i in range(0, len(q_list), n)]  
     print("number of sublists to process: {}".format(len(sub_lists)))
     for sublist in sublists[:3]:
         p = Pool(args.workers) 
