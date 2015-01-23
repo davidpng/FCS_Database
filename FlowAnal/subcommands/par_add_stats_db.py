@@ -44,17 +44,32 @@ def build_parser(parser):
     add_filter_args(parser)
 
 def worker(in_list):
+    """
+    Still need to work on handling of cases that did not extract correctly
+    """
     filepath = in_list[0]
     case_tube_idx = in_list[1]
     fFCS = FCS(filepath=filepath, case_tube_idx=case_tube_idx, import_dataframe=True)
-    fFCS.comp_scale_FCS_data(compensation_file=comp_file,
-                             gate_coords=gate_coords,
-                             strict=False, auto_comp=False)
-    fFCS.extract_FCS_histostats()
-    fFCS.clear_FCS_cache()
-    print fFCS.case_number
-    return fFCS
-    
+    try:
+        fFCS.comp_scale_FCS_data(compensation_file=comp_file,
+                                 gate_coords=gate_coords,
+                                 strict=False, auto_comp=False)
+        fFCS.extract_FCS_histostats()
+        fFCS.clear_FCS_cache()
+        print fFCS.case_number
+        return fFCS
+    except ValueError, e:
+        print "Skipping FCS %s because of ValueError: %s" % (filepath, e)
+    except KeyError, e:
+        print "Skipping FCS %s because of KeyError: %s" % (filepath, e)
+    except IntegrityError, e:
+        print "Skipping Case: %s, Tube: %s, filepath: %s because of IntegrityError: %s" % \
+            (case, case_tube_idx, filepath, e)
+    except:
+        print "Skipping FCS %s because of unknown error related to: %s" % \
+            (filepath, sys.exc_info()[0])    
+    return None #envision passing a list that contains information for failed fcs files
+        
 def action(args):
 
     # Connect to database
@@ -84,8 +99,9 @@ def action(args):
         p.close()
         p.join()
         for f in fcs_obj_list:
-            f.histostats_to_db(db=out_db)
-            print("{} has been pushed".format(f.case_number))
+            if f != None:
+                f.histostats_to_db(db=out_db)
+                print("{} has been pushed".format(f.case_number))
         del fcs_obj_list
 '''
             try:
@@ -93,7 +109,6 @@ def action(args):
                                          gate_coords=gate_coords,
                                          strict=False, auto_comp=False)
                 fFCS.extract_FCS_histostats()
-                fFCS.histostats_to_db(db=out_db)
             except ValueError, e:
                 print "Skipping FCS %s because of ValueError: %s" % (filepath, e)
             except KeyError, e:
