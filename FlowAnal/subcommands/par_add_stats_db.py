@@ -17,7 +17,7 @@ from os import path
 import sys
 from sqlalchemy.exc import IntegrityError
 import shutil
-
+import multiprocessing
 from FlowAnal.Analysis_Variables import gate_coords,comp_file,test_fcs_fn
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
@@ -36,9 +36,9 @@ def build_parser(parser):
     [default: db/fcs_stats.db]',
                         default="db/fcs_stats.db", type=str)
     parser.add_argument('-w', '--workers', help='Number of workers [default 4]',
-                        dafautl=4,type=int)
+                        dafault=4,type=int)
     parser.add_argument('-d', '--depth', help='worker load per worker [default 20]',
-                        dafautl=20,type=int)
+                        default=20,type=int)
                         
     add_filter_args(parser)
 
@@ -61,7 +61,7 @@ def action(args):
         for case_tube_idx, relpath in case_info.items():
             q_list.append((path.join(args.dir, relpath),case_tube_idx))
         
-
+    print("Length of q_list is {}".format(len(q_list)))
     for filepath,case_tube_idx in q_list[:1]:
         fFCS = FCS(filepath=filepath, case_tube_idx=case_tube_idx, import_dataframe=True)
         fFCS.clear_FCS_cache()
