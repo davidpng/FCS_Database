@@ -35,6 +35,11 @@ def build_parser(parser):
     parser.add_argument('-outdb', '--outdb', help='Output sqlite3 db for Flow meta data \
     [default: db/fcs_stats.db]',
                         default="db/fcs_stats.db", type=str)
+    parser.add_argument('-w', '--workers', help='Number of workers [default 4]',
+                        dafautl=4,type=int)
+    parser.add_argument('-d', '--depth', help='worker load per worker [default 20]',
+                        dafautl=20,type=int)
+                        
     add_filter_args(parser)
 
 
@@ -51,12 +56,18 @@ def action(args):
     # Create query
     q = db.query(exporttype='dict_dict', getfiles=True, **vars(args))
 
+    q_list = []
     for case, case_info in q.results.items():
         for case_tube_idx, relpath in case_info.items():
-            log.info("Case: %s, Case_tube_idx: %s, File: %s" % (case, case_tube_idx, relpath))
-            filepath = path.join(args.dir, relpath)
-            fFCS = FCS(filepath=filepath, case_tube_idx=case_tube_idx, import_dataframe=True)
+            q_list.append((path.join(args.dir, relpath),case_tube_idx))
+        
 
+    for filepath,case_tube_idx in q_list[:1]:
+        fFCS = FCS(filepath=filepath, case_tube_idx=case_tube_idx, import_dataframe=True)
+        fFCS.clear_FCS_cache()
+        print fFCS.case_number
+            
+'''
             try:
                 fFCS.comp_scale_FCS_data(compensation_file=comp_file,
                                          gate_coords=gate_coords,
@@ -73,3 +84,4 @@ def action(args):
             except:
                 print "Skipping FCS %s because of unknown error related to: %s" % \
                     (filepath, sys.exc_info()[0])
+'''

@@ -180,6 +180,13 @@ class FCS(object):
 
         FCSstats_to_database(FCS=self, db=db)
 
+    def clear_FCS_cache(self):
+        """ clears FCS data cache 
+        Use with caution, no other functions can run after this has been executed
+        """
+        del self.FCS.data
+        del self.data
+        
 if __name__ == '__main__':
     import os
     import sys
