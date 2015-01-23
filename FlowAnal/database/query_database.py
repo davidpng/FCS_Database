@@ -224,14 +224,19 @@ class queryDB(object):
         self.q = self.session.query(TubeCases.cytnum,
                                     TubeCases.date,
                                     TubeStats.total_events,
+                                    PmtTubeCases.Antigen,
+                                    PmtTubeCases.Fluorophore,
+                                    TubeTypesInstances.tube_type,
                                     PmtStats).\
             join(PmtTubeCases, PmtStats.Pmt).\
             join(TubeCases, PmtTubeCases.Tube).\
             join(TubeStats, TubeCases.Stats).\
+            join(TubeTypesInstances, TubeCases.TubeTypesInstance).\
             order_by(TubeCases.date)
 
         # keep track of explicitly joined tables
-        self.q.joined_tables = ['TubeCases', 'PmtTubeCases', 'PmtStats', 'TubeStats']
+        self.q.joined_tables = ['TubeCases', 'PmtTubeCases', 'PmtStats',
+                                'TubeStats', 'TubeTypesInstances']
 
         self.__add_filters_to_query(**kwargs)
         df = self.__q2df()

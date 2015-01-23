@@ -20,9 +20,12 @@ log = logging.getLogger(__name__)
 
 
 def build_parser(parser):
-    parser.add_argument('--db', '-db', help='sqlite3 db with flow meta data \
+    parser.add_argument('--db', '-db', help='sqlite3 db with flow stats data \
     [default: db/fcs_stats.db]',
                         default="db/fcs_stats.db", type=str)
+    parser.add_argument('--outdb', '-outdb', help='sqlite3 db to store output dfs \
+    [default: db/fcs_stats.db]',
+                        default="db/fcs_qc.db", type=str)
     parser.add_argument('-tubes', '--tubes', help='List of tube types to select',
                         nargs='+', action='store',
                         default=None, type=str)
@@ -49,14 +52,13 @@ def action(args):
 
         # Get QC data
         if args.testing:
-            testdbcon = FCSdatabase(db='db/test.db', rebuild=True)
+            testdbcon = FCSdatabase(db=args.outdb, rebuild=True)
             args.table_format = 'tall'
             qc = FlowQC(dbcon=dbcon, **vars(args))
             qc.pushQC(db=testdbcon)
         else:
             qc = FlowQC(dbcon=dbcon, **vars(args))
 
-        log.debug(qc.histos)
-        log.debug(qc.PmtStats)
-        log.debug(qc.TubeStats)
-
+#        log.debug(qc.histos)
+#        log.debug(qc.PmtStats)
+#        log.debug(qc.TubeStats)
