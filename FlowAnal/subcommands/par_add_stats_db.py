@@ -77,7 +77,7 @@ def action(args):
     
     n = args.workers*args.depth #length of sublists
     sublists = [q_list[i:i+n] for i in range(0, len(q_list), n)]  
-    print("number of sublists to process: {}".format(len(sub_lists)))
+    print("number of sublists to process: {}".format(len(sublists)))
     for sublist in sublists[:3]:
         p = Pool(args.workers) 
         fcs_obj_list = p.map(worker,sublist)
