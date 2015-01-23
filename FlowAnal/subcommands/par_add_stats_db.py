@@ -17,7 +17,7 @@ from os import path
 import sys
 from sqlalchemy.exc import IntegrityError
 import shutil
-import multiprocessing
+from multiprocessing import Pool
 
 from FlowAnal.Analysis_Variables import gate_coords,comp_file
 from FlowAnal.FCS import FCS
@@ -54,6 +54,7 @@ def worker(in_list):
     #fFCS.histostats_to_db(db=out_db)
     fFCS.clear_FCS_cache()
     print fFCS.case_number
+    return fFCS
     
 def action(args):
 
@@ -74,8 +75,11 @@ def action(args):
             q_list.append((path.join(args.dir, relpath),case_tube_idx))
         
     print("Length of q_list is {}".format(len(q_list)))
-    for in_list in q_list[:3]:
-        worker(in_list)
+        
+    p = Pool(args.workers) 
+    fcs_obj_list = p.map(worker,q_list[:20])
+    
+    print fcs_obj_list
 '''
             try:
                 fFCS.comp_scale_FCS_data(compensation_file=comp_file,
