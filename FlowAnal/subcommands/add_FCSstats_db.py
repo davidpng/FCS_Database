@@ -39,6 +39,8 @@ def build_parser(parser):
                         default=False)
     parser.add_argument('--noviability', help='Turn off the singlet gate', action='store_true',
                         default=False)
+    parser.add_argument('-n', '--n', help='Limit to n files (for testing)', default=None,
+                        type=int)
     add_filter_args(parser)
 
 
@@ -55,6 +57,8 @@ def action(args):
     # Create query
     q = db.query(exporttype='dict_dict', getfiles=True, **vars(args))
 
+    n = 0
+    done = False
     for case, case_info in q.results.items():
         for case_tube_idx, relpath in case_info.items():
             log.info("Case: %s, Case_tube_idx: %s, File: %s" % (case, case_tube_idx, relpath))
@@ -77,3 +81,9 @@ def action(args):
             except:
                 print "Skipping FCS %s because of unknown error related to: %s" % \
                     (filepath, sys.exc_info()[0])
+            n += 1
+            if args.n is not None and n >= args.n:
+                done = True
+                break
+        if done is True:
+            break
