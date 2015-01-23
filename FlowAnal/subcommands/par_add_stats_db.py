@@ -37,9 +37,9 @@ def build_parser(parser):
     [default: db/fcs_stats.db]',
                         default="db/fcs_stats.db", type=str)
     parser.add_argument('-w', '--workers', help='Number of workers [default 4]',
-                        default=4,type=int)
+                        default=32,type=int)
     parser.add_argument('-d', '--depth', help='worker load per worker [default 20]',
-                        default=20,type=int)
+                        default=15,type=int)
                         
     add_filter_args(parser)
 
@@ -103,20 +103,3 @@ def action(args):
                 f.histostats_to_db(db=out_db)
                 print("{} has been pushed".format(f.case_number))
         del fcs_obj_list
-'''
-            try:
-                fFCS.comp_scale_FCS_data(compensation_file=comp_file,
-                                         gate_coords=gate_coords,
-                                         strict=False, auto_comp=False)
-                fFCS.extract_FCS_histostats()
-            except ValueError, e:
-                print "Skipping FCS %s because of ValueError: %s" % (filepath, e)
-            except KeyError, e:
-                print "Skipping FCS %s because of KeyError: %s" % (filepath, e)
-            except IntegrityError, e:
-                print "Skipping Case: %s, Tube: %s, filepath: %s because of IntegrityError: %s" % \
-                    (case, case_tube_idx, filepath, e)
-            except:
-                print "Skipping FCS %s because of unknown error related to: %s" % \
-                    (filepath, sys.exc_info()[0])
-'''
