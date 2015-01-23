@@ -37,9 +37,9 @@ def build_parser(parser):
     [default: db/fcs_stats.db]',
                         default="db/fcs_stats.db", type=str)
     parser.add_argument('-w', '--workers', help='Number of workers [default 4]',
-                        default=10,type=int)
+                        default=4,type=int)
     parser.add_argument('-d', '--depth', help='worker load per worker [default 20]',
-                        default=5,type=int)
+                        default=20,type=int)
                         
     add_filter_args(parser)
 
@@ -93,7 +93,7 @@ def action(args):
     n = args.workers*args.depth #length of sublists
     sublists = [q_list[i:i+n] for i in range(0, len(q_list), n)]  
     print("number of sublists to process: {}".format(len(sublists)))
-    for sublist in sublists[:3]:
+    for sublist in sublists[1:3]:
         p = Pool(args.workers) 
         fcs_obj_list = p.map(worker,sublist)
         p.close()
