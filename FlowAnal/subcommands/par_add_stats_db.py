@@ -36,10 +36,12 @@ def build_parser(parser):
     parser.add_argument('-outdb', '--outdb', help='Output sqlite3 db for Flow meta data \
     [default: db/fcs_stats.db]',
                         default="db/fcs_stats.db", type=str)
-    parser.add_argument('-w', '--workers', help='Number of workers [default 4]',
+    parser.add_argument('-w', '--workers', help='Number of workers [default 32]',
                         default=32,type=int)
-    parser.add_argument('-d', '--depth', help='worker load per worker [default 20]',
+    parser.add_argument('-d', '--depth', help='work load per worker [default 15]',
                         default=15,type=int)
+    parser.add_argument('-t', '--testing', help='Testing: run one load of workers',
+                        default=False,type=bool)
                         
     add_filter_args(parser)
 
@@ -93,7 +95,8 @@ def action(args):
     n = args.workers*args.depth #length of sublists
     sublists = [q_list[i:i+n] for i in range(0, len(q_list), n)]  
     print("number of sublists to process: {}".format(len(sublists)))
-    for sublist in sublists[1:3]:
+        
+    for sublist in sublists:
         p = Pool(args.workers) 
         fcs_obj_list = p.map(worker,sublist)
         p.close()
@@ -102,4 +105,7 @@ def action(args):
             if f != None:
                 f.histostats_to_db(db=out_db)
                 print("{} has been pushed".format(f.case_number))
+        #cleanup
         del fcs_obj_list
+        if args.testing:
+            break #run loop once then break
