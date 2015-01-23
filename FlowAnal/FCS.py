@@ -184,8 +184,14 @@ class FCS(object):
         """ clears FCS data cache 
         Use with caution, no other functions can run after this has been executed
         """
-        del self.FCS.data
-        del self.data
+        try:
+            del self.FCS.data
+        except:
+            log.info("FCS.FCS.data does not exist")
+        try:
+            del self.data
+        except:
+            log.info("FCS.data does not exist")
         
 if __name__ == '__main__':
     import os
