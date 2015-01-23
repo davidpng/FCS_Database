@@ -43,8 +43,18 @@ def build_parser(parser):
                         
     add_filter_args(parser)
 
-#gate_coords['singlets'] = [(0,0),(0,1),(1,1),(1,0),(0,0)]
-
+def worker(in_list):
+    filepath = in_list[0]
+    case_tube_index = in_list[1]
+    fFCS = FCS(filepath=filepath, case_tube_idx=case_tube_idx, import_dataframe=True)
+    fFCS.comp_scale_FCS_data(compensation_file=comp_file,
+                             gate_coords=gate_coords,
+                             strict=False, auto_comp=False)
+    fFCS.extract_FCS_histostats()
+    #fFCS.histostats_to_db(db=out_db)
+    fFCS.clear_FCS_cache()
+    print fFCS.case_number
+    
 def action(args):
 
     # Connect to database
@@ -64,16 +74,8 @@ def action(args):
             q_list.append((path.join(args.dir, relpath),case_tube_idx))
         
     print("Length of q_list is {}".format(len(q_list)))
-    for filepath,case_tube_idx in q_list[:3]:
-        fFCS = FCS(filepath=filepath, case_tube_idx=case_tube_idx, import_dataframe=True)
-        fFCS.comp_scale_FCS_data(compensation_file=comp_file,
-                                 gate_coords=gate_coords,
-                                 strict=False, auto_comp=False)
-        fFCS.extract_FCS_histostats()
-        #fFCS.histostats_to_db(db=out_db)
-        fFCS.clear_FCS_cache()
-        print fFCS.case_number
-            
+    for in_list in q_list[:3]:
+        worker(in_list)
 '''
             try:
                 fFCS.comp_scale_FCS_data(compensation_file=comp_file,
