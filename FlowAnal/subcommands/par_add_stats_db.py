@@ -38,8 +38,9 @@ def build_parser(parser):
                         default="db/fcs_stats.db", type=str)
     parser.add_argument('-w', '--workers', help='Number of workers [default 32]',
                         default=32,type=int)
-    parser.add_argument('-d', '--depth', help='work load per worker [default 15]',
-                        default=15,type=int)
+    parser.add_argument('-l', '--load', help='size of load for all workers,  \
+    dependent on main memory size [default 600]',
+                        default=600,type=int)
     parser.add_argument('-t', '--testing', help='Testing: run one load of workers',
                         default=False,type=bool)
                         
@@ -90,11 +91,11 @@ def action(args):
         for case_tube_idx, relpath in case_info.items():
             q_list.append((path.join(args.dir, relpath),case_tube_idx))
         
-    print("Length of q_list is {}".format(len(q_list)))
+    log.info("Length of q_list is {}".format(len(q_list)))
     
-    n = args.workers*args.depth #length of sublists
+    n = args.load #length of sublists
     sublists = [q_list[i:i+n] for i in range(0, len(q_list), n)]  
-    print("number of sublists to process: {}".format(len(sublists)))
+    log.info("number of sublists to process: {}".format(len(sublists)))
         
     for sublist in sublists:
         p = Pool(args.workers) 
@@ -104,8 +105,8 @@ def action(args):
         for f in fcs_obj_list:
             if f != None:
                 f.histostats_to_db(db=out_db)
-                print("{} has been pushed".format(f.case_number))
+                print("{} has been pushed\r".format(f.case_number)),
         #cleanup
         del fcs_obj_list
         if args.testing:
-            break #run loop once then break
+            break #run loop once then break if testing
