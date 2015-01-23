@@ -19,7 +19,7 @@ from sqlalchemy.exc import IntegrityError
 import shutil
 import multiprocessing
 
-from FlowAnal.Analysis_Variables import gate_coords,comp_file,test_fcs_fn
+from FlowAnal.Analysis_Variables import gate_coords,comp_file
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
 from FlowAnal.__init__ import package_data
@@ -43,6 +43,7 @@ def build_parser(parser):
                         
     add_filter_args(parser)
 
+#gate_coords['singlets'] = [(0,0),(0,1),(1,1),(1,0),(0,0)]
 
 def action(args):
 
@@ -69,7 +70,7 @@ def action(args):
                                  gate_coords=gate_coords,
                                  strict=False, auto_comp=False)
         fFCS.extract_FCS_histostats()
-        fFCS.histostats_to_db(db=out_db)
+        #fFCS.histostats_to_db(db=out_db)
         fFCS.clear_FCS_cache()
         print fFCS.case_number
             
