@@ -16,6 +16,7 @@ __status__ = "Prototype"
 from scipy.spatial.distance import cdist
 from brewer2mpl import qualitative
 from sklearn import mixture
+import scipy.signal as signal
 import numpy as np
 import matplotlib.pyplot as plt
 import logging
@@ -27,7 +28,7 @@ class GMM_doublet_detection(object):
         self.FSC = data[['FSC-A','FSC-H']]
         #fit and apply GMM to data to make annotations
         self.class_anno, self.gmm_filter, self.centroids = self.__apply_GMM_filtering(n=classes,filter_prob=0.15,**kwargs)
-        self.singlet_mask = self.__choose_classes()
+        self.singlet_mask = self.__choose_classes_radial()
         
         if singlet_verbose==True:
             self.__display_gating("/home/ngdavid/Desktop/singlet_gating.png") #find a place to put theses?
@@ -79,7 +80,21 @@ class GMM_doublet_detection(object):
         output = self.class_anno!=class_to_dismiss
         output = output * self.gmm_filter
         return output
-
+        
+    def __choose_classes_radial():
+        """Chooses class to use using a filter rebasis of the point locations
+        Returns an output mask
+        """
+        origin = [[0,0]]
+        xy = self.centroids - np.array(origin)
+        theta = np.atan(xy[:,1]/xy[:,0])
+        print theta
+        
+        basis, basis_space = np.histogram(theta,bins=60,range=(0,1.2))
+        filtered_basis = signal.weiner(basis)
+        print filtered_basis
+        return None
+        
     def __display_gating(self,filename,display_points=30000):
         """print a plot of clusters to a file"""
         colors = qualitative.Set1[self.num_classes]
