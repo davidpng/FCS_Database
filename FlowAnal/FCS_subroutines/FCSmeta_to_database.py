@@ -15,6 +15,7 @@ __status__ = "Subroutine - prototype"
 
 from os.path import relpath, dirname
 import logging
+import sys
 log = logging.getLogger(__name__)
 
 
@@ -35,12 +36,24 @@ class FCSmeta_to_database(object):
 
         # Transfer data
         if self.FCS.empty is False:
-            if add_lists:
+            try:
                 self.push_antigens()
                 self.push_fluorophores()
-            self.push_TubeTypes()
-            self.push_TubeCase(dir=dir)
-            self.push_parameters()
+                self.push_TubeTypes()
+                self.push_TubeCase(dir=dir)
+            except:  # Push TubeCase as empty
+                self.meta['empty'] = True
+                self.meta['flag'] = 'meta_tube_export_fail'
+                self.meta['error_message'] = str(sys.exc_info()[0])
+                log.info('Pushing empty FCS {}'.format(self.FCS.case_tube))
+                self.push_TubeCase(dir=dir)
+            else:
+                try:
+                    self.push_parameters()
+                except:  # Label TubeCase as empty
+                    self.db.set_flag(self.FCS.case_tube_idx,
+                                     'meta_param_export_fail',
+                                     str(sys.exc_info()[0]))
         else:  # empty FCS push
             log.info('Pushing empty FCS {}'.format(self.FCS.case_tube))
             self.push_TubeCase(dir=dir)
@@ -122,4 +135,7 @@ class FCSmeta_to_database(object):
         d = self.FCS.parameters.T
         d['version'] = self.FCS.version
         d['case_tube_idx'] = self.FCS.case_tube_idx
+
+        # TODO: consider check on size of this table
+
         self.db.add_df(df=d, table='PmtTubeCases')
