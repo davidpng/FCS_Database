@@ -13,12 +13,14 @@ __maintainer__ = "David Ng"
 __email__ = "ngdavid@uw.edu"
 __status__ = "Production"
 
-# import re
 import pandas as pd
 import numpy as np
 from scipy.interpolate import interp1d
 from matplotlib.path import Path
 from Auto_Comp_Tweak import Auto_Comp_Tweak
+
+import logging
+log = logging.getLogger(__name__)
 
 
 class Process_FCS_Data(object):
@@ -70,6 +72,7 @@ class Process_FCS_Data(object):
 
         #Saturation Gate might need to go here
         #sat_gate = self._SaturationGate()
+
         self.data = self._LogicleRescale(self.data, T=2**18, M=4, W=0.5, A=0)
         self.FCS.data = self.data  # update FCS.data
 
@@ -85,18 +88,29 @@ class Process_FCS_Data(object):
         self.FCS.data = self.data  # update FCS.data
 
         if 'gate_coords' in kwargs:   # if gate coord dictionary provided, do initial cleanup
-            coords = kwargs['gate_coords']
-            self.coords = coords
-            if coords.has_key('viable'):
-                viable_mask = self._gating(self.data, 'SSC-H', 'FSC-H', coords['viable'])
-                self.FCS.viable_remain = np.sum(viable_mask)
-                self.data = self.data[viable_mask]
-            if coords.has_key('singlet'):
-                singlet_mask = self._gating(self.data, 'FSC-A', 'FSC-H', coords['singlet'])
+            self.coords = kwargs['gate_coords']
+
+            if self.coords.has_key('singlet') and ('nosinglet' not in kwargs
+                                                   or kwargs['nosinglet'] is False):
+                singlet_mask = self._gating(self.data, 'FSC-A', 'FSC-H', self.coords['singlet'])
                 self.FCS.singlet_remain = np.sum(singlet_mask)
                 self.data = self.data[singlet_mask]
+            else:
+                self.FCS.singlet_remain = self.FCS.data.shape[0]
+
+            if self.coords.has_key('viable') and ('noviability' not in kwargs
+                                                  or kwargs['noviability'] is False):
+                viable_mask = self._gating(self.data, 'SSC-H', 'FSC-H', self.coords['viable'])
+                self.FCS.viable_remain = np.sum(viable_mask)
+                self.data = self.data[viable_mask]
+            else:
+                self.FCS.viable_remain = self.FCS.data.shape[0]
+
         else:
             self.coords = None
+            self.FCS.viable_remain = self.FCS.data.shape[0]
+            self.FCS.singlet_remain = self.FCS.data.shape[0]
+
         self.FCS.data = self.data  # update FCS.data
 
     def __Clean_up_columns(self, columns):
@@ -231,6 +245,7 @@ class Process_FCS_Data(object):
         """
         Returns a logical index given set of gate coordinates
         """
+        log.debug('Applying gate coords {} to axes {} and {}'.format(coords, x_ax, y_ax))
         gate = Path(coords, closed=True)
         projection = np.array(DF_array_data[[x_ax, y_ax]])
         index = gate.contains_points(projection)

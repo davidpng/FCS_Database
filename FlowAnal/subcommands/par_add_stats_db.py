@@ -15,17 +15,16 @@ __status__ = "Production"
 import logging
 from os import path
 import sys
-from sqlalchemy.exc import IntegrityError
 import shutil
 from multiprocessing import Pool
 
-from FlowAnal.Analysis_Variables import gate_coords,comp_file
+from FlowAnal.Analysis_Variables import gate_coords, comp_file
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
-from FlowAnal.__init__ import package_data
 from __init__ import add_filter_args
 
 log = logging.getLogger(__name__)
+
 
 def build_parser(parser):
     parser.add_argument('dir', help='Directory with Flow FCS files [required]',
@@ -37,14 +36,19 @@ def build_parser(parser):
     [default: db/fcs_stats.db]',
                         default="db/fcs_stats.db", type=str)
     parser.add_argument('-w', '--workers', help='Number of workers [default 32]',
-                        default=32,type=int)
-    parser.add_argument('-l', '--load', help='size of load for all workers,  \
+                        default=32, type=int)
+    parser.add_argument('-l', '--load', help='Number of .fcs files to process as group,  \
     dependent on main memory size [default 600]',
-                        default=600,type=int)
+                        default=600, type=int)
+    parser.add_argument('--nosinglet', help='Turn off the singlet gate', action='store_true',
+                        default=False)
+    parser.add_argument('--noviability', help='Turn off the singlet gate', action='store_true',
+                        default=False)
     parser.add_argument('-t', '--testing', help='Testing: run one load of workers',
-                        default=False,type=bool)
-                        
+                        default=False, action='store_true')
+
     add_filter_args(parser)
+
 
 def worker(in_list):
     """
@@ -59,20 +63,13 @@ def worker(in_list):
                                  strict=False, auto_comp=False)
         fFCS.extract_FCS_histostats()
         fFCS.clear_FCS_cache()
-        print fFCS.case_number
-        return fFCS
-    except ValueError, e:
-        print "Skipping FCS %s because of ValueError: %s" % (filepath, e)
-    except KeyError, e:
-        print "Skipping FCS %s because of KeyError: %s" % (filepath, e)
-    except IntegrityError, e:
-        print "Skipping Case: %s, Tube: %s, filepath: %s because of IntegrityError: %s" % \
-            (case, case_tube_idx, filepath, e)
     except:
-        print "Skipping FCS %s because of unknown error related to: %s" % \
-            (filepath, sys.exc_info()[0])    
-    return None #envision passing a list that contains information for failed fcs files
-        
+        fFCS.flag = 'stats_extraction_fail'
+        fFCS.error_message = str(sys.exc_info()[0])
+
+    return fFCS
+
+
 def action(args):
 
     # Connect to database
@@ -89,24 +86,25 @@ def action(args):
     q_list = []
     for case, case_info in q.results.items():
         for case_tube_idx, relpath in case_info.items():
-            q_list.append((path.join(args.dir, relpath),case_tube_idx))
-        
+            q_list.append((path.join(args.dir, relpath), case_tube_idx))
+
     log.info("Length of q_list is {}".format(len(q_list)))
-    
-    n = args.load #length of sublists
-    sublists = [q_list[i:i+n] for i in range(0, len(q_list), n)]  
+
+    n = args.load  # length of sublists
+    sublists = [q_list[i:i+n] for i in range(0, len(q_list), n)]
     log.info("number of sublists to process: {}".format(len(sublists)))
-        
+
     for sublist in sublists:
-        p = Pool(args.workers) 
-        fcs_obj_list = p.map(worker,sublist)
+        p = Pool(args.workers)
+        fcs_obj_list = p.map(worker, sublist)
         p.close()
         p.join()
+
         for f in fcs_obj_list:
-            if f != None:
-                f.histostats_to_db(db=out_db)
-                print("{} has been pushed\r".format(f.case_number)),
-        #cleanup
+            f.histostats_to_db(db=out_db)
+            print("{} has been pushed\r".format(f.case_number)),
+
+        # cleanup
         del fcs_obj_list
-        if args.testing:
-            break #run loop once then break if testing
+        if args.testing is True:
+            break  # run loop once then break if testing
