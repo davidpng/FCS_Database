@@ -26,6 +26,7 @@ from __init__ import add_filter_args
 
 log = logging.getLogger(__name__)
 
+
 def build_parser(parser):
     parser.add_argument('dir', help='Directory with Flow FCS files [required]',
                         type=str)
@@ -63,13 +64,6 @@ def action(args):
                                          strict=False, auto_comp=False)
                 fFCS.extract_FCS_histostats()
                 fFCS.histostats_to_db(db=out_db)
-            except ValueError, e:
-                print "Skipping FCS %s because of ValueError: %s" % (filepath, e)
-            except KeyError, e:
-                print "Skipping FCS %s because of KeyError: %s" % (filepath, e)
-            except IntegrityError, e:
-                print "Skipping Case: %s, Tube: %s, filepath: %s because of IntegrityError: %s" % \
-                    (case, case_tube_idx, filepath, e)
-            except:
-                print "Skipping FCS %s because of unknown error related to: %s" % \
-                    (filepath, sys.exc_info()[0])
+            except:  # Label TubeCase as failing stats extraction
+                out_db.set_flag(case_tube_idx, 'stats_extraction_fail', str(sys.exc_info()[0]))
+
