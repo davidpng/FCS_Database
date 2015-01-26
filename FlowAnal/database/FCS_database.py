@@ -210,11 +210,13 @@ class FCSdatabase(SqliteConnection):
 
         s = self.Session()
 
-        TubeCase_i = s.query(TubeCases.case_tube_idx == case_tube_idx).one()
+        TubeCase_i = s.query(TubeCases).\
+                     filter(TubeCases.case_tube_idx == case_tube_idx).\
+                     one()
         TubeCase_i.flag = flag
         TubeCase_i.error_message = error_message
-
         s.commit()
         log.info('Set case_tube_idx #{} to flag [{}]'.format(case_tube_idx, flag))
+
         s.close()
 

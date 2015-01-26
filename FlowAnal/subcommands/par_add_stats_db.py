@@ -50,7 +50,7 @@ def build_parser(parser):
     add_filter_args(parser)
 
 
-def worker(in_list):
+def worker(in_list, **kwargs):
     """
     Still need to work on handling of cases that did not extract correctly
     """
@@ -60,7 +60,7 @@ def worker(in_list):
     try:
         fFCS.comp_scale_FCS_data(compensation_file=comp_file,
                                  gate_coords=gate_coords,
-                                 strict=False, auto_comp=False)
+                                 strict=False, auto_comp=False, **kwargs)
         fFCS.extract_FCS_histostats()
         fFCS.clear_FCS_cache()
     except:
@@ -90,21 +90,29 @@ def action(args):
 
     log.info("Length of q_list is {}".format(len(q_list)))
 
+    # Setup lists
     n = args.load  # length of sublists
     sublists = [q_list[i:i+n] for i in range(0, len(q_list), n)]
-    log.info("number of sublists to process: {}".format(len(sublists)))
+    log.info("Number of sublists to process: {}".format(len(sublists)))
 
+    # Setup args
+    vargs = {key: value for key, value in vars(args).items()
+             if key in ['nosinglet', 'noviability']}
+
+    i = 0
     for sublist in sublists:
         p = Pool(args.workers)
-        fcs_obj_list = p.map(worker, sublist)
+        results = [p.apply_async(worker, args=(case_info, ), kwds=vargs)
+                   for case_info in sublist]
         p.close()
-        p.join()
 
-        for f in fcs_obj_list:
-            f.histostats_to_db(db=out_db)
-            print("{} has been pushed\r".format(f.case_number)),
+        for f in results:
+            i += 1
+            fFCS = f.get()
+            fFCS.histostats_to_db(db=out_db)
+            del fFCS
+            print "Case_tubes: {} of {} have been processed\r".format(i, len(q_list)),
+        del results
 
-        # cleanup
-        del fcs_obj_list
         if args.testing is True:
             break  # run loop once then break if testing
