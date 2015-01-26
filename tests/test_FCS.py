@@ -263,12 +263,13 @@ class Test_FCS(TestBase):
         Tests auto singlet gating
         """
         filepath = data(test_fcs_fn)
+        filepath = "/home/ngdavid/FCS_Data/Myeloid/10-13469/10-13469_Myeloid 1.fcs"
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
-                              rescale_lim=(-0.5,1),
+                              rescale_lim=(-0.5,1),classes=4,singlet_verbose=True,
                               strict=False, auto_singlet=True,auto_comp=False,
                               nosinglet=True)
-    
+                              
     def test_auto_comp(self):
         """ Tests the auto compensation subroutine of comp_scale_FCS_data
 
@@ -280,7 +281,7 @@ class Test_FCS(TestBase):
                            '1':'1', '2':'2', '3':'3'}
 
         filepath = data(test_fcs_fn)
-
+        
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
                               gate_coords=gate_coords,

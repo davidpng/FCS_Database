@@ -18,14 +18,28 @@ from brewer2mpl import qualitative
 from sklearn import mixture
 import numpy as np
 import matplotlib.pyplot as plt
-
+import logging
+log = logging.getLogger(__name__)
 
 class GMM_doublet_detection(object):
-    def __init__(self,data,classes=4):
+    def __init__(self,data,classes=4,singlet_verbose=False,**kwargs):
+        self.num_classes = classes
         self.FSC = data[['FSC-A','FSC-H']]
         #fit and apply GMM to data to make annotations
-        self.class_anno, self.gmm_filter, self.centroids = self.__apply_GMM_filtering(n=classes,filter_prob=0.1,subsize=50000)
-        self.__display_gating("/home/ngdavid/Desktop/singlet_gating.png")
+        self.class_anno, self.gmm_filter, self.centroids = self.__apply_GMM_filtering(n=classes,filter_prob=0.15,subsize=20000)
+        self.singlet_mask = self.__choose_classes()
+        
+        if singlet_verbose==True:
+            self.__display_gating("/home/ngdavid/Desktop/singlet_gating.png") #find a place to put theses?
+            self.__display_mask("/home/ngdavid/Desktop/singlet_mask.png")
+                    
+    def calculate_stats(self):
+        """
+        This function generates statistics about the loss fraction of the filter
+        """
+        number_lost = np.sum(self.singlet_mask)
+        percentage_lost = float(number_lost)/len(self.FSC)
+        return number_lost, percentage_lost
         
     def __apply_GMM_filtering(self,n=4,filter_prob=0.1,subsize=50000):
         """
@@ -54,14 +68,21 @@ class GMM_doublet_detection(object):
         return clf_data,gmm_filter,centroids
     
     def __choose_classes(self):
-        
+        """Chooses class to use 
+        Returns an output mask
+        """
         exclude = [[1,0]]
-                self.centroids,exclude
-           
+        class_distances = cdist(self.centroids,exclude,"euclidean")
+        class_to_dismiss = np.argmin(class_distances)
+        
+        log.info("number {} class was dismissed as a double region".format(class_to_dismiss))
+        output = self.class_anno!=class_to_dismiss
+        output = output * self.gmm_filter
+        return output
+
     def __display_gating(self,filename,display_points=30000):
         """print a plot of clusters to a file"""
-        colors = qualitative.Set1[4]
-                
+        colors = qualitative.Set1[self.num_classes]
         plt.figure()
         #plt.hold(True)
         for i in np.unique(self.class_anno):
@@ -73,6 +94,24 @@ class GMM_doublet_detection(object):
                      markersize=10,mew=4,c=[0,0,0])
         plt.xlabel('FSC-A')
         plt.ylabel('FSC-H')
+        plt.xlim(0,1)
+        plt.ylim(0,1)
+        plt.title("Number of classes: {}\nNumber of events: {}".format(self.num_classes,len(self.FSC)))
+        plt.show()
+        plt.savefig(filename, dpi=500, bbox_inches='tight')
+       
+    def __display_mask(self,filename,display_points=30000):
+        """print a plot of clusters to a file"""
+        
+        plt.figure()
+        plt.plot(self.FSC[self.singlet_mask]['FSC-A'],
+                 self.FSC[self.singlet_mask]['FSC-H'],
+                 'b.',markersize=1)
+        plt.xlabel('FSC-A')
+        plt.ylabel('FSC-H')
+        plt.xlim(0,1)
+        plt.ylim(0,1)
+        plt.title("Number of classes: {}\nNumber of events: {}".format(self.num_classes,len(self.FSC)))
         plt.show()
         plt.savefig(filename, dpi=500, bbox_inches='tight')
 

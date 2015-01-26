@@ -90,10 +90,14 @@ class Process_FCS_Data(object):
         self.FCS.data = self.data  # update FCS.data
         
         if auto_singlet:
-            auto_gate_obj = self.__auto_singlet_gating()
-            print self.data.shape
-            print auto_gate_obj.class_anno.shape
-            print auto_gate_obj.gmm_filter.shape
+            auto_gate_obj = self.__auto_singlet_gating(**kwargs)
+            singlet_mask = auto_gate_obj.singlet_mask
+            self.FCS.singlet_remain,percent_loss = auto_gate_obj.calculate_stats()
+            self.data = self.data[singlet_mask]
+           
+            #not sure how we want to handle things that fail an auto gating
+            #perhaps go to regular gating method using gate_coord as below?
+            
         elif 'gate_coords' in kwargs:   # if gate coord dictionary provided, do initial cleanup
             self.coords = kwargs['gate_coords']
 
@@ -122,9 +126,9 @@ class Process_FCS_Data(object):
         del self.data
         
 
-    def __auto_singlet_gating(self):
+    def __auto_singlet_gating(self,**kwargs):
         
-        return GMM_doublet_detection(data=self.data,classes=4)
+        return GMM_doublet_detection(data=self.data,**kwargs)
         
     def __Clean_up_columns(self, columns):
         """
