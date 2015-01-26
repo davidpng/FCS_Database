@@ -18,7 +18,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 from matplotlib.path import Path
 from Auto_Comp_Tweak import Auto_Comp_Tweak
-
+from Auto_Singlet import Auto_Singlet
 import logging
 log = logging.getLogger(__name__)
 
@@ -37,7 +37,8 @@ class Process_FCS_Data(object):
     """
 
     def __init__(self, FCS, compensation_file, saturation_upper_range=1000,
-                 rescale_lim=(-0.15, 1), strict=True, auto_comp=False, **kwargs):
+                 rescale_lim=(-0.15, 1), strict=True, auto_singlet=False, 
+                 auto_comp=False, **kwargs):
         """
         Takes an FCS_object, and a spillover library. \n
         Can handle a spillover library as dictionary if keyed on the machine
@@ -86,8 +87,10 @@ class Process_FCS_Data(object):
 
         self.__patch()
         self.FCS.data = self.data  # update FCS.data
-
-        if 'gate_coords' in kwargs:   # if gate coord dictionary provided, do initial cleanup
+        
+        if auto_singlet:
+                
+        elif 'gate_coords' in kwargs:   # if gate coord dictionary provided, do initial cleanup
             self.coords = kwargs['gate_coords']
 
             if self.coords.has_key('singlet') and ('nosinglet' not in kwargs
