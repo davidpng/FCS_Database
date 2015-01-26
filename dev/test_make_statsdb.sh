@@ -6,7 +6,7 @@
 
 dir=$1 # Directory to crawl
 metadb=$2  # Meta db to build off of
-q_options="${@:4}"
+q_options="${@:3}"
 
 # OUTPUT files
 wdir=`pwd`
@@ -24,7 +24,6 @@ echo -e "\n############# Make stats db ############"
 cmd="$FLOWANAL/flowanal.py -v par_add_stats_db $dir
   -db $metadb
   -outdb $statsdb
-  --testing
   $q_options"
 echo $cmd
 $cmd
