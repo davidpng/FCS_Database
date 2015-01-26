@@ -8,59 +8,75 @@ Provides Auto Singlet gating based on a GMM model
 __author__ = "David Ng, MD"
 __copyright__ = "Copyright 2014, David Ng"
 __license__ = "GPL v3"
-__version__ = "0.1"
+__version__ = "0.2"
 __maintainer__ = "David Ng"
 __email__ = "ngdavid@uw.edu"
 __status__ = "Prototype"
 
-
+from scipy.spatial.distance import cdist
+from brewer2mpl import qualitative
 from sklearn import mixture
 import numpy as np
 import matplotlib.pyplot as plt
-#from brewer2mpl import qualitative
 
-class GMM_double_detection(object):
+
+class GMM_doublet_detection(object):
     def __init__(self,data,classes=4):
         self.FSC = data[['FSC-A','FSC-H']]
-       
         #fit and apply GMM to data to make annotations
-        self.class_anno, self.gmm_filter = self.__apply_GMM_filtering(n=classes,filter_prob=0.1,subsize=50000)
+        self.class_anno, self.gmm_filter, self.centroids = self.__apply_GMM_filtering(n=classes,filter_prob=0.1,subsize=50000)
+        self.__display_gating("/home/ngdavid/Desktop/singlet_gating.png")
         
-    def __apply_GMM_filtering(self,n=4,filter_prob,subsize):
+    def __apply_GMM_filtering(self,n=4,filter_prob=0.1,subsize=50000):
         """
         """
         #make a gaussian mixture model 
         g = mixture.GMM(n_components=n,covariance_type='full')
 
         #make subgroup size the lesser of subsize or len of array
-        if len(self.FCS) > subsize:
+        input_length = len(self.FSC)
+        if input_length > subsize:
             subgroup = subsize
-        if len(self.FCS) < 1000:
+        if input_length < 1000:
             raise(ValueError,"Number of events is too small to use this method")
         else:
-            subgroup = len(self.FCS)
-            
+            subgroup = input_length
+        
         # fit on subgroup and predict class probabities on full data
-        temp = self.FSC[np.all(FSC>0,axis=1)].values
+        temp = self.FSC[np.all(self.FSC>0,axis=1)]
         g.fit(temp[:subgroup]) 
-
+        centroids = g.means_
         clf_data = g.predict(self.FSC.values)
+        
         # classifiction probablities
         clf_prob = g.predict_proba(self.FSC.values)
-        gmm_filter = np.any(clf_prob>fliter_prob,axis=1)
-        return clf_data,gmm_filter
+        gmm_filter = np.any(clf_prob>filter_prob,axis=1)
+        return clf_data,gmm_filter,centroids
     
     def __choose_classes(self):
-        pass
+        
+        exclude = [[1,0]]
+                self.centroids,exclude
            
-    def __display_gating(self,filename):
-        pass
-        """
+    def __display_gating(self,filename,display_points=30000):
+        """print a plot of clusters to a file"""
+        colors = qualitative.Set1[4]
+                
         plt.figure()
-        for i in np.unique(clf_data):
-            plt_data = self.FCS[np.all([gmm_filter,clf_data==i],axis=0)]
-            plt.plot(plt_data[:20000,0],plt_data[:20000,1],',',c=colors.mpl_colors[i])
+        #plt.hold(True)
+        for i in np.unique(self.class_anno):
+            plt_data = self.FSC[np.all([self.gmm_filter,self.class_anno==i],
+                                axis=0)][:display_points]
+            plt.plot(plt_data['FSC-A'],plt_data['FSC-H'],'.',
+                     markersize=1,c=colors.mpl_colors[i])
+            plt.plot(self.centroids[i,0],self.centroids[i,1],'x',
+                     markersize=10,mew=4,c=[0,0,0])
+        plt.xlabel('FSC-A')
+        plt.ylabel('FSC-H')
+        plt.show()
         plt.savefig(filename, dpi=500, bbox_inches='tight')
-        """
+
+        
 if __name__ == "__main__":
+    pass
     

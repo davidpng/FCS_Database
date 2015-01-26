@@ -18,7 +18,8 @@ import numpy as np
 from scipy.interpolate import interp1d
 from matplotlib.path import Path
 from Auto_Comp_Tweak import Auto_Comp_Tweak
-from Auto_Singlet import Auto_Singlet
+from Auto_Singlet import GMM_doublet_detection
+
 import logging
 log = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ class Process_FCS_Data(object):
         self.data = self.data[nan_mask]
 
         limit_mask = self.__limit_gate(self.data, high=rescale_lim[1], low=rescale_lim[0])
-        self.data = self.data[limit_mask]
+        self.data = self.data[limit_mask] #this might duplicate the saturation_gate
 
         self.__Rescale(high=rescale_lim[0], low=rescale_lim[1])  # Edits self.data
 
@@ -89,7 +90,10 @@ class Process_FCS_Data(object):
         self.FCS.data = self.data  # update FCS.data
         
         if auto_singlet:
-                
+            auto_gate_obj = self.__auto_singlet_gating()
+            print self.data.shape
+            print auto_gate_obj.class_anno.shape
+            print auto_gate_obj.gmm_filter.shape
         elif 'gate_coords' in kwargs:   # if gate coord dictionary provided, do initial cleanup
             self.coords = kwargs['gate_coords']
 
@@ -115,7 +119,13 @@ class Process_FCS_Data(object):
             self.FCS.singlet_remain = self.FCS.data.shape[0]
 
         self.FCS.data = self.data  # update FCS.data
+        del self.data
+        
 
+    def __auto_singlet_gating(self):
+        
+        return GMM_doublet_detection(data=self.data,classes=4)
+        
     def __Clean_up_columns(self, columns):
         """
         Provides error handling and clean up for manually entered parameter names

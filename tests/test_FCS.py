@@ -262,13 +262,12 @@ class Test_FCS(TestBase):
         """
         Tests auto singlet gating
         """
+        filepath = data(test_fcs_fn)
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
-                              gate_coords=gate_coords,
                               rescale_lim=(-0.5,1),
-                              strict=False, auto_comp=False,
+                              strict=False, auto_singlet=True,auto_comp=False,
                               nosinglet=True)
-        a.extract_FCS_histostats()
     
     def test_auto_comp(self):
         """ Tests the auto compensation subroutine of comp_scale_FCS_data
