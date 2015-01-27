@@ -26,7 +26,7 @@ class GMM_doublet_detection(object):
         self.num_classes = classes
         self.FSC = data[['FSC-A','FSC-H']]
         #fit and apply GMM to data to make annotations
-        self.class_anno, self.gmm_filter, self.centroids = self.__apply_GMM_filtering(n=classes,filter_prob=0.15,subsize=20000)
+        self.class_anno, self.gmm_filter, self.centroids = self.__apply_GMM_filtering(n=classes,filter_prob=0.15,**kwargs)
         self.singlet_mask = self.__choose_classes()
         
         if singlet_verbose==True:
@@ -41,7 +41,7 @@ class GMM_doublet_detection(object):
         percentage_lost = float(number_lost)/len(self.FSC)
         return number_lost, percentage_lost
         
-    def __apply_GMM_filtering(self,n=4,filter_prob=0.1,subsize=50000):
+    def __apply_GMM_filtering(self,n=4,filter_prob=0.1,subsize=50000,**kwargs):
         """
         """
         #make a gaussian mixture model 
