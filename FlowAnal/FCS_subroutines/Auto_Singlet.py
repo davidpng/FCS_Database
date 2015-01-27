@@ -17,7 +17,9 @@ from scipy.spatial.distance import cdist
 from brewer2mpl import qualitative
 from sklearn import mixture
 import scipy.signal as signal
+from scipy.ndimage.filters import gaussian_filter1d
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import logging
 log = logging.getLogger(__name__)
@@ -28,8 +30,8 @@ class GMM_doublet_detection(object):
         self.FSC = data[['FSC-A','FSC-H']]
         #fit and apply GMM to data to make annotations
         self.class_anno, self.gmm_filter, self.centroids = self.__apply_GMM_filtering(n=classes,filter_prob=0.15,**kwargs)
-        self.singlet_mask = self.__choose_classes_radial()
-        
+        self.singlet_mask = self.__choose_classes_radial(**kwargs)
+
         if singlet_verbose==True:
             self.__display_gating("/home/ngdavid/Desktop/singlet_gating.png") #find a place to put theses?
             self.__display_mask("/home/ngdavid/Desktop/singlet_mask.png")
@@ -58,7 +60,7 @@ class GMM_doublet_detection(object):
             subgroup = input_length
         
         # fit on subgroup and predict class probabities on full data
-        temp = self.FSC[np.all(self.FSC>0,axis=1)]
+        temp = self.FSC[np.all(self.FSC>0,axis=1)& np.all(self.FSC<0.95,axis=1)]
         g.fit(temp[:subgroup]) 
         centroids = g.means_
         clf_data = g.predict(self.FSC.values)
@@ -68,7 +70,7 @@ class GMM_doublet_detection(object):
         gmm_filter = np.any(clf_prob>filter_prob,axis=1)
         return clf_data,gmm_filter,centroids
     
-    def __choose_classes(self):
+    def __choose_classes_absolute(self):
         """Chooses class to use 
         Returns an output mask
         """
@@ -81,19 +83,44 @@ class GMM_doublet_detection(object):
         output = output * self.gmm_filter
         return output
         
-    def __choose_classes_radial():
-        """Chooses class to use using a filter rebasis of the point locations
+    def __choose_classes_radial(self,**kwargs):
+        """Chooses class to use using a filter re-basis of the centroid locations
         Returns an output mask
         """
         origin = [[0,0]]
         xy = self.centroids - np.array(origin)
-        theta = np.atan(xy[:,1]/xy[:,0])
-        print theta
+        theta = np.arctan(xy[:,1]/xy[:,0])
+                
+        basis, basis_space = np.histogram(theta,bins=200,range=(0.3,1.0))
+        filtered_basis = gaussian_filter1d(basis*1000,sigma=10)
+        basis_f = pd.Series(data = filtered_basis, index = basis_space[:-1])
+
+        #define the range of indices to look for a minimum
+        search_range = np.where((basis_space < theta.max()) & (basis_space > theta.min()))[0]
+        # find the index of the trough in the range of indices between max and min
+        min_idx = np.argmin(filtered_basis[search_range])
+        # translate this index to the index of the basis space and get the radian cutoff
+        cutoff = basis_space[search_range[min_idx]] #some tricky translations here
+
+        # make a list of classes with a radian measure less than the cutoff
+        classes_to_dismiss = np.where(theta < cutoff)[0].tolist()
+        output = self.class_anno == -3.1415 #make a dummy output that is all false
+
+        for class_to_dismiss in classes_to_dismiss:
+            output = output | (self.class_anno == class_to_dismiss)
+
+        return np.logical_not(output)
         
-        basis, basis_space = np.histogram(theta,bins=60,range=(0,1.2))
-        filtered_basis = signal.weiner(basis)
-        print filtered_basis
-        return None
+    def __display_radial_basis_histogram(self,filename):
+        plt.figure()
+        plt.plot(basis_space[:-1],filtered_basis)
+        plt.plot(basis_space[:-1],basis)
+        plt.xlabel('radians')
+        plt.ylabel('count')
+        plt.title("Filtered Projection on the radial basis")
+        plt.show()
+        plt.savefig(filename, dpi=500, bbox_inches='tight')
+        
         
     def __display_gating(self,filename,display_points=30000):
         """print a plot of clusters to a file"""
@@ -109,8 +136,8 @@ class GMM_doublet_detection(object):
                      markersize=10,mew=4,c=[0,0,0])
         plt.xlabel('FSC-A')
         plt.ylabel('FSC-H')
-        plt.xlim(0,1)
-        plt.ylim(0,1)
+        plt.xlim(-0.1,1.2)
+        plt.ylim(-0.1,1.2)
         plt.title("Number of classes: {}\nNumber of events: {}".format(self.num_classes,len(self.FSC)))
         plt.show()
         plt.savefig(filename, dpi=500, bbox_inches='tight')
@@ -124,8 +151,8 @@ class GMM_doublet_detection(object):
                  'b.',markersize=1)
         plt.xlabel('FSC-A')
         plt.ylabel('FSC-H')
-        plt.xlim(0,1)
-        plt.ylim(0,1)
+        plt.xlim(-0.1,1.2)
+        plt.ylim(-0.1,1.2)
         plt.title("Number of classes: {}\nNumber of events: {}".format(self.num_classes,len(self.FSC)))
         plt.show()
         plt.savefig(filename, dpi=500, bbox_inches='tight')

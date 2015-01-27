@@ -263,10 +263,10 @@ class Test_FCS(TestBase):
         Tests auto singlet gating
         """
         filepath = data(test_fcs_fn)
-        #filepath = "/home/ngdavid/FCS_Data/Myeloid/10-13469/10-13469_T Cells NEW.fcs"
+        filepath = "/home/ngdavid/FCS_Data/Myeloid/12-00040/12-00040_Myeloid 1.fcs"
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,
-                              rescale_lim=(-0.5,1),classes=4,singlet_verbose=False,
+                              rescale_lim=(-0.5,1),classes=5,singlet_verbose=True,
                               strict=False, auto_singlet=True,auto_comp=False,
                               nosinglet=True)
                               
