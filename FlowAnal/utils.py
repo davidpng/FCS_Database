@@ -5,6 +5,7 @@ import bz2
 import gzip
 import shutil
 import sys
+from collections import OrderedDict
 
 log = logging.getLogger(__name__)
 
@@ -79,7 +80,7 @@ def opener(pth, mode='r', bufsize=-1):
     return Opener(mode, bufsize)(pth)
 
 
-class Vividict(dict):
+class Vividict(OrderedDict):
     """ Class to enable creation of dict objects with missing data \
     This allows dynamic addition of chains of dictionaries
     """

@@ -36,4 +36,15 @@ def add_filter_args(parser):
                         help='List of case_tube_idxs to select',
                         nargs='+', action='store',
                         default=None, type=str)
+    parser.add_argument('-rand', '--random-order',
+                        dest='random_order',
+                        help='Return database results in random order',
+                        default=False,
+                        action='store_true')
+    parser.add_argument('--limit', '--record-n',
+                        dest='record_n',
+                        help='Number of records for database to return',
+                        default=None, type=int)
+
+
 
