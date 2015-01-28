@@ -9,7 +9,6 @@ from sqlalchemy import and_
 from sqlalchemy.sql import func
 from sqlalchemy.orm import aliased
 from sqlalchemy.dialects import sqlite
-import random
 
 from FlowAnal.utils import Vividict
 from FlowAnal.database.FCS_declarative import *
@@ -452,12 +451,6 @@ class queryDB(object):
                                con=self.db.engine,
                                params=params)
         return df
-
-    def query_random_index(self):
-        """ Return randomized index for query Q """
-        x = range(0, self.q.count())
-        random.shuffle(x)
-        return x
 
 
 def add_mods_to_query(q, **kwargs):
