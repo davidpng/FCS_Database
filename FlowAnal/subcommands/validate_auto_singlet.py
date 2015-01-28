@@ -29,11 +29,8 @@ def build_parser(parser):
     parser.add_argument('dir', help='Directory with Flow FCS files [required]',
                         type=str)
     parser.add_argument('-db', '--db', help='Input sqlite3 db for Flow meta data \
-    [default: db/fcs.db]',
-                        default="db/fcs.db", type=str)
-    parser.add_argument('-outdb', '--outdb', help='Output sqlite3 db for Flow meta data \
-    [default: db/fcs_stats.db]',
-                        default="db/fcs_stats.db", type=str)
+    [default: fcs_meta.db]',
+                        default="fcs_meta.db", type=str)
     parser.add_argument('--comp_flag',
                         help='Comp Mode', 
                         default='table',
@@ -53,10 +50,6 @@ def action(args):
     # Connect to database
     log.info("Loading database input %s" % args.db)
     db = FCSdatabase(db=args.db, rebuild=False)
-
-    # Copy database to out database
-    shutil.copyfile(args.db, args.outdb)
-    out_db = FCSdatabase(db=args.outdb, rebuild=False)
 
     # Create query
     q = db.query(exporttype='dict_dict', getfiles=True, **vars(args))
