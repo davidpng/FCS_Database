@@ -285,9 +285,8 @@ class Test_FCS(TestBase):
         
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,gate_coords=gate_coords,
-                              strict=False, rescale_lim=(-0.5,1.0),
-                              comp_flag='table',singlet_flag='auto',
-                              viable_flag='fixed',classes=5,singlet_verbose=True)
+                              strict=False,comp_flag='table',singlet_flag="fixed",
+                              viable_flag='fixed')
 
         cols = ['FSC-H', 'CD15 FITC']
         b = a.data.loc[100:105, cols]
