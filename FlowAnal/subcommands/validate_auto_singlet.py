@@ -67,7 +67,7 @@ def action(args):
                               strict=False, rescale_lim=(-0.5,1.0),
                               comp_flag='table',singlet_flag='auto',
                               viable_flag='fixed',classes=5,
-                              singlet_verbose=True,save_dir=self.mkoutdir(),
+                              singlet_verbose=True,
                               **vars(args))
             except:
                 fFCS.flag = 'stats_extraction_fail'
