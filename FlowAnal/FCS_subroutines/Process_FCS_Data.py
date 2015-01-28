@@ -38,8 +38,8 @@ class Process_FCS_Data(object):
     """
 
     def __init__(self, FCS, compensation_file, saturation_upper_range=1000,
-                 rescale_lim=(-0.15, 1), strict=True, auto_singlet=False, 
-                 auto_comp=False, **kwargs):
+                 rescale_lim=(-0.15, 1), strict=True, comp_flag = "table",
+                 singlet_flag = "fixed", viable_flag = "fixed", **kwargs):
         """
         Takes an FCS_object, and a spillover library. \n
         Can handle a spillover library as dictionary if keyed on the machine
@@ -55,23 +55,11 @@ class Process_FCS_Data(object):
 
         # save columns because data is redfined after comp
         self.columns = self.__Clean_up_columns(self.FCS.parameters.loc['Channel_Name'])
-
         self.FCS.total_events = self.FCS.data.shape[0]      # initial number of events before gating
 
         self.overlap_matrix = self._load_overlap_matrix(compensation_file)   # load compensation matrix
-        if auto_comp:
-            Tweaked = Auto_Comp_Tweak(self)
-            self.comp_matrix = Tweaked.comp_matrix
-            self.data = Tweaked.data
-            #data is not compensated at this point!
-        else:
-            self.comp_matrix = self._make_comp_matrix(self.overlap_matrix)
-            #simple inversion of the overlap matrix
-            self.data = np.dot(self.FCS.data, self.comp_matrix)   # apply compensation (returns a numpy array)
-        self.data = pd.DataFrame(data=self.data[:, :],
-                                 columns=self.columns,
-                                 dtype=np.float32)  # create a dataframe with columns
-
+        self.__compensation_switch(comp_mode=comp_flag,**kwargs)
+        
         #Saturation Gate might need to go here
         #sat_gate = self._SaturationGate()
 
@@ -86,49 +74,72 @@ class Process_FCS_Data(object):
 
         self.__Rescale(high=rescale_lim[0], low=rescale_lim[1])  # Edits self.data
 
-        self.__patch()
+        self.__patch() # flips axis so that things display correctly
         self.FCS.data = self.data  # update FCS.data
         
-        if auto_singlet:
+        if 'gate_coords' in kwargs:   # if gate coord dictionary provided, do initial cleanup
+            self.coords = kwargs['gate_coords']
+        else:
+            self.coords = None
+        self.__singlet_switch(singlet_mode=singlet_flag,**kwargs)
+        self.__viable_switch(viable_mode=viable_flag,**kwargs)
+            
+        self.FCS.data = self.data  # update FCS.data
+        del self.data
+        
+    def __compensation_switch(self,comp_mode,**kwargs):
+        """defines viable gating modes"""
+        if comp_mode == None:
+            pass
+        elif comp_mode.lower() == "auto":
+            Tweaked = Auto_Comp_Tweak(self)
+            self.comp_matrix = Tweaked.comp_matrix
+            self.data = Tweaked.data
+            #data is not compensated at this point!
+        elif comp_mode.lower() == "table":
+            self.comp_matrix = self._make_comp_matrix(self.overlap_matrix)
+            #simple inversion of the overlap matrix
+            self.data = np.dot(self.FCS.data, self.comp_matrix)   # apply compensation (returns a numpy array)
+        else:
+            raise(ValueError,"Compenstation Mode {} is Undefined".format(comp_mode))
+        self.data = pd.DataFrame(data=self.data[:, :],
+                                 columns=self.columns,
+                                 dtype=np.float32)  # create a dataframe with columns
+
+            
+    def __singlet_switch(self,singlet_mode,**kwargs):
+        """defines singlet gating modes"""
+        if singlet_mode == None:
+            self.FCS.singlet_remain = self.FCS.data.shape[0]
+        elif singlet_mode.lower() == "auto":
             auto_gate_obj = self.__auto_singlet_gating(**kwargs)
             singlet_mask = auto_gate_obj.singlet_mask
             self.FCS.singlet_remain,percent_loss = auto_gate_obj.calculate_stats()
             self.data = self.data[singlet_mask]
-           
-            #not sure how we want to handle things that fail an auto gating
-            #perhaps go to regular gating method using gate_coord as below?
-            
-        elif 'gate_coords' in kwargs:   # if gate coord dictionary provided, do initial cleanup
-            self.coords = kwargs['gate_coords']
-
-            if self.coords.has_key('singlet') and ('nosinglet' not in kwargs
-                                                   or kwargs['nosinglet'] is False):
-                singlet_mask = self._gating(self.data, 'FSC-A', 'FSC-H', self.coords['singlet'])
-                self.FCS.singlet_remain = np.sum(singlet_mask)
-                self.data = self.data[singlet_mask]
-            else:
-                self.FCS.singlet_remain = self.FCS.data.shape[0]
-
-            if self.coords.has_key('viable') and ('noviability' not in kwargs
-                                                  or kwargs['noviability'] is False):
-                viable_mask = self._gating(self.data, 'SSC-H', 'FSC-H', self.coords['viable'])
-                self.FCS.viable_remain = np.sum(viable_mask)
-                self.data = self.data[viable_mask]
-            else:
-                self.FCS.viable_remain = self.FCS.data.shape[0]
-
+        elif singlet_mode.lower() == "fixed" and 'gate_coords' in kwargs:
+            singlet_mask = self._gating(self.data, 'FSC-A', 'FSC-H', self.coords['singlet'])
+            self.FCS.singlet_remain = np.sum(singlet_mask)
+            self.data = self.data[singlet_mask]
         else:
-            self.coords = None
-            self.FCS.viable_remain = self.FCS.data.shape[0]
-            self.FCS.singlet_remain = self.FCS.data.shape[0]
+            raise(ValueError,"Singlet Mode: {} is Undefined".format(singlet_mode))        
 
-        self.FCS.data = self.data  # update FCS.data
-        del self.data
-        
+    def __viable_switch(self,viable_mode,**kwargs):
+        """defines viable gating modes"""
+        if viable_mode == None:
+            self.FCS.viable_remain = self.FCS.data.shape[0]              
+        elif viable_mode.lower() == "auto":
+            raise(NotImplementedError,"Auto Viability Gating has not been implemented")
+        elif viable_mode.lower() == "fixed" and 'gate_coords' in kwargs:
+            viable_mask = self._gating(self.data, 'SSC-H', 'FSC-H', self.coords['viable'])
+            self.FCS.viable_remain = np.sum(viable_mask)
+            self.data = self.data[viable_mask]
+        else:
+            raise(ValueError,"Viablity Mode: {} is Undefined".format(viable_mode))        
 
     def __auto_singlet_gating(self,**kwargs):
-        
-        return GMM_doublet_detection(data=self.data,**kwargs)
+        return GMM_doublet_detection(data=self.data,
+                                     filename=self.FCS.filename,
+                                     **kwargs)
         
     def __Clean_up_columns(self, columns):
         """

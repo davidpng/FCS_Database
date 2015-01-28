@@ -21,11 +21,12 @@ from scipy.ndimage.filters import gaussian_filter1d
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from os import getcwd, path
 import logging
 log = logging.getLogger(__name__)
 
 class GMM_doublet_detection(object):
-    def __init__(self,data,classes=4,singlet_verbose=False,**kwargs):
+    def __init__(self,data,filename='singlet_',classes=4,singlet_verbose=False,**kwargs):
         self.num_classes = classes
         self.FSC = data[['FSC-A','FSC-H']]
         #fit and apply GMM to data to make annotations
@@ -33,9 +34,14 @@ class GMM_doublet_detection(object):
         self.singlet_mask = self.__choose_classes_radial(**kwargs)
 
         if singlet_verbose==True:
-            self.__display_gating("/home/ngdavid/Desktop/singlet_gating.png") #find a place to put theses?
-            self.__display_mask("/home/ngdavid/Desktop/singlet_mask.png")
-                    
+            if "save_dir" in kwargs:
+                out_dir = kwargs["save_dir"] 
+            else:
+                out_dir = getcwd()
+            fn = filename[:8]
+            self.__display_gating(path.join(out_dir,fn + "_gating.png")) #find a place to put theses?
+            self.__display_mask(path.join(out_dir,fn + "_mask.png"))
+            self.__display_radial_basis_histogram(path.join(out_dir,fn + "_histogram.png"))
     def calculate_stats(self):
         """
         This function generates statistics about the loss fraction of the filter
@@ -108,13 +114,17 @@ class GMM_doublet_detection(object):
 
         for class_to_dismiss in classes_to_dismiss:
             output = output | (self.class_anno == class_to_dismiss)
-
+            
+        self.basis = basis
+        self.basis_space = basis_space
+        self.filtered_basis = filtered_basis
+            
         return np.logical_not(output)
         
     def __display_radial_basis_histogram(self,filename):
         plt.figure()
-        plt.plot(basis_space[:-1],filtered_basis)
-        plt.plot(basis_space[:-1],basis)
+        plt.plot(self.basis_space[:-1],self.filtered_basis)
+        plt.plot(self.basis_space[:-1],self.basis)
         plt.xlabel('radians')
         plt.ylabel('count')
         plt.title("Filtered Projection on the radial basis")
