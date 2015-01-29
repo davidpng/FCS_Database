@@ -4,8 +4,6 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.schema import ForeignKeyConstraint
 
-# Base = declarative_base()
-
 
 class Base(object):
     @declared_attr
@@ -52,7 +50,7 @@ class TubeCases(Base):
     num_events = Column(Integer)
     cytometer = Column(String(10))
     cytnum = Column(String(3))
-    empty = Column(Boolean, nullable=False)
+    flag = Column(String(30), nullable=False)
     error_message = Column(Text)
     version = Column(String(30), nullable=False)
 
@@ -61,7 +59,7 @@ class TubeCases(Base):
 
 Index('ix_TubeCases_case_num', TubeCases.case_number)
 Index('ix_TubeCases_date_cytnum', TubeCases.date, TubeCases.cytnum)
-Index('ix_TubeCases_file', TubeCases.filename, TubeCases.dirname, unique=True)
+Index('ix_TubeCases_file', TubeCases.filename, TubeCases.dirname)  # , unique=True)
 Index('ix_TubeCases_tube_type_instance', TubeCases.tube_type_instance)
 
 
@@ -76,7 +74,7 @@ class CustomCaseData(Base):
     __tablename__ = 'CustomCaseData'
     case_number = Column(String(10), ForeignKey('Cases.case_number'),
                          nullable=False, primary_key=True)
-    group = Column(String(30))
+    category = Column(String(30))
 
     Cases = relationship("Cases", uselist=False, backref='CustomData')
 
@@ -204,4 +202,3 @@ if __name__ == '__main__':
     sqlalchemy = 'sqlite:////home/local/AMC/hermands/repos/flow_anal/db/test_alchemy.db'
     engine = create_engine(sqlalchemy)
     Base.metadata.create_all(engine)
-

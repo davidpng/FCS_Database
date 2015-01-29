@@ -77,18 +77,18 @@ class Test_query_database(TestBase):
                   'daterange': ['2012-01-01', '2012-01-04'],
                   'getfiles': True}
         self.assertEqual(db.query(**q_dict).results,
-                         {u'12-00031': {1: u'testfiles/12-00031_Myeloid 1.fcs'}})
+                         {u'12-00031': {0: u'testfiles/12-00031_Myeloid 1.fcs'}})
 
         # Test empty query
         q_dict = {'getfiles': True}
         self.assertEqual(db.query(**q_dict).results,
-                         {u'12-00031': {1: u'testfiles/12-00031_Myeloid 1.fcs'}})
+                         {u'12-00031': {0: u'testfiles/12-00031_Myeloid 1.fcs'}})
 
         # Test case query POS
         q_dict = {'getfiles': True,
                   'cases': ['12-00031']}
         self.assertEqual(db.query(**q_dict).results,
-                         {u'12-00031': {1: u'testfiles/12-00031_Myeloid 1.fcs'}})
+                         {u'12-00031': {0: u'testfiles/12-00031_Myeloid 1.fcs'}})
 
         # Test case query POS
         q_dict = {'getfiles': True,

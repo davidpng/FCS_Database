@@ -2,7 +2,6 @@
 
 import logging
 import pandas as pd
-# from inspect import getsourcelines
 from sqlalchemy import inspect
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
@@ -13,6 +12,7 @@ from hsqr.lab_pred import Lab_pred_table
 from query_database import queryDB
 from FlowAnal.__init__ import package_data
 from FlowAnal.database.FCS_declarative import *
+from FlowAnal.FCS import FCS
 
 log = logging.getLogger(__name__)
 
@@ -61,7 +61,8 @@ class FCSdatabase(SqliteConnection):
         self.insp = inspect(self.engine)
 
         self.engine.conn = self.engine.connect()
-        self.engine.conn.execute("ANALYZE")
+        if rebuild is True:
+            self.engine.conn.execute("ANALYZE")
 
         # Capture datetime
         self.creation_date = queryDB(self, getCreationDate=True).results
@@ -134,24 +135,73 @@ class FCSdatabase(SqliteConnection):
         s.close()
         self.add_df(df=a, table='TubeTypesInstances')
 
-    def addCustomCaseData(self, file):
+    def removeCases(self, df=None, ll=None):
+        """ Method to remove a set of cases from the database based on a dataframe (or list of lists)
+
+        df --
+        ll -- list of [case, case_tube_idx, error_message]
+        """
+
+        if ll is not None:
+            a = pd.DataFrame.from_records(data=ll)
+        elif df is not None:
+            a = df
+        else:
+            raise ValueError('No cases specified to remove, must provide df or ll')
+
+        print a
+        quit()
+
+    def addCustomCaseData(self, file, whittle=True):
         """ Method to load file (tab-text) into database table CustomCaseData
 
-        This must include <case_number> and <group> columns
+        This must include <case_number> and <category> columns
         Note: this will overwrite existing data
         """
 
         a = Lab_pred_table(db=self, file=file)
-        a_cols = a.dat.columns.tolist()
-        db_cols = CustomCaseData.__mapper__.columns.keys()
-        cols = [c for c in a_cols if c in db_cols]
 
+        # ### Handle column names ###
+        a.dat.columns = [c.lower() for c in a.dat.columns.values]
+        a_cols = a.dat.columns.tolist()
+
+        # Convert 'CASE*' => 'case_number'
+        case_index = next((index for index, value in enumerate(a_cols)
+                           if value[:4] == 'case'), None)
+        if case_index is not None:
+            a_cols[case_index] = 'case_number'
+
+        db_cols = CustomCaseData.__mapper__.columns.keys()
+        cols = [c for c in a_cols if c.lower() in db_cols]
+
+        # Add second column if only captured 1 column and rename to <category>
+        if (len(db_cols) > 1) and (len(cols) == 1):
+            cols.append(db_cols[1])
+            a_cols[1] = cols[1]
+
+        a.dat.columns = a_cols
+
+        # ### If one of columns matches use it ###
         if (len(cols) > 0):
             log.info('Adding file %s to db %s' % (file, self.db_file))
 
             a.dat = a.dat[cols]
+
+            # Identify cases in custom data but not in meta db
+            db_case_list = zip(*queryDB(self, getCases=True, not_flagged=False).results)[0]
+            cases_missing_in_db = a.dat.case_number.loc[~a.dat.case_number.isin(db_case_list)].\
+                               tolist()
+
+            # Write custom data
             a.dat.to_sql('CustomCaseData', con=self.engine,
                          if_exists='replace', index=False)
+
+            # Add empty FCS objects to db for each in cases_to_exclude
+            for c in cases_missing_in_db:
+                log.info('Making empty FCS for {}'.format(c))
+                fFCS = FCS(case_number=c,
+                           flag='CustomData_ONLY',
+                           error_message='Added to db because in custom list but not in metadb')
+                fFCS.meta_to_db(db=self, add_lists=True)
         else:
-            print "File %s does not have columns 'case_number' and 'group'" % (file)
-            raise
+            raise ValueError("File %s does not have columns 'case_number' and 'category'" % (file))

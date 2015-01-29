@@ -12,7 +12,8 @@ __status__ = "Subroutine - prototype"
 
 from os.path import basename
 from re import findall
-
+import logging
+log = logging.getLogger(__name__)
 
 class empty_FCS(object):
     """ load FCS object for which loadFCS() fails
@@ -28,13 +29,28 @@ class empty_FCS(object):
     .case_tube
     .version
     """
-    def __init__(self, FCS, error_message, filepath, version, **kwargs):
-        self.filepath = filepath
-        self.filename = basename(filepath)
-        self.case_tube = self.filename.strip('.fcs')
-        self.case_number = self.__filepath_to_case_number()
+    def __init__(self, FCS, error_message, version,
+                 filepath=None, **kwargs):
+
+        if 'case_number' in kwargs:
+            self.filepath = 'Does not exist'
+            self.filename = 'Does not exist'
+            self.case_tube = 'Not specified'
+            self.case_number = kwargs['case_number']
+        elif filepath is not None:
+            self.filepath = filepath
+            self.filename = basename(filepath)
+            self.case_tube = self.filename.strip('.fcs')
+            self.case_number = self.__filepath_to_case_number()
+        else:
+            raise ValueError('Making empty FCS object without filepath or case_number')
+
         self.version = version
         self.error_message = error_message
+
+        if 'flag' in kwargs:
+            self.flag = kwargs['flag']
+
         self.__export(FCS=FCS)
 
     def __export(self, FCS):
@@ -46,6 +62,9 @@ class empty_FCS(object):
         FCS.version = self.version
         FCS.empty = True
         FCS.error_message = self.error_message
+
+        if hasattr(self, 'flag'):
+            FCS.flag = self.flag
 
     def __filepath_to_case_number(self):
         """ Capture case number from filepath

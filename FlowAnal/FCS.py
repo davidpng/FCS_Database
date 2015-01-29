@@ -1,11 +1,20 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Sep 30 18:34:54 2014
+This files descrbies the FCS class which contains IO handling for 
+FCS type data, post processing, statistics extraction to a database,
+meta_info extraction to a database, visualization and Feature Extraction
+(i.e. binning) to an HDF5 file
 
-
-@author: David Ng, MD
+@author: ngdavid
 """
-import logging
+__author__ = "David Ng, MD"
+__copyright__ = "Copyright 2014, David Ng"
+__license__ = "GPL v3"
+__version__ = "1.7"
+__maintainer__ = "David Ng"
+__email__ = "ngdavid@uw.edu"
+__status__ = "Production"
 
 from FCS_subroutines.loadFCS import loadFCS
 from FCS_subroutines.Process_FCS_Data import Process_FCS_Data
@@ -15,10 +24,11 @@ from FCS_subroutines.FCSstats_to_database import FCSstats_to_database
 from FCS_subroutines.Extract_HistoStats import Extract_HistoStats
 from FCS_subroutines.Comp_Visualization import Comp_Visualization
 from FCS_subroutines.ND_Feature_Extraction import ND_Feature_Extraction
-
+from FCS_subroutines.p2D_Feature_Extraction import p2D_Feature_Extraction
 from . import __version__
-import warnings
 
+import warnings
+import logging
 log = logging.getLogger(__name__)
 
 
@@ -41,23 +51,25 @@ class FCS(object):
                  filepaths=None,
                  filepath=None,
                  db=None,
+                 case_tube_idx=0,
                  **kwargs):
         self.__version = version
         self.__filepath = filepath
-
+        self.__comp_scale_ran = False
         if filepath is not None:
+            self.case_tube_idx = case_tube_idx
             try:
                 self.load_from_file(**kwargs)
             except Exception, e:
                 warnings.warn("loading FCS as empty because %s" % e)
                 self.make_emptyFCS(error_message=str(e), **kwargs)
         elif filepaths is not None:
-            raise "Not implemneted yet"
+            raise Exception("Not implemneted yet!!!!!!!!!")
             self.make_inferred_FCS(filepaths=filepaths)
         elif db is not None:
             self.load_from_db(db)
         else:
-            log.info("WARNING: did not load any [meta] data")
+            self.make_emptyFCS(**kwargs)
 
     def load_from_file(self, **kwargs):
         """ Import FCS data from filepath
@@ -87,13 +99,17 @@ class FCS(object):
                             **kwargs):
         """ Updates self.data via call of Process_FCS_Data
         """
-        Process_FCS_Data(FCS=self, compensation_file=compensation_file,
-                         saturation_upper_range=saturation_upper_range,
-                         rescale_lim=rescale_lim,
-                         strict=strict,
-                         auto_comp=auto_comp,
-                         **kwargs)
-
+        if not self.__comp_scale_ran:
+            Process_FCS_Data(FCS=self, compensation_file=compensation_file,
+                             saturation_upper_range=saturation_upper_range,
+                             rescale_lim=rescale_lim,
+                             strict=strict,
+                             auto_comp=auto_comp,
+                             **kwargs)
+            self.__comp_scale_ran = True
+        else:
+            raise RuntimeError("Comp_Scale_FCS_Data method has already been run")
+            
     def feature_extraction(self, extraction_type='Full', bins=10, **kwargs):
         """
         Quasi interal function to FCS, to be accessed by other functions?
@@ -101,15 +117,18 @@ class FCS(object):
         extraction type - flag for 2-D vs N-D binning
         **kwargs - to pass bin size information etc
         """
-        type_flag = extraction_type.title()
-        if type_flag == 'Full':
+        type_flag = extraction_type.lower()
+        if type_flag == 'full':
             self.FCS_features = ND_Feature_Extraction(FCS=self,
                                                       bins=bins,
                                                       **kwargs)
+
         elif type_flag == '2d':
-            raise "Not Implemented yet"
+            self.FCS_features = p2D_Feature_Extraction(FCS=self,
+                                                      bins=bins,
+                                                      **kwargs)
         else:
-            raise "Extraction type undefined"
+            raise ValueError("Extraction type undefined")
 
     def Push_FCS_features_to_HDF5(self,case_tube_index, HDF5_object, db_h):
         """
@@ -160,35 +179,6 @@ class FCS(object):
         """ Add histostats to db """
 
         FCSstats_to_database(FCS=self, db=db)
-
-    def _get_case_tube_index(self, db):
-        """ Read a meta database to get the case_tube_index that was created by the TubeCases
-        table upon entry
-
-        This relies upon it being the most recent created for a paticular case_tube, filename, date
-        """
-
-        if self.empty is False:
-            # Capture database-created case_tube_idx
-            s = db.Session()
-            TubeCases = db.meta.tables['TubeCases']
-
-            # Pick last appropriate index
-            tmp = s.query(TubeCases.c.case_tube_idx).\
-                  filter(TubeCases.c.case_tube == unicode(self.case_tube)).\
-                  filter(TubeCases.c.filename == unicode(self.filename)).\
-                  filter(TubeCases.c.date == str(self.date)).all()
-            tmp = zip(*tmp)[0]
-            self.case_tube_idx = max(tmp)
-            log.debug('Getting case_tube_idx from db for Case_tube: %s, Filename: %s, Date: %s ==> %s'
-                     % (self.case_tube,
-                        self.filename,
-                        self.date,
-                        self.case_tube_idx))
-            s.close()
-        else:
-            self.case_tube_idx = None
-
 
 if __name__ == '__main__':
     import os

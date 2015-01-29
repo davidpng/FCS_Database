@@ -9,11 +9,13 @@ __author__ = "Daniel Herman, MD"
 __copyright__ = "Copyright 2014"
 __license__ = "GPL v3"
 __version__ = "1.0"
-__maintainer__ = "David Ng"
+__maintainer__ = "Daniel Herman"
 __email__ = "hermands@uw.edu"
 __status__ = "Subroutine - prototype"
 
 from os.path import relpath, dirname
+import logging
+log = logging.getLogger(__name__)
 
 
 class FCSmeta_to_database(object):
@@ -40,6 +42,7 @@ class FCSmeta_to_database(object):
             self.push_TubeCase(dir=dir)
             self.push_parameters()
         else:  # empty FCS push
+            log.info('Pushing empty FCS {}'.format(self.FCS.case_tube))
             self.push_TubeCase(dir=dir)
 
     def __make_meta(self, dir):
@@ -49,16 +52,25 @@ class FCSmeta_to_database(object):
                      'filename': self.FCS.filename,
                      'case_number': self.FCS.case_number,
                      'version': self.FCS.version,
-                     'dirname': relpath(dirname(self.FCS.filepath), start=dir),
-                     'empty': self.FCS.empty}
+                     'case_tube_idx': self.FCS.case_tube_idx}
 
         if self.FCS.empty is False:
             meta_data['date'] = self.FCS.date
             meta_data['num_events'] = self.FCS.num_events
             meta_data['cytometer'] = self.FCS.cytometer
             meta_data['cytnum'] = self.FCS.cytnum
+            meta_data['flag'] = 'GOOD'
         else:
             meta_data['error_message'] = self.FCS.error_message
+            if hasattr(self.FCS, 'flag'):
+                meta_data['flag'] = self.FCS.flag
+            else:
+                meta_data['flag'] = 'empty'
+
+        if self.FCS.filepath != 'Does not exist' and dir is not None:
+            meta_data['dirname'] = relpath(dirname(self.FCS.filepath), start=dir)
+        else:
+            meta_data['dirname'] = 'Does not exist'
 
         return meta_data
 
@@ -104,9 +116,6 @@ class FCSmeta_to_database(object):
 
         # Push case+tube meta information
         self.db.add_dict(self.meta, table='TubeCases')
-
-        # Retrieve the case_tube_idx into self.FCS.case_tube_idx
-        self.FCS._get_case_tube_index(db=self.db)
 
     def push_parameters(self):
         """ Export Pmt+Tube+Case parameters from FCS object to DB """

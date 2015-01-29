@@ -40,16 +40,16 @@ class FlowQC(object):
             self.TubeStats.to_sql('full_TubeStats', con=self.db.engine, if_exists='replace',
                                   index=False)
 
+        self.PmtCompCorr = self.__get_query_res('PmtCompCorr', **kwargs)
+        if testing is True:
+            self.PmtCompCorr.to_sql('full_PmtCompCorr', con=self.db.engine,
+                                    if_exists='replace', index=False)
+
         # self.PmtStats = self.__get_query_res('PmtStats', index=['date', 'Channel_Number'],
         #                                      normalize_time=False, **kwargs)
         # if testing is True:
         #     self.PmtStats.to_sql('full_PmtStats', con=self.db.engine,
         # if_exists='replace', index=False)
-
-        self.PmtCompCorr = self.__get_query_res('PmtCompCorr', **kwargs)
-        if testing is True:
-            self.PmtCompCorr.to_sql('full_PmtCompCorr', con=self.db.engine,
-                                    if_exists='replace', index=False)
 
         # self.histos = self.__get_histos(**kwargs)
         # if testing is True:
