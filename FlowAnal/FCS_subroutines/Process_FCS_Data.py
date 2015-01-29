@@ -13,12 +13,15 @@ __maintainer__ = "David Ng"
 __email__ = "ngdavid@uw.edu"
 __status__ = "Production"
 
-# import re
 import pandas as pd
 import numpy as np
 from scipy.interpolate import interp1d
 from matplotlib.path import Path
 from Auto_Comp_Tweak import Auto_Comp_Tweak
+from Auto_Singlet import GMM_doublet_detection
+
+import logging
+log = logging.getLogger(__name__)
 
 
 class Process_FCS_Data(object):
@@ -35,7 +38,8 @@ class Process_FCS_Data(object):
     """
 
     def __init__(self, FCS, compensation_file, saturation_upper_range=1000,
-                 rescale_lim=(-0.15, 1), strict=True, auto_comp=False, **kwargs):
+                 rescale_lim=(-0.15, 1), strict=True, comp_flag = "table",
+                 singlet_flag = "fixed", viable_flag = "fixed", **kwargs):
         """
         Takes an FCS_object, and a spillover library. \n
         Can handle a spillover library as dictionary if keyed on the machine
@@ -51,25 +55,14 @@ class Process_FCS_Data(object):
 
         # save columns because data is redfined after comp
         self.columns = self.__Clean_up_columns(self.FCS.parameters.loc['Channel_Name'])
-
         self.FCS.total_events = self.FCS.data.shape[0]      # initial number of events before gating
 
         self.overlap_matrix = self._load_overlap_matrix(compensation_file)   # load compensation matrix
-        if auto_comp:
-            Tweaked = Auto_Comp_Tweak(self)
-            self.comp_matrix = Tweaked.comp_matrix
-            self.data = Tweaked.data
-            #data is not compensated at this point!
-        else:
-            self.comp_matrix = self._make_comp_matrix(self.overlap_matrix)
-            #simple inversion of the overlap matrix
-            self.data = np.dot(self.FCS.data, self.comp_matrix)   # apply compensation (returns a numpy array)
-        self.data = pd.DataFrame(data=self.data[:, :],
-                                 columns=self.columns,
-                                 dtype=np.float32)  # create a dataframe with columns
-
+        self.__compensation_switch(comp_mode=comp_flag,**kwargs)
+        
         #Saturation Gate might need to go here
         #sat_gate = self._SaturationGate()
+
         self.data = self._LogicleRescale(self.data, T=2**18, M=4, W=0.5, A=0)
         self.FCS.data = self.data  # update FCS.data
 
@@ -77,28 +70,77 @@ class Process_FCS_Data(object):
         self.data = self.data[nan_mask]
 
         limit_mask = self.__limit_gate(self.data, high=rescale_lim[1], low=rescale_lim[0])
-        self.data = self.data[limit_mask]
+        self.data = self.data[limit_mask] #this might duplicate the saturation_gate
 
         self.__Rescale(high=rescale_lim[0], low=rescale_lim[1])  # Edits self.data
 
-        self.__patch()
+        self.__patch() # flips axis so that things display correctly
         self.FCS.data = self.data  # update FCS.data
-
+        
         if 'gate_coords' in kwargs:   # if gate coord dictionary provided, do initial cleanup
-            coords = kwargs['gate_coords']
-            self.coords = coords
-            if coords.has_key('viable'):
-                viable_mask = self._gating(self.data, 'SSC-H', 'FSC-H', coords['viable'])
-                self.FCS.viable_remain = np.sum(viable_mask)
-                self.data = self.data[viable_mask]
-            if coords.has_key('singlet'):
-                singlet_mask = self._gating(self.data, 'FSC-A', 'FSC-H', coords['singlet'])
-                self.FCS.singlet_remain = np.sum(singlet_mask)
-                self.data = self.data[singlet_mask]
+            self.coords = kwargs['gate_coords']
         else:
             self.coords = None
+        self.__singlet_switch(singlet_mode=singlet_flag,**kwargs)
+        self.__viable_switch(viable_mode=viable_flag,**kwargs)
+            
         self.FCS.data = self.data  # update FCS.data
+        del self.data
+        
+    def __compensation_switch(self,comp_mode,**kwargs):
+        """defines viable gating modes"""
+        if comp_mode == None:
+            pass
+        elif comp_mode.lower() == "auto":
+            Tweaked = Auto_Comp_Tweak(self)
+            self.comp_matrix = Tweaked.comp_matrix
+            self.data = Tweaked.data
+            #data is not compensated at this point!
+        elif comp_mode.lower() == "table":
+            self.comp_matrix = self._make_comp_matrix(self.overlap_matrix)
+            #simple inversion of the overlap matrix
+            self.data = np.dot(self.FCS.data, self.comp_matrix)   # apply compensation (returns a numpy array)
+        else:
+            raise(ValueError,"Compenstation Mode {} is Undefined".format(comp_mode))
+        self.data = pd.DataFrame(data=self.data[:, :],
+                                 columns=self.columns,
+                                 dtype=np.float32)  # create a dataframe with columns
 
+            
+    def __singlet_switch(self,singlet_mode,**kwargs):
+        """defines singlet gating modes"""
+        if singlet_mode == None:
+            self.FCS.singlet_remain = self.FCS.data.shape[0]
+        elif singlet_mode.lower() == "auto":
+            auto_gate_obj = self.__auto_singlet_gating(**kwargs)
+            singlet_mask = auto_gate_obj.singlet_mask
+            self.FCS.singlet_remain,percent_loss = auto_gate_obj.calculate_stats()
+            self.data = self.data[singlet_mask]
+        elif singlet_mode.lower() == "fixed" and 'gate_coords' in kwargs:
+            singlet_mask = self._gating(self.data, 'FSC-A', 'FSC-H', self.coords['singlet'])
+            self.FCS.singlet_remain = np.sum(singlet_mask)
+            self.data = self.data[singlet_mask]
+        else:
+            raise(ValueError,"Singlet Mode: {} is Undefined".format(singlet_mode))        
+
+    def __viable_switch(self,viable_mode,**kwargs):
+        """defines viable gating modes"""
+        if viable_mode == None:
+            self.FCS.viable_remain = self.FCS.data.shape[0]              
+        elif viable_mode.lower() == "auto":
+            raise(NotImplementedError,"Auto Viability Gating has not been implemented")
+        elif viable_mode.lower() == "fixed" and 'gate_coords' in kwargs:
+            viable_mask = self._gating(self.data, 'SSC-H', 'FSC-H', self.coords['viable'])
+            self.FCS.viable_remain = np.sum(viable_mask)
+            self.data = self.data[viable_mask]
+        else:
+            raise(ValueError,"Viablity Mode: {} is Undefined".format(viable_mode))        
+
+    def __auto_singlet_gating(self,**kwargs):
+        return GMM_doublet_detection(data=self.data,
+                                     filename=self.FCS.filename,
+                                     **kwargs)
+        
     def __Clean_up_columns(self, columns):
         """
         Provides error handling and clean up for manually entered parameter names
@@ -231,6 +273,7 @@ class Process_FCS_Data(object):
         """
         Returns a logical index given set of gate coordinates
         """
+        log.debug('Applying gate coords {} to axes {} and {}'.format(coords, x_ax, y_ax))
         gate = Path(coords, closed=True)
         projection = np.array(DF_array_data[[x_ax, y_ax]])
         index = gate.contains_points(projection)

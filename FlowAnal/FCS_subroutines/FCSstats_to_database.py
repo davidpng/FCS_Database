@@ -17,6 +17,7 @@ import pandas as pd
 import logging
 log = logging.getLogger(__name__)
 
+
 class FCSstats_to_database(object):
     """ Export the stats/histo data in an FCS object to database
 
@@ -31,20 +32,25 @@ class FCSstats_to_database(object):
         self.FCS = FCS
         self.db = db
 
-        if hasattr(self.FCS, 'PmtStats') and hasattr(self.FCS, 'TubeStats'):
-            self.__push_stats()
+        if hasattr(self.FCS, 'flag') and self.FCS.flag != 'GOOD':
+            db.set_flag(self.FCS.case_tube_idx,
+                        self.FCS.flag,
+                        self.FCS.error_message)
         else:
-            raise "Missing stats"
+            if hasattr(self.FCS, 'PmtStats') and hasattr(self.FCS, 'TubeStats'):
+                self.__push_stats()
+            else:
+                raise "Missing stats"
 
-        if hasattr(self.FCS, 'histos'):
-            self.__push_histos()
-        else:
-            raise "Missing histos"
+            if hasattr(self.FCS, 'histos'):
+                self.__push_histos()
+            else:
+                raise "Missing histos"
 
-        if hasattr(self.FCS, 'comp_correlation'):
-            self.__push_comp_corr()
-        else:
-            raise "Missing compensation correlation"
+            if hasattr(self.FCS, 'comp_correlation'):
+                self.__push_comp_corr()
+            else:
+                raise "Missing compensation correlation"
 
     def __push_stats(self):
         """ Export Pmt event stats and Tube event stats """

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Sep 30 18:34:54 2014
-This files descrbies the FCS class which contains IO handling for 
+This files descrbies the FCS class which contains IO handling for
 FCS type data, post processing, statistics extraction to a database,
 meta_info extraction to a database, visualization and Feature Extraction
 (i.e. binning) to an HDF5 file
@@ -27,7 +27,6 @@ from FCS_subroutines.ND_Feature_Extraction import ND_Feature_Extraction
 from FCS_subroutines.p2D_Feature_Extraction import p2D_Feature_Extraction
 from . import __version__
 
-import warnings
 import logging
 log = logging.getLogger(__name__)
 
@@ -61,7 +60,6 @@ class FCS(object):
             try:
                 self.load_from_file(**kwargs)
             except Exception, e:
-                warnings.warn("loading FCS as empty because %s" % e)
                 self.make_emptyFCS(error_message=str(e), **kwargs)
         elif filepaths is not None:
             raise Exception("Not implemneted yet!!!!!!!!!")
@@ -109,7 +107,7 @@ class FCS(object):
             self.__comp_scale_ran = True
         else:
             raise RuntimeError("Comp_Scale_FCS_Data method has already been run")
-            
+
     def feature_extraction(self, extraction_type='Full', bins=10, **kwargs):
         """
         Quasi interal function to FCS, to be accessed by other functions?
@@ -180,6 +178,15 @@ class FCS(object):
 
         FCSstats_to_database(FCS=self, db=db)
 
+    def clear_FCS_cache(self):
+        """ clears FCS data cache 
+        Use with caution, no other functions can run after this has been executed
+        """
+        try:
+            del self.data
+        except:
+            log.info("FCS.data does not exist")
+        
 if __name__ == '__main__':
     import os
     import sys

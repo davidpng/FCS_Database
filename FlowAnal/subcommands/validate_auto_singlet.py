@@ -29,29 +29,27 @@ def build_parser(parser):
     parser.add_argument('dir', help='Directory with Flow FCS files [required]',
                         type=str)
     parser.add_argument('-db', '--db', help='Input sqlite3 db for Flow meta data \
-    [default: db/fcs.db]',
-                        default="db/fcs.db", type=str)
-    parser.add_argument('-outdb', '--outdb', help='Output sqlite3 db for Flow meta data \
-    [default: db/fcs_stats.db]',
-                        default="db/fcs_stats.db", type=str)
-    parser.add_argument('--nosinglet', help='Turn off the singlet gate', action='store_true',
-                        default=False)
-    parser.add_argument('--noviability', help='Turn off the singlet gate', action='store_true',
-                        default=False)
-    parser.add_argument('-n', '--n', help='Limit to n files (for testing)', default=None,
-                        type=int)
+    [default: fcs_meta.db]',
+                        default="fcs_meta.db", type=str)
+    parser.add_argument('--comp_flag',
+                        help='Comp Mode', 
+                        default='table',
+                        type=str)
+    parser.add_argument('--singlet_flag', 
+                        help='Singlet gate mode',
+                        default='Auto',
+                        type=str)
+    parser.add_argument('--viable_flag',       
+                        help='Viablity gate mode', 
+                        default="Fixed",
+                        type=str)
     add_filter_args(parser)
-
 
 def action(args):
 
     # Connect to database
     log.info("Loading database input %s" % args.db)
     db = FCSdatabase(db=args.db, rebuild=False)
-
-    # Copy database to out database
-    shutil.copyfile(args.db, args.outdb)
-    out_db = FCSdatabase(db=args.outdb, rebuild=False)
 
     # Create query
     q = db.query(exporttype='dict_dict', getfiles=True, **vars(args))
@@ -65,19 +63,13 @@ def action(args):
             fFCS = FCS(filepath=filepath, case_tube_idx=case_tube_idx, import_dataframe=True)
 
             try:
-                fFCS.comp_scale_FCS_data(compensation_file=comp_file,
-                                         gate_coords=gate_coords,
-                                         strict=False, auto_comp=False, **vars(args))
-                fFCS.extract_FCS_histostats()
+                fFCS.comp_scale_FCS_data(compensation_file=comp_file,gate_coords=gate_coords,
+                              strict=False, rescale_lim=(-0.5,1.0),
+                              classes=5,singlet_verbose=True,
+                              **vars(args))
+                
             except:
+                log.debug("Comp Scale failed")
                 fFCS.flag = 'stats_extraction_fail'
                 fFCS.error_message = str(sys.exc_info()[0])
-
-            fFCS.histostats_to_db(db=out_db)
-
-            n += 1
-            if args.n is not None and n >= args.n:
-                done = True
-                break
-        if done is True:
-            break
+                print(

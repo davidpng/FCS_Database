@@ -91,7 +91,7 @@ class queryDB(object):
         self.q.joined_tables = ['TubeCases', 'TubeTypesInstances']
 
         # Add common filters
-        self.__add_filters_to_query(**kwargs)
+        self.__add_mods_to_query(**kwargs)
 
         log.debug('Query:')
         log.debug(self.q.statement)
@@ -104,7 +104,7 @@ class queryDB(object):
                     files[x.case_number][x.tube_type][x.date] = path.join(x.dirname, x.filename)
             except:
                 self.session.rollback()
-                raise "Failed to query TubeCases"
+                raise Exception("Failed to query TubeCases")
             return files
         elif exporttype == 'df':
             df = self.__q2df()
@@ -138,7 +138,7 @@ class queryDB(object):
         self.q.joined_tables = ['TubeCases']
 
         # Add common filters
-        self.__add_filters_to_query(**kwargs)
+        self.__add_mods_to_query(**kwargs)
 
         log.debug('Query:')
         log.debug(self.q.statement)
@@ -179,7 +179,7 @@ class queryDB(object):
                                 func.max(func.datetime(TubeCases.date)).label("last_dttm")).\
             group_by(TubeCases.case_number)
         q1.joined_tables = ['TubeCases']
-        q1 = add_filters_to_query(q1, **kwargs)
+        q1 = add_mods_to_query(q1, **kwargs)
         q1 = q1.subquery()
 
         self.q = self.session.query(TubeCases.case_number,
@@ -190,7 +190,7 @@ class queryDB(object):
         self.q.joined_tables = ['TubeCases']
 
         # Add common filters
-        self.__add_filters_to_query(**kwargs)
+        self.__add_mods_to_query(**kwargs)
         log.debug("\nQuery:\n{}\n".format(self.q.statement))
 
         # Output
@@ -202,7 +202,7 @@ class queryDB(object):
         """ Return list of cases """
         self.q = self.session.query(Cases.case_number)
         self.q.joined_tables = ['Cases']
-        self.__add_filters_to_query(**kwargs)
+        self.__add_mods_to_query(**kwargs)
         d = self.q.all()
 
         if aslist is False:
@@ -238,7 +238,7 @@ class queryDB(object):
         self.q.joined_tables = ['TubeCases', 'PmtTubeCases', 'PmtStats',
                                 'TubeStats', 'TubeTypesInstances']
 
-        self.__add_filters_to_query(**kwargs)
+        self.__add_mods_to_query(**kwargs)
         df = self.__q2df()
 
         return df
@@ -267,7 +267,7 @@ class queryDB(object):
         self.q.joined_tables = ['TubeCases', 'TubeStats',
                                 'TubeTypesInstances']
 
-        self.__add_filters_to_query(**kwargs)
+        self.__add_mods_to_query(**kwargs)
 
         df = self.__q2df()
         return df
@@ -296,7 +296,7 @@ class queryDB(object):
         self.q.joined_tables = ['TubeCases', 'Cases',
                                 'CustomCaseData']
 
-        self.__add_filters_to_query(**kwargs)
+        self.__add_mods_to_query(**kwargs)
 
         df = self.__q2df()
         return df
@@ -324,7 +324,7 @@ class queryDB(object):
                      PmtHistos.bin)
 
         self.q.joined_tables = ['TubeCases', 'PmtHistos', 'PmtTubeCases']
-        self.__add_filters_to_query(**kwargs)
+        self.__add_mods_to_query(**kwargs)
 
         df = self.__q2df()
         return df
@@ -353,7 +353,7 @@ class queryDB(object):
 
         self.q.joined_tables = ['TubeCases', 'PmtTubeCases', 'PmtTubeCasesIN', 'PmtCompCorr']
 
-        self.__add_filters_to_query(**kwargs)
+        self.__add_mods_to_query(**kwargs)
 
         df = self.__q2df()
         return df
@@ -435,14 +435,14 @@ class queryDB(object):
 
         self.session.commit()
 
-    def __add_filters_to_query(self, **kwargs):
+    def __add_mods_to_query(self, **kwargs):
         """ Add filters specified in kwargs to q
 
         Keyword arguments:
         tubes -- <list> Select set based on tube types
         daterange -- <list> [X,X] Select set based on date between daterange
         """
-        self.q = add_filters_to_query(self.q, **kwargs)
+        self.q = add_mods_to_query(self.q, **kwargs)
 
     def compile_query(self):
         statement = self.q.statement.compile(dialect=sqlite.dialect())
@@ -458,7 +458,7 @@ class queryDB(object):
         return df
 
 
-def add_filters_to_query(q, **kwargs):
+def add_mods_to_query(q, **kwargs):
     if 'not_flagged' in kwargs and kwargs['not_flagged'] is True:
         q = q.filter(TubeCases.flag == 'GOOD')
         if 'TubeCases' not in q.joined_tables:
@@ -510,5 +510,11 @@ def add_filters_to_query(q, **kwargs):
 
     if 'custom_set' in kwargs and kwargs['custom_set'] is not None:
         q = q.join(CustomCaseData)
+
+    if 'random_order' in kwargs and kwargs['random_order'] is True:
+        q = q.order_by(func.random())
+
+    if 'record_n' in kwargs and kwargs['record_n'] is not None:
+        q = q.limit(kwargs['record_n'])
 
     return q

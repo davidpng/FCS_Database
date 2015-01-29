@@ -70,9 +70,10 @@ class Test_FCS(TestBase):
         filepath = data(test_fcs_fn)
 
         a = FCS(filepath=filepath, import_dataframe=True)
-        a.comp_scale_FCS_data(compensation_file=comp_file,
-                              gate_coords=gate_coords, rescale_lim=(-0.5,1),
-                              strict=False, auto_comp=False)
+        a.comp_scale_FCS_data(compensation_file=comp_file,gate_coords=gate_coords,
+                              strict=False, rescale_lim=(-0.5,1.0),
+                              comp_flag='table',singlet_flag='fixed',
+                              viable_flag='fixed')
         a.feature_extraction(extraction_type='FULL', bins=10)
 
         binned_data = a.FCS_features
@@ -168,10 +169,10 @@ class Test_FCS(TestBase):
         outfile = path.join(self.mkoutdir(), 'test_visualization.png')
 
         a = FCS(filepath=filepath, import_dataframe=True)
-        a.comp_scale_FCS_data(compensation_file=comp_file,
-                              gate_coords=gate_coords, rescale_lim=(-0.5,1),
-                              strict=False, auto_comp=False)
-
+        a.comp_scale_FCS_data(compensation_file=comp_file,gate_coords=gate_coords,
+                              strict=False, rescale_lim=(-0.5,1.0),
+                              comp_flag='table',singlet_flag='fixed',
+                              viable_flag='fixed')
         a.comp_visualize_FCS(outfile=outfile)
 
     def test_FCS_processing(self):
@@ -184,9 +185,9 @@ class Test_FCS(TestBase):
         filepath = data(test_fcs_fn)
 
         a = FCS(filepath=filepath, import_dataframe=True)
-        a.comp_scale_FCS_data(compensation_file=comp_file,
-                              gate_coords=gate_coords,
-                              strict=False,)
+        a.comp_scale_FCS_data(compensation_file=comp_file,gate_coords=gate_coords,
+                              strict=False,comp_flag='table',singlet_flag='fixed',
+                              viable_flag='fixed')
 
         if write_csv:
             a.data.to_pickle(data('fcs_data.pkl'))
@@ -205,9 +206,10 @@ class Test_FCS(TestBase):
         filepath = data(test_fcs_fn)
 
         a = FCS(filepath=filepath, import_dataframe=True)
-        a.comp_scale_FCS_data(compensation_file=comp_file,
-                              gate_coords=gate_coords,rescale_lim=(-0.5,1),
-                              strict=False, auto_comp=False)
+        a.comp_scale_FCS_data(compensation_file=comp_file,gate_coords=gate_coords,
+                              strict=False, rescale_lim=(-0.5,1.0),
+                              comp_flag='table',singlet_flag='fixed',
+                              viable_flag='fixed')
         a.extract_FCS_histostats()
 
         if write_csv:
@@ -233,11 +235,42 @@ class Test_FCS(TestBase):
                                        different than tolerable")
             assert_frame_equal(a.comp_correlation, comp_correlation)
 
-        # log.debug(a.PmtStats)
-        # log.debug(a.TubeStats)
-        # log.debug(a.histos)
-        # log.debug(a.comp_correlation)
+    def test_GatingToggle(self):
+        """ Tests the HistoStats information subroutines
+        :return:
+        """
 
+        filepath = data(test_fcs_fn)
+
+        a = FCS(filepath=filepath, import_dataframe=True)
+        a.comp_scale_FCS_data(compensation_file=comp_file,gate_coords=gate_coords,
+                              strict=False, rescale_lim=(-0.5,1.0),
+                              comp_flag='table',singlet_flag=None,
+                              viable_flag='fixed')
+        a.extract_FCS_histostats()
+
+        if write_csv:
+            pd.Series(a.TubeStats).to_pickle(data('GatingTubeStats.pkl'))
+            print("\nHistoStats successfully written\n")
+        else:
+            TubeStats = pd.read_pickle(data('GatingTubeStats.pkl'))
+
+            np.testing.assert_allclose(pd.Series(a.TubeStats).values, TubeStats.values,
+                                       rtol=1e-3, atol=0, err_msg="Tube Statistics results are more \
+                                       different than tolerable")
+    def test_auto_singlet(self):
+        """
+        Tests auto singlet gating
+        """
+        filepath = data(test_fcs_fn)
+        #filepath = "/home/ngdavid/FCS_Data/Myeloid/12-00035/12-00035_Myeloid 1.fcs"
+        a = FCS(filepath=filepath, import_dataframe=True)
+        a.comp_scale_FCS_data(compensation_file=comp_file,gate_coords=gate_coords,
+                              strict=False, rescale_lim=(-0.5,1.0),
+                              comp_flag='table',singlet_flag='auto',
+                              viable_flag='fixed',classes=5,
+                              singlet_verbose=True,save_dir=self.mkoutdir())
+                             
     def test_auto_comp(self):
         """ Tests the auto compensation subroutine of comp_scale_FCS_data
 
@@ -245,16 +278,15 @@ class Test_FCS(TestBase):
         by comp_scale_FCS_data when auto_comp flag is turned on.
         """
 
-
         Convert_CytName = {'H0152':'1', 'H4710082':'3',
                            '1':'1', '2':'2', '3':'3'}
 
         filepath = data(test_fcs_fn)
-
+        
         a = FCS(filepath=filepath, import_dataframe=True)
-        a.comp_scale_FCS_data(compensation_file=comp_file,
-                              gate_coords=gate_coords,
-                              strict=False,auto_comp=False)
+        a.comp_scale_FCS_data(compensation_file=comp_file,gate_coords=gate_coords,
+                              strict=False,comp_flag='table',singlet_flag="fixed",
+                              viable_flag='fixed')
 
         cols = ['FSC-H', 'CD15 FITC']
         b = a.data.loc[100:105, cols]

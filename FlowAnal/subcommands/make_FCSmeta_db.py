@@ -4,7 +4,6 @@
 
 """
 import logging
-from sqlalchemy.exc import IntegrityError
 import sys
 
 from FlowAnal.Find_Clinical_FCS_Files import Find_Clinical_FCS_Files
@@ -22,10 +21,11 @@ def build_parser(parser):
     parser.add_argument('-db', '--db_filepath', help='Output sqlite3 db for Flow meta data \
     [default: db/fcs.db]',
                         default="db/fcs.db", type=str)
+    parser.add_argument('-n', '--n', help='Number of files to process (for testing)',
+                        default=None, type=int)
 
 
 def action(args):
-
     # Collect files/dirs
     Finder = Find_Clinical_FCS_Files(Filelist_Path=args.file_list)
 
@@ -39,15 +39,12 @@ def action(args):
         try:
             fFCS = FCS(filepath=f, case_tube_idx=case_tube_idx)
             fFCS.meta_to_db(db=db, dir=args.dir, add_lists=True)
-        except ValueError, e:
-            print "Skipping FCS %s because of ValueError: %s" % (f, e)
-        except KeyError, e:
-            print "Skipping FCS %s because of KeyError: %s" % (f, e)
-        except IntegrityError, e:
-            print "Skipping cti: %s, f: %s because of IntegrityError: %s" % (case_tube_idx, f, e)
         except:
             print "Skipping FCS %s because of unknown error related to: %s" % \
                 (f, sys.exc_info()[0])
 
         print("{:6d} Cases uploaded\r".format(case_tube_idx)),
         case_tube_idx += 1
+
+        if args.n is not None and case_tube_idx >= args.n:
+            break

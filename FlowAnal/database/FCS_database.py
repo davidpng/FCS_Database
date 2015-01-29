@@ -205,3 +205,18 @@ class FCSdatabase(SqliteConnection):
                 fFCS.meta_to_db(db=self, add_lists=True)
         else:
             raise ValueError("File %s does not have columns 'case_number' and 'category'" % (file))
+
+    def set_flag(self, case_tube_idx, flag, error_message):
+
+        s = self.Session()
+
+        TubeCase_i = s.query(TubeCases).\
+                     filter(TubeCases.case_tube_idx == case_tube_idx).\
+                     one()
+        TubeCase_i.flag = flag
+        TubeCase_i.error_message = error_message
+        s.commit()
+        log.info('Set case_tube_idx #{} to flag [{}]'.format(case_tube_idx, flag))
+
+        s.close()
+
