@@ -14,7 +14,7 @@ def normalize_timeseries(df, time_quantile=5, **kwargs):
                         end=datetime.combine(max(dates).date() +
                                              timedelta(days=1), time()),
                         freq=str(ival) + 'min', tz=None)
-    df2 = df.reindex(index=rng, level='date',copy=True, method='ffill').dropna()
+    df2 = df.reindex(index=rng, level='date', copy=True, method='ffill').dropna()
 
     # Need to widen the dataframe and then maybe tallify again???
     print df2.head()
@@ -29,16 +29,32 @@ class FlowQC(object):
     db  -- FCS_Database object that contains histos and stats
     """
 
-    def __init__(self, dbcon, **kwargs):
+    def __init__(self, dbcon, testing=False, **kwargs):
         self.db = dbcon
 
         # Load all QC data
-        # self.PmtCompCorr = self.__get_query_res('PmtCompCorr', **kwargs)
-        self.PmtStats = self.__get_query_res('PmtStats', index=['date', 'Channel_Number'],
-                                             normalize_time=True, **kwargs)
         self.TubeStats = self.__get_query_res('TubeStats', index=['date'],
-                                              normalize_time=True, **kwargs)
+                                              normalize_time=False,
+                                              **kwargs)
+        if testing is True:
+            self.TubeStats.to_sql('full_TubeStats', con=self.db.engine, if_exists='replace',
+                                  index=False)
+
+        # self.PmtStats = self.__get_query_res('PmtStats', index=['date', 'Channel_Number'],
+        #                                      normalize_time=False, **kwargs)
+        # if testing is True:
+        #     self.PmtStats.to_sql('full_PmtStats', con=self.db.engine,
+        # if_exists='replace', index=False)
+
+        self.PmtCompCorr = self.__get_query_res('PmtCompCorr', **kwargs)
+        if testing is True:
+            self.PmtCompCorr.to_sql('full_PmtCompCorr', con=self.db.engine,
+                                    if_exists='replace', index=False)
+
         # self.histos = self.__get_histos(**kwargs)
+        # if testing is True:
+        #     self.histos.to_sql('full_histos', con=self.db.engine,
+        # if_exists='replace', index=False)
 
     def __get_histos(self, table_format='tall', normalize_time=False, **kwargs):
         """ Return pandas df from db table PmtHistos
@@ -74,19 +90,10 @@ class FlowQC(object):
         """ Return pandas df from db table specified by goal """
         kwargs['get' + goal] = True
         df = self.db.query(**kwargs).results
-        df.set_index(index, drop=False, inplace=True)
 
         if normalize_time is True:
+            df.set_index(index, drop=False, inplace=True)
             df2 = normalize_timeseries(df, **kwargs)
             return df2
         else:
             return df
-
-    def pushQC(self, db):
-        """ Push QC tables to a database """
-
-        self.histos.to_sql('full_histos', con=db.engine, if_exists='replace', index=False)
-        self.PmtStats.to_sql('full_PmtStats', con=db.engine, if_exists='replace', index=False)
-        self.TubeStats.to_sql('full_TubeStats', con=db.engine, if_exists='replace', index=False)
-        self.PmtCompCorr.to_sql('full_PmtCompCorr', con=db.engine,
-                                if_exists='replace', index=False)
