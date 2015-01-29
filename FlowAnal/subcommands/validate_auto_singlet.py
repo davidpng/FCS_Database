@@ -65,11 +65,11 @@ def action(args):
             try:
                 fFCS.comp_scale_FCS_data(compensation_file=comp_file,gate_coords=gate_coords,
                               strict=False, rescale_lim=(-0.5,1.0),
-                              comp_flag='table',singlet_flag='auto',
-                              viable_flag='fixed',classes=5,
-                              singlet_verbose=True,
+                              classes=5,singlet_verbose=True,
                               **vars(args))
+                
             except:
+                log.debug("Comp Scale failed")
                 fFCS.flag = 'stats_extraction_fail'
                 fFCS.error_message = str(sys.exc_info()[0])
 
