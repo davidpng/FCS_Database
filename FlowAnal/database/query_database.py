@@ -226,13 +226,15 @@ class queryDB(object):
                                     TubeStats.total_events,
                                     PmtTubeCases.Antigen,
                                     PmtTubeCases.Fluorophore,
+                                    PmtTubeCases.Channel_Name,
+                                    PmtTubeCases.Voltage,
                                     TubeTypesInstances.tube_type,
                                     PmtStats).\
             join(PmtTubeCases, PmtStats.Pmt).\
             join(TubeCases, PmtTubeCases.Tube).\
             join(TubeStats, TubeCases.Stats).\
             join(TubeTypesInstances, TubeCases.TubeTypesInstance).\
-            order_by(TubeCases.date)
+            order_by(func.datetime(TubeCases.date))
 
         # keep track of explicitly joined tables
         self.q.joined_tables = ['TubeCases', 'PmtTubeCases', 'PmtStats',
@@ -261,7 +263,7 @@ class queryDB(object):
                                     TubeStats).\
             join(TubeCases, TubeStats.Tube).\
             join(TubeTypesInstances, TubeCases.TubeTypesInstance).\
-            order_by(TubeCases.date)
+            order_by(func.datetime(TubeCases.date))
 
         # keep track of explicitly joined tables
         self.q.joined_tables = ['TubeCases', 'TubeStats',
@@ -513,6 +515,10 @@ def add_mods_to_query(q, **kwargs):
 
     if 'random_order' in kwargs and kwargs['random_order'] is True:
         q = q.order_by(func.random())
+    elif 'date_order' in kwargs and kwargs['date_order'] is True:
+        q = q.order_by(func.datetime(TubeCases.date))
+        if 'TubeCases' not in q.joined_tables:
+            q = q.join(TubeCases)
 
     if 'record_n' in kwargs and kwargs['record_n'] is not None:
         q = q.limit(kwargs['record_n'])

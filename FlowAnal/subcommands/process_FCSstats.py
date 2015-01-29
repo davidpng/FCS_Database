@@ -43,7 +43,6 @@ def action(args):
         if args.testing:
             testdbcon = FCSdatabase(db=args.outdb, rebuild=True)
             args.table_format = 'tall'
-            qc = FlowQC(dbcon=dbcon, **vars(args))
-            qc.pushQC(db=testdbcon)
+            qc = FlowQC(dbcon=dbcon, outdbcon=testdbcon, **vars(args))
         else:
             qc = FlowQC(dbcon=dbcon, **vars(args))

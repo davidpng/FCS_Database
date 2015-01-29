@@ -29,31 +29,35 @@ class FlowQC(object):
     db  -- FCS_Database object that contains histos and stats
     """
 
-    def __init__(self, dbcon, testing=False, **kwargs):
+    def __init__(self, dbcon, outdbcon=None, testing=False, **kwargs):
         self.db = dbcon
+        self.outdb = outdbcon
 
         # Load all QC data
         self.TubeStats = self.__get_query_res('TubeStats', index=['date'],
                                               normalize_time=False,
                                               **kwargs)
-        if testing is True:
-            self.TubeStats.to_sql('full_TubeStats', con=self.db.engine, if_exists='replace',
+        if testing is True and outdbcon is not None:
+            self.TubeStats.to_sql('full_TubeStats', con=self.outdb.engine, if_exists='replace',
                                   index=False)
+            del self.TubeStats
 
         self.PmtCompCorr = self.__get_query_res('PmtCompCorr', **kwargs)
         if testing is True:
-            self.PmtCompCorr.to_sql('full_PmtCompCorr', con=self.db.engine,
+            self.PmtCompCorr.to_sql('full_PmtCompCorr', con=self.outdb.engine,
                                     if_exists='replace', index=False)
+            del self.PmtCompCorr
 
-        # self.PmtStats = self.__get_query_res('PmtStats', index=['date', 'Channel_Number'],
-        #                                      normalize_time=False, **kwargs)
-        # if testing is True:
-        #     self.PmtStats.to_sql('full_PmtStats', con=self.db.engine,
-        # if_exists='replace', index=False)
+        self.PmtStats = self.__get_query_res('PmtStats', index=['date', 'Channel_Number'],
+                                             normalize_time=False, **kwargs)
+        if testing is True:
+            self.PmtStats.to_sql('full_PmtStats', con=self.outdb.engine,
+                                 if_exists='replace', index=False)
+            del self.PmtStats
 
         # self.histos = self.__get_histos(**kwargs)
         # if testing is True:
-        #     self.histos.to_sql('full_histos', con=self.db.engine,
+        #     self.histos.to_sql('full_histos', con=self.outdb.engine,
         # if_exists='replace', index=False)
 
     def __get_histos(self, table_format='tall', normalize_time=False, **kwargs):

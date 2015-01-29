@@ -41,6 +41,11 @@ def add_filter_args(parser):
                         help='Return database results in random order',
                         default=False,
                         action='store_true')
+    parser.add_argument('--date-order',
+                        dest='date_order',
+                        help='Return database results in date order',
+                        default=False,
+                        action='store_true')
     parser.add_argument('--limit', '--record-n',
                         dest='record_n',
                         help='Number of records for database to return',
