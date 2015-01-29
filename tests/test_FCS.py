@@ -263,7 +263,7 @@ class Test_FCS(TestBase):
         Tests auto singlet gating
         """
         filepath = data(test_fcs_fn)
-        filepath = "/home/ngdavid/FCS_Data/Myeloid/12-00035/12-00035_Myeloid 1.fcs"
+        #filepath = "/home/ngdavid/FCS_Data/Myeloid/12-00035/12-00035_Myeloid 1.fcs"
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,gate_coords=gate_coords,
                               strict=False, rescale_lim=(-0.5,1.0),
