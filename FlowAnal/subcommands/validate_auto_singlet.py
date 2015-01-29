@@ -72,4 +72,4 @@ def action(args):
                 log.debug("Comp Scale failed")
                 fFCS.flag = 'stats_extraction_fail'
                 fFCS.error_message = str(sys.exc_info()[0])
-                print(
+                print(fFCS.error_message)
