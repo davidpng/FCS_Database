@@ -8,7 +8,7 @@ Provides Auto Singlet gating based on a GMM model
 __author__ = "David Ng, MD"
 __copyright__ = "Copyright 2014, David Ng"
 __license__ = "GPL v3"
-__version__ = "0.2"
+__version__ = "0.5"
 __maintainer__ = "David Ng"
 __email__ = "ngdavid@uw.edu"
 __status__ = "Prototype"
@@ -116,7 +116,7 @@ class GMM_doublet_detection(object):
 
         # make a list of classes with a radian measure less than the cutoff
         classes_to_dismiss = np.where(theta < cutoff)[0].tolist()
-        output = self.class_anno == -3.1415 #make a dummy output that is all false
+        output = self.class_anno == -3.1415 #make a empty/false output that is all false
 
         for class_to_dismiss in classes_to_dismiss:
             output = output | (self.class_anno == class_to_dismiss)
@@ -126,6 +126,15 @@ class GMM_doublet_detection(object):
         self.filtered_basis = filtered_basis
             
         return np.logical_not(output)
+    
+    def __search_loc_min(self,basis_f):
+        """ returns a list of the coordinates of local minima in radial space"""
+        local_minima = []
+        for i in range(1,len(basis_f)-1):
+            if basis_f.values[i] < basis_f.values[i+1] & basis_f.values[i] < basis_f.values[i-1]:
+                local_minima.append(basis.index[i])
+                
+        return local_minima.pop()
         
     def __display_radial_basis_histogram(self,filename):
         plt.figure()
@@ -136,7 +145,16 @@ class GMM_doublet_detection(object):
         plt.title("Filtered Projection on the radial basis")
         plt.savefig(filename, dpi=500, bbox_inches='tight')
         
+    def __display_histogram2d(filename):
+        plt.figure()
         
+        plt.plot(self.basis_space[:-1],self.filtered_basis)
+        plt.plot(self.basis_space[:-1],self.basis)
+        plt.xlabel('radians')
+        plt.ylabel('count')
+        plt.title("Filtered Projection on the radial basis")
+        plt.savefig(filename, dpi=500, bbox_inches='tight')
+          
     def __display_gating(self,filename,display_points=30000):
         """print a plot of clusters to a file"""
         colors = qualitative.Set1[self.num_classes]
