@@ -16,14 +16,19 @@ __status__ = "Prototype"
 from scipy.spatial.distance import cdist
 from brewer2mpl import qualitative
 from sklearn import mixture
-import scipy.signal as signal
 from scipy.ndimage.filters import gaussian_filter1d
+from os import getcwd, path
+
+import scipy.signal as signal
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')  # Turn off interactive X11 stuff...
+
 import matplotlib.pyplot as plt
-from os import getcwd, path
 import logging
 log = logging.getLogger(__name__)
+
 
 class GMM_doublet_detection(object):
     def __init__(self,data,filename='singlet_',classes=4,singlet_verbose=False,**kwargs):
@@ -42,6 +47,7 @@ class GMM_doublet_detection(object):
             self.__display_gating(path.join(out_dir,fn + "_gating.png")) #find a place to put theses?
             self.__display_mask(path.join(out_dir,fn + "_mask.png"))
             self.__display_radial_basis_histogram(path.join(out_dir,fn + "_histogram.png"))
+            
     def calculate_stats(self):
         """
         This function generates statistics about the loss fraction of the filter
@@ -128,7 +134,6 @@ class GMM_doublet_detection(object):
         plt.xlabel('radians')
         plt.ylabel('count')
         plt.title("Filtered Projection on the radial basis")
-        plt.show()
         plt.savefig(filename, dpi=500, bbox_inches='tight')
         
         
@@ -149,12 +154,11 @@ class GMM_doublet_detection(object):
         plt.xlim(-0.1,1.2)
         plt.ylim(-0.1,1.2)
         plt.title("Number of classes: {}\nNumber of events: {}".format(self.num_classes,len(self.FSC)))
-        plt.show()
+
         plt.savefig(filename, dpi=500, bbox_inches='tight')
        
     def __display_mask(self,filename,display_points=30000):
         """print a plot of clusters to a file"""
-        
         plt.figure()
         plt.plot(self.FSC[self.singlet_mask]['FSC-A'],
                  self.FSC[self.singlet_mask]['FSC-H'],
@@ -164,7 +168,6 @@ class GMM_doublet_detection(object):
         plt.xlim(-0.1,1.2)
         plt.ylim(-0.1,1.2)
         plt.title("Number of classes: {}\nNumber of events: {}".format(self.num_classes,len(self.FSC)))
-        plt.show()
         plt.savefig(filename, dpi=500, bbox_inches='tight')
 
         
