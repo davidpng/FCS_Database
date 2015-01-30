@@ -44,6 +44,7 @@ class GMM_doublet_detection(object):
             else:
                 out_dir = getcwd()
             fn = filename[:8]
+            self.__display_histogram2d(path.join(out_dir,fn + "_2dhisto.png"))
             self.__display_gating(path.join(out_dir,fn + "_gating.png")) #find a place to put theses?
             self.__display_mask(path.join(out_dir,fn + "_mask.png"))
             self.__display_radial_basis_histogram(path.join(out_dir,fn + "_histogram.png"))
@@ -99,7 +100,7 @@ class GMM_doublet_detection(object):
         """Chooses class to use using a filter re-basis of the centroid locations
         Returns an output mask
         """
-        origin = [[0,0]]
+        origin = [[-0.1,0]]
         xy = self.centroids - np.array(origin)
         theta = np.arctan(xy[:,1]/xy[:,0])
                 
@@ -145,14 +146,26 @@ class GMM_doublet_detection(object):
         plt.title("Filtered Projection on the radial basis")
         plt.savefig(filename, dpi=500, bbox_inches='tight')
         
-    def __display_histogram2d(filename):
+    def __display_histogram2d(self,filename,bins=100):
         plt.figure()
+        l = [-0.1,1.2]
+        H, x_l, y_l= np.histogram2d(self.FSC['FSC-A'],
+                                    self.FSC['FSC-H'],
+                                    bins = bins,
+                                    range=[l,l])
         
-        plt.plot(self.basis_space[:-1],self.filtered_basis)
-        plt.plot(self.basis_space[:-1],self.basis)
-        plt.xlabel('radians')
-        plt.ylabel('count')
-        plt.title("Filtered Projection on the radial basis")
+        H = np.log(H.T)
+        H[H < 0]=0.001
+        print H
+        plt.imshow(H, cmap=plt.cm.hot, interpolation='spline16',
+                   aspect='equal',origin = 'lower')
+        plt.colorbar()
+        plt.xlabel('FSC-A')
+        plt.ylabel('FSC-H')
+        labels = np.arange(l[0],l[1],0.1)
+        plt.xticks(np.arange(0,bins,np.round(float(bins)/len(labels))),labels)
+        plt.yticks(np.arange(0,bins,np.round(float(bins)/len(labels))),labels)
+        plt.title("Log normalized Histogram of base data")
         plt.savefig(filename, dpi=500, bbox_inches='tight')
           
     def __display_gating(self,filename,display_points=30000):
