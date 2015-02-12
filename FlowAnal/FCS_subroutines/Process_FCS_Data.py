@@ -48,18 +48,19 @@ class Process_FCS_Data(object):
         strict - <bool> - default True, strict mode for compensation (if channel
                             parameter is undefined, then error out) and False
                             (if channel parameter is undefined, goto default FL__)
-        auto_comp - <bool> - default False, applies auto compensation tweaking
         """
         self.strict = strict
         self.FCS = FCS
 
         # save columns because data is redfined after comp
         self.columns = self.__Clean_up_columns(self.FCS.parameters.loc['Channel_Name'])
-        self.FCS.total_events = self.FCS.data.shape[0]      # initial number of events before gating
+        self.FCS.total_events = self.FCS.data.shape[0]   # initial event count
 
-        self.overlap_matrix = self._load_overlap_matrix(compensation_file)   # load compensation matrix
-        self.__compensation_switch(comp_mode=comp_flag,**kwargs)
-        
+        # Compensate data (or not)
+        self.__compensation_switch(comp_mode=comp_flag,
+                                   compensation_file=compensation_file,
+                                   **kwargs)
+
         #Saturation Gate might need to go here
         #sat_gate = self._SaturationGate()
 
@@ -70,77 +71,80 @@ class Process_FCS_Data(object):
         self.data = self.data[nan_mask]
 
         limit_mask = self.__limit_gate(self.data, high=rescale_lim[1], low=rescale_lim[0])
-        self.data = self.data[limit_mask] #this might duplicate the saturation_gate
+        self.data = self.data[limit_mask] # this might duplicate the saturation_gate
 
         self.__Rescale(high=rescale_lim[0], low=rescale_lim[1])  # Edits self.data
 
         self.__patch() # flips axis so that things display correctly
         self.FCS.data = self.data  # update FCS.data
-        
+
         if 'gate_coords' in kwargs:   # if gate coord dictionary provided, do initial cleanup
             self.coords = kwargs['gate_coords']
         else:
             self.coords = None
         self.__singlet_switch(singlet_mode=singlet_flag,**kwargs)
         self.__viable_switch(viable_mode=viable_flag,**kwargs)
-            
+
         self.FCS.data = self.data  # update FCS.data
         del self.data
-        
-    def __compensation_switch(self,comp_mode,**kwargs):
+
+    def __compensation_switch(self, comp_mode, compensation_file,
+                              **kwargs):
         """defines viable gating modes"""
-        if comp_mode == None:
-            pass
-        elif comp_mode.lower() == "auto":
+        if comp_mode == 'none':
+            self.data = self.FCS.data
+        elif comp_mode == "auto":
             Tweaked = Auto_Comp_Tweak(self)
             self.comp_matrix = Tweaked.comp_matrix
             self.data = Tweaked.data
-            #data is not compensated at this point!
-        elif comp_mode.lower() == "table":
+            # data is not compensated at this point!
+        elif comp_mode == "table":
+            self.overlap_matrix = self._load_overlap_matrix(compensation_file)
+            # simple inversion of the overlap matrix
             self.comp_matrix = self._make_comp_matrix(self.overlap_matrix)
-            #simple inversion of the overlap matrix
-            self.data = np.dot(self.FCS.data, self.comp_matrix)   # apply compensation (returns a numpy array)
+            # apply compensation (returns a numpy array)
+            self.data = np.dot(self.FCS.data, self.comp_matrix)
         else:
             raise(ValueError,"Compenstation Mode {} is Undefined".format(comp_mode))
-        self.data = pd.DataFrame(data=self.data[:, :],
+
+        self.data = pd.DataFrame(data=self.data,
                                  columns=self.columns,
                                  dtype=np.float32)  # create a dataframe with columns
 
-            
-    def __singlet_switch(self,singlet_mode,**kwargs):
+    def __singlet_switch(self, singlet_mode, **kwargs):
         """defines singlet gating modes"""
-        if singlet_mode == None:
+        if singlet_mode == 'none':
             self.FCS.singlet_remain = self.FCS.data.shape[0]
-        elif singlet_mode.lower() == "auto":
+        elif singlet_mode == "auto":
             auto_gate_obj = self.__auto_singlet_gating(**kwargs)
             singlet_mask = auto_gate_obj.singlet_mask
-            self.FCS.singlet_remain,percent_loss = auto_gate_obj.calculate_stats()
+            self.FCS.singlet_remain, percent_loss = auto_gate_obj.calculate_stats()
             self.data = self.data[singlet_mask]
-        elif singlet_mode.lower() == "fixed" and 'gate_coords' in kwargs:
+        elif singlet_mode == "fixed" and 'gate_coords' in kwargs:
             singlet_mask = self._gating(self.data, 'FSC-A', 'FSC-H', self.coords['singlet'])
             self.FCS.singlet_remain = np.sum(singlet_mask)
             self.data = self.data[singlet_mask]
         else:
-            raise(ValueError,"Singlet Mode: {} is Undefined".format(singlet_mode))        
+            raise(ValueError,"Singlet Mode: {} is Undefined".format(singlet_mode))
 
-    def __viable_switch(self,viable_mode,**kwargs):
+    def __viable_switch(self, viable_mode, **kwargs):
         """defines viable gating modes"""
-        if viable_mode == None:
-            self.FCS.viable_remain = self.FCS.data.shape[0]              
-        elif viable_mode.lower() == "auto":
+        if viable_mode == 'none':
+            self.FCS.viable_remain = self.FCS.data.shape[0]
+        elif viable_mode == "auto":
             raise(NotImplementedError,"Auto Viability Gating has not been implemented")
-        elif viable_mode.lower() == "fixed" and 'gate_coords' in kwargs:
+        elif viable_mode == "fixed" and 'gate_coords' in kwargs:
             viable_mask = self._gating(self.data, 'SSC-H', 'FSC-H', self.coords['viable'])
             self.FCS.viable_remain = np.sum(viable_mask)
             self.data = self.data[viable_mask]
         else:
-            raise(ValueError,"Viablity Mode: {} is Undefined".format(viable_mode))        
+            raise(ValueError,"Viablity Mode: {} is Undefined".format(viable_mode))
 
-    def __auto_singlet_gating(self,**kwargs):
+    def __auto_singlet_gating(self, **kwargs):
         return GMM_doublet_detection(data=self.data,
                                      filename=self.FCS.filename,
                                      **kwargs)
-        
+
     def __Clean_up_columns(self, columns):
         """
         Provides error handling and clean up for manually entered parameter names

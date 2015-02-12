@@ -93,7 +93,7 @@ class FCS(object):
                             saturation_upper_range=1000,
                             rescale_lim=(-0.15, 1),
                             strict=True,
-                            auto_comp=False,
+                            comp_flag='table',
                             **kwargs):
         """ Updates self.data via call of Process_FCS_Data
         """
@@ -102,7 +102,7 @@ class FCS(object):
                              saturation_upper_range=saturation_upper_range,
                              rescale_lim=rescale_lim,
                              strict=strict,
-                             auto_comp=auto_comp,
+                             comp_flag=comp_flag,
                              **kwargs)
             self.__comp_scale_ran = True
         else:
@@ -179,14 +179,14 @@ class FCS(object):
         FCSstats_to_database(FCS=self, db=db)
 
     def clear_FCS_cache(self):
-        """ clears FCS data cache 
+        """ clears FCS data cache
         Use with caution, no other functions can run after this has been executed
         """
         try:
             del self.data
         except:
             log.info("FCS.data does not exist")
-        
+
 if __name__ == '__main__':
     import os
     import sys

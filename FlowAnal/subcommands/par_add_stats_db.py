@@ -21,7 +21,7 @@ from multiprocessing import Pool
 from FlowAnal.Analysis_Variables import gate_coords, comp_file
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
-from __init__ import add_filter_args
+from __init__ import add_filter_args, add_process_args
 
 log = logging.getLogger(__name__)
 
@@ -40,13 +40,9 @@ def build_parser(parser):
     parser.add_argument('-l', '--load', help='Number of .fcs files to process as group,  \
     dependent on main memory size [default 600]',
                         default=600, type=int)
-    parser.add_argument('--nosinglet', help='Turn off the singlet gate', action='store_true',
-                        default=False)
-    parser.add_argument('--noviability', help='Turn off the singlet gate', action='store_true',
-                        default=False)
     parser.add_argument('-t', '--testing', help='Testing: run one load of workers',
                         default=False, action='store_true')
-
+    add_process_args(parser)
     add_filter_args(parser)
 
 
@@ -60,7 +56,7 @@ def worker(in_list, **kwargs):
     try:
         fFCS.comp_scale_FCS_data(compensation_file=comp_file,
                                  gate_coords=gate_coords,
-                                 strict=False, auto_comp=False, **kwargs)
+                                 strict=False, **kwargs)
         fFCS.extract_FCS_histostats()
         fFCS.clear_FCS_cache()
     except:
@@ -97,7 +93,7 @@ def action(args):
 
     # Setup args
     vargs = {key: value for key, value in vars(args).items()
-             if key in ['nosinglet', 'noviability']}
+             if key in ['viable_flag', 'singlet_flag', 'comp_flag']}
 
     i = 0
     for sublist in sublists:

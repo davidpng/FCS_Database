@@ -52,4 +52,22 @@ def add_filter_args(parser):
                         default=None, type=int)
 
 
+def add_process_args(parser):
+    """ Adds the FCS file arguments to parser """
+    parser.add_argument('--comp_flag', '--comp-flag',
+                        help='Comp Mode',
+                        default='table',
+                        choices=['table', 'none'],
+                        type=str)
+    parser.add_argument('--singlet_flag', '--singlet-flag',
+                        help='Singlet gate mode',
+                        default='Fixed',
+                        choices=['fixed', 'auto', 'none'],
+                        type=str)
+    parser.add_argument('--viable_flag', '--viability-flag',
+                        help='Viablity gate mode',
+                        choices=['fixed', 'auto', 'none'],
+                        type=str)
+
+
 
