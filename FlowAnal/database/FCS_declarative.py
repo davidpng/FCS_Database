@@ -12,7 +12,6 @@ class Base(object):
 
 Base = declarative_base(cls=Base)
 
-
 class PmtTubeCases(Base):
     __tablename__ = 'PmtTubeCases'
 
@@ -196,6 +195,29 @@ Index('ix_PmtCompCorr_FROM_IN', PmtCompCorr.Channel_Number_FROM, PmtCompCorr.Cha
 class MetaTable(Base):
     __tablename__ = 'MetaTable'
     creation_date = Column(DateTime, nullable=False, primary_key=True)
+
+
+class full_PmtHistos(Base):
+    __tablename__ = 'full_PmtHistos'
+
+    case_tube_idx = Column(Integer, primary_key=True)
+    cytnum = Column(String(3))
+    date = Column(DateTime)
+    Antigen = Column(String(10))
+    Fluorophore = Column(String(10))
+    Channel_Name = Column(String(20), nullable=False)
+    Channel_Number = Column(Integer, nullable=False, primary_key=True)
+    tube_type_instance = Column(Integer)
+    tube_type = Column(String(20), nullable=False)
+    bin = Column(Float, primary_key=True)
+    density = Column(Float)
+
+Index('ix_full_PmtHistos_name_tube', full_PmtHistos.Channel_Name,
+      full_PmtHistos.tube_type)
+Index('ix_full_PmtHistos_Antigen_tube', full_PmtHistos.Antigen,
+      full_PmtHistos.tube_type)
+Index('ix_full_PmtHistos_channel_tube', full_PmtHistos.Channel_Number,
+      full_PmtHistos.tube_type)
 
 
 if __name__ == '__main__':

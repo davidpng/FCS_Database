@@ -17,6 +17,7 @@ from FlowAnal.FlowQC import FlowQC
 from __init__ import add_filter_args
 
 import logging
+import os
 log = logging.getLogger(__name__)
 
 
@@ -41,8 +42,10 @@ def action(args):
 
         # Get QC data
         if args.testing:
+            if os.path.isfile(args.outdb):
+                os.remove(args.outdb)
             testdbcon = FCSdatabase(db=args.outdb, rebuild=True)
             args.table_format = 'tall'
-            qc = FlowQC(dbcon=dbcon, outdbcon=testdbcon, **vars(args))
+            FlowQC(dbcon=dbcon, outdbcon=testdbcon, **vars(args))
         else:
-            qc = FlowQC(dbcon=dbcon, **vars(args))
+            FlowQC(dbcon=dbcon, **vars(args))

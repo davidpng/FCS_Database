@@ -34,61 +34,63 @@ class FlowQC(object):
         self.outdb = outdbcon
 
         # Load all QC data
-        self.TubeStats = self.__get_query_res('TubeStats', index=['date'],
-                                              normalize_time=False,
-                                              **kwargs)
         if testing is True and outdbcon is not None:
-            self.TubeStats.to_sql('full_TubeStats', con=self.outdb.engine, if_exists='replace',
-                                  index=False)
-            del self.TubeStats
+            self.__make_flat_db('TubeStats', index=['date'],
+                                normalize_time=False, **kwargs)
+            self.__make_histos(**kwargs)
+            self.__make_flat_db('PmtStats', index=['date', 'Channel_Number'],
+                                normalize_time=False, **kwargs)
+            self.__make_flat_db('PmtCompCorr', index=['date', 'Channel_Number'],
+                                normalize_time=False, **kwargs)
+        else:
+            self.TubeStats = self.__get_query_res('TubeStats', index=['date'],
+                                                  normalize_time=False,
+                                                  **kwargs)
+            self.PmtStats = self.__get_query_res('PmtStats',
+                                                    index=['date', 'Channel_Number'],
+                                                    normalize_time=False,
+                                                    **kwargs)
+            self.PmtCompCorr = self.__get_query_res('PmtCompCorr',
+                                                    index=['date', 'Channel_Number'],
+                                                    normalize_time=False,
+                                                    **kwargs)
 
-        self.PmtCompCorr = self.__get_query_res('PmtCompCorr', **kwargs)
-        if testing is True:
-            self.PmtCompCorr.to_sql('full_PmtCompCorr', con=self.outdb.engine,
-                                    if_exists='replace', index=False)
-            del self.PmtCompCorr
-
-        self.PmtStats = self.__get_query_res('PmtStats', index=['date', 'Channel_Number'],
-                                             normalize_time=False, **kwargs)
-        if testing is True:
-            self.PmtStats.to_sql('full_PmtStats', con=self.outdb.engine,
-                                 if_exists='replace', index=False)
-            del self.PmtStats
-
-        # self.histos = self.__get_histos(**kwargs)
-        # if testing is True:
-        #     self.histos.to_sql('full_histos', con=self.outdb.engine,
-        # if_exists='replace', index=False)
-
-    def __get_histos(self, table_format='tall', normalize_time=False, **kwargs):
+    def __make_histos(self, table_format='tall', normalize_time=False, **kwargs):
         """ Return pandas df from db table PmtHistos
 
         NOTE:
         - Adds NAs to densities not present in database table
         """
-        df = self.db.query(getPmtHistos=True, **kwargs).results
-        df.set_index('date', drop=False, inplace=True)
+        dq = self.db.query(getPmtHistos=True, **kwargs)
 
-        if normalize_time is True:
-            df2 = normalize_timeseries(df, **kwargs)
-            return df2
-        elif table_format == 'wide':
-            meta_cols = [c for c in df.columns if c not in ['density']]
-            df.set_index(meta_cols, inplace=True)
-            df = df.unstack()
-            df.reset_index(drop=False, inplace=True, col_level=0)
+        i = 0
+        for df in pd.read_sql_query(sql=dq.qstring,
+                                    con=self.db.engine,
+                                    params=dq.params, chunksize=10000):
+            i += df.shape[0]
 
-            # Fix column names
-            new_columns = []
-            for i in range(len(df.columns)):
-                if df.columns[i][1] == '':
-                    new_columns.append(df.columns[i][0])
-                else:
-                    new_columns.append(df.columns[i][1])
-            df.columns = new_columns
-            return df
-        else:
-            return df
+            if normalize_time is True:
+                df.set_index('date', drop=True, inplace=True)
+                df = normalize_timeseries(df, **kwargs)
+            elif table_format == 'wide':
+                meta_cols = [c for c in df.columns if c not in ['density']]
+                df.set_index(meta_cols, inplace=True)
+                df = df.unstack()
+                df.reset_index(drop=False, inplace=True, col_level=0)
+
+                # Fix column names
+                new_columns = []
+                for i in range(len(df.columns)):
+                    if df.columns[i][1] == '':
+                        new_columns.append(df.columns[i][0])
+                    else:
+                        new_columns.append(df.columns[i][1])
+                df.columns = new_columns
+
+            df.to_sql('full_' + 'PmtHistos',
+                      con=self.outdb.engine,
+                      if_exists='append',
+                      index=False)
 
     def __get_query_res(self, goal, index=['date'], normalize_time=False, **kwargs):
         """ Return pandas df from db table specified by goal """
@@ -101,3 +103,18 @@ class FlowQC(object):
             return df2
         else:
             return df
+
+    def __make_flat_db(self, goal, index=['date'], normalize_time=False, **kwargs):
+        """ Query for stats and push to new db """
+        kwargs['get' + goal] = True
+        dq = self.db.query(**kwargs)
+
+        i = 0
+        for df in pd.read_sql_query(sql=dq.qstring,
+                                    con=self.db.engine,
+                                    params=dq.params, chunksize=10000):
+            i += df.shape[0]
+            df.to_sql('full_' + goal,
+                      con=self.outdb.engine,
+                      if_exists='append',
+                      index=False)
