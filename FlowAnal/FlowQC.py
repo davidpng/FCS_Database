@@ -1,6 +1,12 @@
 import pandas as pd
 import numpy as np
+np.set_printoptions(precision=2)
+
 from datetime import datetime, time, timedelta
+import logging
+log = logging.getLogger(__name__)
+
+from QC_subroutines.Peaks_1D import Peaks_1D, Peaks_1D_Set
 
 
 def normalize_timeseries(df, time_quantile=5, **kwargs):
@@ -29,31 +35,33 @@ class FlowQC(object):
     db  -- FCS_Database object that contains histos and stats
     """
 
-    def __init__(self, dbcon, outdbcon=None, testing=False, **kwargs):
+    def __init__(self, dbcon, outdbcon=None, testing=False,
+                 make_qc_data=True, **kwargs):
         self.db = dbcon
         self.outdb = outdbcon
 
-        # Load all QC data
-        if testing is True and outdbcon is not None:
-            self.__make_flat_db('TubeStats', index=['date'],
-                                normalize_time=False, **kwargs)
-            self.__make_histos(**kwargs)
-            self.__make_flat_db('PmtStats', index=['date', 'Channel_Number'],
-                                normalize_time=False, **kwargs)
-            self.__make_flat_db('PmtCompCorr', index=['date', 'Channel_Number'],
-                                normalize_time=False, **kwargs)
-        else:
-            self.TubeStats = self.__get_query_res('TubeStats', index=['date'],
-                                                  normalize_time=False,
-                                                  **kwargs)
-            self.PmtStats = self.__get_query_res('PmtStats',
-                                                    index=['date', 'Channel_Number'],
-                                                    normalize_time=False,
-                                                    **kwargs)
-            self.PmtCompCorr = self.__get_query_res('PmtCompCorr',
-                                                    index=['date', 'Channel_Number'],
-                                                    normalize_time=False,
-                                                    **kwargs)
+        if make_qc_data is True:
+            # Load all QC data
+            if testing is True and outdbcon is not None:
+                self.__make_flat_db('TubeStats', index=['date'],
+                                    normalize_time=False, **kwargs)
+                self.__make_histos(**kwargs)
+                self.__make_flat_db('PmtStats', index=['date', 'Channel_Number'],
+                                    normalize_time=False, **kwargs)
+                self.__make_flat_db('PmtCompCorr', index=['date', 'Channel_Number'],
+                                    normalize_time=False, **kwargs)
+            else:
+                self.TubeStats = self.__get_query_res('TubeStats', index=['date'],
+                                                      normalize_time=False,
+                                                      **kwargs)
+                self.PmtStats = self.__get_query_res('PmtStats',
+                                                        index=['date', 'Channel_Number'],
+                                                        normalize_time=False,
+                                                        **kwargs)
+                self.PmtCompCorr = self.__get_query_res('PmtCompCorr',
+                                                        index=['date', 'Channel_Number'],
+                                                        normalize_time=False,
+                                                        **kwargs)
 
     def __make_histos(self, table_format='tall', normalize_time=False, **kwargs):
         """ Return pandas df from db table PmtHistos
@@ -118,3 +126,66 @@ class FlowQC(object):
                       con=self.outdb.engine,
                       if_exists='append',
                       index=False)
+
+    def add_peaks(self, trim_peaks=False, peak_detector='local_max',
+                  **kwargs):
+        """ Pull 1D histograms (PmtHistos) for a single channel/antigen/..., find peaks, and label
+
+        Output should be df of tube_case_idx, Channel_Number, PEAK_ID, intensity (scaled)
+        """
+        kwargs['getPmtHistos'] = True
+        dq = self.db.query(**kwargs)
+        log.debug("Query: [{}]".format(dq.qstring))
+        log.info("Query result count: {}".format(dq.q.count()))
+
+        # Make name base
+        name = ""
+        for k in ['tubes', 'antigens', 'Channel_Name', 'Channel_Number']:
+            if k in kwargs and kwargs[k] is not None:
+                if name == "":
+                    name = "_".join(kwargs[k])
+                else:
+                    name = "{}_{}".format(name, "_".join(kwargs[k]))
+
+        df = pd.read_sql_query(sql=dq.qstring,
+                               con=self.db.engine,
+                               params=dq.params)
+        df.sort(['date', 'case_tube_idx', 'bin'], inplace=True)
+        log.debug("Size of df: {}".format(df.shape))
+        ctis = df.case_tube_idx.unique()
+
+        all_peaks = Peaks_1D_Set(name=name)
+        for cti in ctis:
+            d = df.loc[df.case_tube_idx == cti, 'density'].values
+            iname = "{}_{}".format(name, str(cti))
+
+            if len(d) != 100:
+                raise ValueError('Length of vector for {} is {} rather than 100'.format(cti,
+                                                                                        len(d)))
+            peaks = Peaks_1D(d, iname)
+            if peak_detector == 'local_max':
+                peaks.local_max()
+            elif peak_detector == 'cwt':
+                peaks.find_peaks_cwt()
+                if trim_peaks:
+                    peaks.trim_peaks()
+            else:
+                raise ValueError('peak_detector {} is not valid'.format(peak_detector))
+
+            peaks.plot()
+            all_peaks.append(peaks)
+
+        # Find multisample peaks
+        # all_peaks.find_peaks()
+        # all_peaks.group_peaks.plot(name="{}_all".format(name))
+
+        # Select number of peaks to follow
+        all_peaks.n_group_peaks()
+        log.info("Selecting {} main peaks".format(all_peaks.n_peaks))
+
+        all_peaks.label_peaks()
+
+
+class FlowQC_flat(object):
+    """ Consider making an object that operates the flat QC tables """
+    pass

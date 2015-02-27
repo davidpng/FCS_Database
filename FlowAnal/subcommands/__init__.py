@@ -21,6 +21,14 @@ def add_filter_args(parser):
     parser.add_argument('-antigens', '--antigens', help='List of antigens to select',
                         nargs='+', action='store',
                         default=None, type=str)
+    parser.add_argument('-Channel_Name', '--Channel_Name',
+                        help='List of Channel_Name\'s to select',
+                        nargs='+', action='store',
+                        default=None, type=str)
+    parser.add_argument('-Channel_Number', '--Channel_Number',
+                        help='List of Channel_Number\'s to select',
+                        nargs='+', action='store',
+                        default=None, type=int)
     parser.add_argument('-dates', '--daterange',
                         help='Start and end dates to bound selection of cases \
                         [Year-Month-Date Year-Month-Date]',

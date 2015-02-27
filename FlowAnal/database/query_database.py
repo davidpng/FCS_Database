@@ -485,6 +485,20 @@ def add_mods_to_query(q, **kwargs):
         if 'PmtTubeCases' not in q.joined_tables:
             q = q.join(PmtTubeCases)
 
+    if 'Channel_Number' in kwargs and kwargs['Channel_Number'] is not None:
+        channels_to_select = [x for x in kwargs['Channel_Number']]
+        log.info('Looking for channels: #%s' % channels_to_select)
+        q = q.filter(PmtTubeCases.Channel_Number.in_(channels_to_select))
+        if 'PmtTubeCases' not in q.joined_tables:
+            q = q.join(PmtTubeCases)
+
+    if 'Channel_Name' in kwargs and kwargs['Channel_Name'] is not None:
+        channels_to_select = [unicode(x) for x in kwargs['Channel_Name']]
+        log.info('Looking for channels: #%s' % channels_to_select)
+        q = q.filter(PmtTubeCases.Channel_Name.in_(channels_to_select))
+        if 'PmtTubeCases' not in q.joined_tables:
+            q = q.join(PmtTubeCases)
+
     if 'daterange' in kwargs and kwargs['daterange'] is not None:
         log.info('Looking for daterange: [%s, %s]' % (kwargs['daterange'][0],
                                                       kwargs['daterange'][1]))

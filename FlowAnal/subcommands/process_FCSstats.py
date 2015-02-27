@@ -32,6 +32,8 @@ def build_parser(parser):
                         action='store_true')
     parser.add_argument('-table-format', '--table-format', dest='table_format',
                         default='tall', type=str)
+    parser.add_argument('--add-peaks-only', dest='add_peaks_only',
+                        action='store_true')
     add_filter_args(parser)
 
 
@@ -41,11 +43,14 @@ def action(args):
         print "Processing database %s" % args.db
 
         # Get QC data
-        if args.testing:
+        if args.testing is True:
             if os.path.isfile(args.outdb):
                 os.remove(args.outdb)
             testdbcon = FCSdatabase(db=args.outdb, rebuild=True)
             args.table_format = 'tall'
             FlowQC(dbcon=dbcon, outdbcon=testdbcon, **vars(args))
-        else:
+        elif args.add_peaks_only is False:
             FlowQC(dbcon=dbcon, **vars(args))
+        else:
+            a = FlowQC(dbcon=dbcon, make_qc_data=False)
+            a.add_peaks(**vars(args))
