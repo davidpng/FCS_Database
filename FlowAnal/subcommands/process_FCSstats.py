@@ -32,7 +32,9 @@ def build_parser(parser):
                         action='store_true')
     parser.add_argument('-table-format', '--table-format', dest='table_format',
                         default='tall', type=str)
-    parser.add_argument('--add-peaks-only', dest='add_peaks_only',
+    parser.add_argument('--add-peaks', dest='add_peaks',
+                        action='store_true')
+    parser.add_argument('--plot-1D-intensities', dest='plot_1D_intensities',
                         action='store_true')
     add_filter_args(parser)
 
@@ -49,8 +51,14 @@ def action(args):
             testdbcon = FCSdatabase(db=args.outdb, rebuild=True)
             args.table_format = 'tall'
             FlowQC(dbcon=dbcon, outdbcon=testdbcon, **vars(args))
-        elif args.add_peaks_only is False:
-            FlowQC(dbcon=dbcon, **vars(args))
         else:
             a = FlowQC(dbcon=dbcon, make_qc_data=False)
-            a.add_peaks(**vars(args))
+            (df, name) = a.get_1D_intensities(**vars(args))
+            if args.add_peaks is True:
+                peaks_df = a.add_peaks(df=df, name=name, **vars(args))
+            else:
+                peaks_df = None
+            if args.plot_1D_intensities is True:
+                a.histos2tile(df=df, peaks_df=peaks_df, name=name)
+
+

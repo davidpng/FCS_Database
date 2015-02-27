@@ -13,9 +13,10 @@ log = logging.getLogger(__name__)
 
 class Peaks_1D(object):
     """ Class that encapsulates methods for subdividing 1D vectors of intensity data """
-    def __init__(self, data, name):
+    def __init__(self, data, name, case_tube_idx=None):
         self.dat = data
         self.name = name
+        self.case_tube_idx = case_tube_idx
 
     def find_peaks_cwt(self):
         """ Identify peaks using scipy.signal.find_peaks_cwt """
@@ -206,13 +207,11 @@ class Peaks_1D_Set(object):
             gpeaks = [p for i, p in enumerate(x.peaks)
                       if x.peak_scores[i] >= thresh]
             if len(gpeaks) == self.n_peaks:
-                d.append([x.name] + gpeaks)
+                d.append([x.case_tube_idx] + gpeaks)
 
-        df = pd.DataFrame(d, columns=['name'] + peak_names)
-        df.set_index(['name'], drop=True, inplace=True)
+        df = pd.DataFrame(d, columns=['case_tube_idx'] + peak_names)
+        df.set_index(['case_tube_idx'], drop=True, inplace=True)
         medpeaks = df.median().values
-
-        print df
 
         # Label peaks
         for x in self.dat:
@@ -220,6 +219,8 @@ class Peaks_1D_Set(object):
             log.info("Peaks: {}, medians: {}".format(x.peaks, medpeaks))
 
             # Align peaks
+            #  TODO: if len(x.peaks) <= len(medpeaks)...
+            #  allow selection of range(1, len(x.peaks)) peaks
             if len(x.peaks) == len(medpeaks):
                 peaks = x.peaks
             elif len(x.peaks) < len(medpeaks):
@@ -252,16 +253,15 @@ class Peaks_1D_Set(object):
 
 #            print "Initial {} => final {}".format(x.peaks, peaks)
             # Add to df
-            if x.name in df.index:
-                df.loc[x.name, :] = peaks
+            if x.case_tube_idx in df.index:
+                df.loc[x.case_tube_idx, :] = peaks
             else:
-                tmp = pd.DataFrame([tuple(peaks)], columns=peak_names, index=[x.name])
+                tmp = pd.DataFrame([tuple(peaks)], columns=peak_names, index=[x.case_tube_idx])
                 df = df.append(tmp)
+            df.index.names = ['case_tube_idx']
 
             # Recalculate medians
             medpeaks = df.median().values
 
-        print df
-
-
+        return df
 

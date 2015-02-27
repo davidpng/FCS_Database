@@ -2,6 +2,10 @@ import pandas as pd
 import numpy as np
 np.set_printoptions(precision=2)
 
+from matplotlib import pyplot as plt
+import pylab
+from math import ceil
+
 from datetime import datetime, time, timedelta
 import logging
 log = logging.getLogger(__name__)
@@ -127,16 +131,22 @@ class FlowQC(object):
                       if_exists='append',
                       index=False)
 
-    def add_peaks(self, trim_peaks=False, peak_detector='local_max',
-                  **kwargs):
-        """ Pull 1D histograms (PmtHistos) for a single channel/antigen/..., find peaks, and label
+    def get_1D_intensities(self, **kwargs):
+        """ Pull 1D histogram (PmtHistos) for single channel/antigen/...
 
-        Output should be df of tube_case_idx, Channel_Number, PEAK_ID, intensity (scaled)
+        Return tuple of df and name
         """
+
         kwargs['getPmtHistos'] = True
         dq = self.db.query(**kwargs)
         log.debug("Query: [{}]".format(dq.qstring))
         log.info("Query result count: {}".format(dq.q.count()))
+
+        df = pd.read_sql_query(sql=dq.qstring,
+                               con=self.db.engine,
+                               params=dq.params)
+        df.sort(['date', 'case_tube_idx', 'bin'], inplace=True)
+        log.debug("Size of df: {}".format(df.shape))
 
         # Make name base
         name = ""
@@ -147,11 +157,17 @@ class FlowQC(object):
                 else:
                     name = "{}_{}".format(name, "_".join(kwargs[k]))
 
-        df = pd.read_sql_query(sql=dq.qstring,
-                               con=self.db.engine,
-                               params=dq.params)
+        return (df, name)
+
+    def add_peaks(self, df, name='test',
+                  trim_peaks=False, peak_detector='local_max',
+                  **kwargs):
+        """ Find peaks, and label
+
+        Output should be df of tube_case_idx, Channel_Number, PEAK_ID, intensity (scaled)
+        """
+
         df.sort(['date', 'case_tube_idx', 'bin'], inplace=True)
-        log.debug("Size of df: {}".format(df.shape))
         ctis = df.case_tube_idx.unique()
 
         all_peaks = Peaks_1D_Set(name=name)
@@ -162,7 +178,7 @@ class FlowQC(object):
             if len(d) != 100:
                 raise ValueError('Length of vector for {} is {} rather than 100'.format(cti,
                                                                                         len(d)))
-            peaks = Peaks_1D(d, iname)
+            peaks = Peaks_1D(d, iname, str(cti))
             if peak_detector == 'local_max':
                 peaks.local_max()
             elif peak_detector == 'cwt':
@@ -183,9 +199,70 @@ class FlowQC(object):
         all_peaks.n_group_peaks()
         log.info("Selecting {} main peaks".format(all_peaks.n_peaks))
 
-        all_peaks.label_peaks()
+        # Label peaks
+        peaks_df = all_peaks.label_peaks()
+        return peaks_df
 
+    def histos2tile(self, df, peaks_df=None, name='test', **kwargs):
+        """ Pull 1D histograms (PmtHistos) for a single channel/antigen/..., find peaks, and plot
+        """
 
-class FlowQC_flat(object):
-    """ Consider making an object that operates the flat QC tables """
-    pass
+        df.sort(['date', 'case_tube_idx', 'bin'], inplace=True)
+        log.debug("Size of df: {}".format(df.shape))
+
+        # Make n order list
+        counts = df.case_tube_idx.value_counts().sort_index(1)
+        if len(set(counts)) != 1:
+            print counts
+            raise ValueError('Not all orders have same count!!')
+        df['order'] = np.repeat(range(counts.shape[0]), counts.iloc[0])
+
+        # Figure out X-axis
+        dates = [dt.year for dt in df.date.astype(object)]
+        if len(set(dates)) == 1:
+            dates = ["{}-{:0>2d}".format(dt.year, dt.month)
+                     for dt in df.date.astype(object)]
+        if len(set(dates)) == 1:
+            dates = ["{}-{:0>2d}-{:0>2d}".format(dt.year, dt.month, dt.day)
+                     for dt in df.date.astype(object)]
+        dates = np.asarray(dates)
+        date_changes = np.where(dates[range(len(dates)-1)] !=
+                                dates[range(1, len(dates))])[0] + 1
+        date_changes = [0] + date_changes.tolist()
+
+        # Truncate density so that top outliers don't overload
+        max_density = np.percentile(df.density, 99.99)
+        df.loc[df.density >= max_density, 'density'] = max_density
+
+        # Make array
+        dat = np.asarray(df.density,
+                         dtype='float')
+        dat.shape = (len(df.order.unique()), counts.iloc[0])
+        dat = dat.T
+
+        # Make peaks data
+        if peaks_df is not None:
+            df.case_tube_idx = df.case_tube_idx.astype(str)
+            tmp = df.loc[:, ['case_tube_idx', 'order']].drop_duplicates()
+            tmp.set_index(['case_tube_idx'], inplace=True)
+            peaks_df = pd.merge(tmp, peaks_df,
+                                how='right',
+                                left_index=True, right_index=True)
+            peaks_df.set_index(['order'], inplace=True)
+            peaks_df.sort_index(axis=0, inplace=True)
+
+        # Plot
+        fsize = (max(ceil(df.shape[0]/4000), 12.5*3), max(ceil(df.shape[0]/20000), 5*3))
+        plt.figure(figsize=fsize)
+        plt.title(name)
+        plt.imshow(dat, origin='lower')
+        plt.xticks(df.order[date_changes], dates[date_changes], fontweight='bold')
+
+        if peaks_df is not None:
+            for col in peaks_df:
+                plt.plot(peaks_df.index, peaks_df[col],
+                         linestyle='-', color='red', linewidth=2,
+                         scalex=False, scaley=False)
+
+        plt.savefig(name + '.png', bbox_inches='tight', dpi=200)
+        plt.close()
