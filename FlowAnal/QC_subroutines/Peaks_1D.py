@@ -3,6 +3,7 @@ import pandas as pd
 from scipy.signal import find_peaks_cwt, argrelmax
 from sklearn.grid_search import GridSearchCV
 from sklearn.neighbors import KernelDensity
+from munkres import Munkres
 import itertools
 
 from matplotlib import pyplot as plt
@@ -179,7 +180,7 @@ class Peaks_1D_Set(object):
 
         self.group_peaks = group_peaks
 
-    def n_group_peaks(self, thresh=1.0, percentile=85):
+    def n_group_peaks(self, thresh=1.0, percentile=75):
         """ Pick how many group peaks to align """
 
         counts = []
@@ -193,7 +194,8 @@ class Peaks_1D_Set(object):
         choice = np.percentile(counts, percentile)
         self.n_peaks = choice.astype(int)
 
-    def label_peaks(self, thresh=1.0):
+    def label_peaks(self, thresh=1.0,
+                    alignment_method='hungarian'):
         """ Assign labels to peaks for each sample
 
         - This requires n_group_peaks to have runA
@@ -215,43 +217,13 @@ class Peaks_1D_Set(object):
 
         # Label peaks
         for x in self.dat:
-            peaks = [None for i in range(len(medpeaks))]
-            log.info("Peaks: {}, medians: {}".format(x.peaks, medpeaks))
+            if alignment_method == 'initial':
+                peaks = self.__first_try_peak_aligner(x, medpeaks)
+            elif alignment_method == 'hungarian':
+                peaks = self.__hungarian_aligner(x, medpeaks)
+            else:
+                raise ValueError('Improper alignment_method')
 
-            # Align peaks
-            #  TODO: if len(x.peaks) <= len(medpeaks)...
-            #  allow selection of range(1, len(x.peaks)) peaks
-            if len(x.peaks) == len(medpeaks):
-                peaks = x.peaks
-            elif len(x.peaks) < len(medpeaks):
-                pdist = float("inf")
-                mp_ixs = None
-                iter = itertools.combinations(range(len(medpeaks)), len(x.peaks))
-                for ixs in iter:
-                    mp_i = [medpeaks[i] for i in ixs]
-                    pdist_i = sum(abs(np.subtract(mp_i, x.peaks)))
-                    if pdist_i < pdist:
-                        pdist = pdist_i
-                        mp_ixs = ixs
-#                print "MP_ixs: {}".format(mp_ixs)
-                j = 0
-                for i in range(len(medpeaks)):
-                    if i in mp_ixs:
-                        peaks[i] = x.peaks[j]
-                        j += 1
-                        if j == len(x.peaks):
-                            break
-            else:  # len(medpeaks) < len(x.peaks)
-                pdist = float("inf")
-                pks = None
-                for pks_i in itertools.combinations(x.peaks, len(medpeaks)):
-                    pdist_i = sum(abs(np.subtract(pks_i, medpeaks)))
-                    if pdist_i < pdist:
-                        pdist = pdist_i
-                        pks = pks_i
-                peaks = pks
-
-#            print "Initial {} => final {}".format(x.peaks, peaks)
             # Add to df
             if x.case_tube_idx in df.index:
                 df.loc[x.case_tube_idx, :] = peaks
@@ -261,7 +233,77 @@ class Peaks_1D_Set(object):
             df.index.names = ['case_tube_idx']
 
             # Recalculate medians
-            medpeaks = df.median().values
+            medpeaks = df.median().values   # TODO: change this to work on sliding window surrounding data
+            print "Median peaks: {}\r".format(medpeaks),
 
         return df
+
+    def __hungarian_aligner(self, x, medpeaks, mismatch_weight=20):
+        """ Converts into assignment problem and then solves """
+
+        size = len(x.peaks) + len(medpeaks)
+        mat = np.zeros(shape=(size, size), dtype=int)
+        for i, x_i in enumerate(x.peaks):
+            for j, y_j in enumerate(medpeaks):
+                mat[j, i] = abs(x_i - y_j)
+
+        mat[range(len(medpeaks), size), :] = mismatch_weight
+        mat[:, range(len(x.peaks), size)] = mismatch_weight
+        m = Munkres()
+        indexes = m.compute(mat)
+
+        peaks = []
+        for row, column in indexes[0:len(medpeaks)]:
+            if column < len(x.peaks):
+                peaks.append(x.peaks[column])
+            else:
+                peaks.append(None)
+        log.debug('Aligned {} to {}'.format(peaks, medpeaks))
+        return peaks
+
+    def __first_try_peak_aligner(self, x, medpeaks):
+        """ Takes a peaks object which includes x.peaks and medpeaks (fixed goal)
+        and returns alignment to medpeaks """
+
+        peaks = [None for i in range(len(medpeaks))]
+        log.info("Peaks: {}, medians: {}".format(x.peaks, medpeaks))
+
+        # Align peaks
+        #  TODO: if len(x.peaks) <= len(medpeaks)...
+        #  allow selection of range(1, len(x.peaks)) peaks
+        if len(x.peaks) == len(medpeaks):
+            peaks = x.peaks
+        elif len(x.peaks) < len(medpeaks):
+            pdist = float("inf")
+            mp_ixs = None
+            iter = itertools.combinations(range(len(medpeaks)), len(x.peaks))
+            for ixs in iter:
+                mp_i = [medpeaks[i] for i in ixs]
+                pdist_i = sum(abs(np.subtract(mp_i, x.peaks)))
+                if pdist_i < pdist:
+                    pdist = pdist_i
+                    mp_ixs = ixs
+#                print "MP_ixs: {}".format(mp_ixs)
+            j = 0
+            for i in range(len(medpeaks)):
+                if i in mp_ixs:
+                    peaks[i] = x.peaks[j]
+                    j += 1
+                    if j == len(x.peaks):
+                        break
+        else:  # len(medpeaks) < len(x.peaks)
+            pdist = float("inf")
+            pks = None
+            for pks_i in itertools.combinations(x.peaks, len(medpeaks)):
+                pdist_i = sum(abs(np.subtract(pks_i, medpeaks)))
+                if pdist_i < pdist:
+                    pdist = pdist_i
+                    pks = pks_i
+            peaks = pks
+
+        log.debug("Initial {} => final {}".format(x.peaks, peaks))
+
+        return peaks
+
+
 

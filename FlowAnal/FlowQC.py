@@ -196,7 +196,7 @@ class FlowQC(object):
         # all_peaks.group_peaks.plot(name="{}_all".format(name))
 
         # Select number of peaks to follow
-        all_peaks.n_group_peaks()
+        all_peaks.n_group_peaks()   # TODO: allow the number of peaks to be pre-defined
         log.info("Selecting {} main peaks".format(all_peaks.n_peaks))
 
         # Label peaks
@@ -261,7 +261,7 @@ class FlowQC(object):
         if peaks_df is not None:
             for col in peaks_df:
                 plt.plot(peaks_df.index, peaks_df[col],
-                         linestyle='-', color='red', linewidth=2,
+                         linestyle='--', color='red', linewidth=1.5,  # TODO: cycle through colors
                          scalex=False, scaley=False)
 
         plt.savefig(name + '.png', bbox_inches='tight', dpi=200)
