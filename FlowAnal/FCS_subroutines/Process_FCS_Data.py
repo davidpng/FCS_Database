@@ -39,7 +39,8 @@ class Process_FCS_Data(object):
 
     def __init__(self, FCS, compensation_file, saturation_upper_range=1000,
                  rescale_lim=(-0.15, 1), strict=True, comp_flag = "table",
-                 singlet_flag = "fixed", viable_flag = "fixed", **kwargs):
+                 singlet_flag="fixed", viable_flag="fixed", gates1d=[],
+                 **kwargs):
         """
         Takes an FCS_object, and a spillover library. \n
         Can handle a spillover library as dictionary if keyed on the machine
@@ -59,7 +60,7 @@ class Process_FCS_Data(object):
 
         self.overlap_matrix = self._load_overlap_matrix(compensation_file)   # load compensation matrix
         self.__compensation_switch(comp_mode=comp_flag,**kwargs)
-        
+
         #Saturation Gate might need to go here
         #sat_gate = self._SaturationGate()
 
@@ -76,18 +77,22 @@ class Process_FCS_Data(object):
 
         self.__patch() # flips axis so that things display correctly
         self.FCS.data = self.data  # update FCS.data
-        
+
         if 'gate_coords' in kwargs:   # if gate coord dictionary provided, do initial cleanup
             self.coords = kwargs['gate_coords']
         else:
             self.coords = None
-        self.__singlet_switch(singlet_mode=singlet_flag,**kwargs)
-        self.__viable_switch(viable_mode=viable_flag,**kwargs)
-            
+        self.__singlet_switch(singlet_mode=singlet_flag, **kwargs)
+        self.__viable_switch(viable_mode=viable_flag, **kwargs)
+
+        # Apply 1D gates
+        for gate in gates1d:
+            self.__1D_gating(gate)
+
         self.FCS.data = self.data  # update FCS.data
         del self.data
-        
-    def __compensation_switch(self,comp_mode,**kwargs):
+
+    def __compensation_switch(self, comp_mode, **kwargs):
         """defines viable gating modes"""
         if comp_mode == None:
             pass
@@ -106,7 +111,7 @@ class Process_FCS_Data(object):
                                  columns=self.columns,
                                  dtype=np.float32)  # create a dataframe with columns
 
-            
+
     def __singlet_switch(self,singlet_mode,**kwargs):
         """defines singlet gating modes"""
         if singlet_mode == None:
@@ -121,12 +126,12 @@ class Process_FCS_Data(object):
             self.FCS.singlet_remain = np.sum(singlet_mask)
             self.data = self.data[singlet_mask]
         else:
-            raise(ValueError,"Singlet Mode: {} is Undefined".format(singlet_mode))        
+            raise(ValueError,"Singlet Mode: {} is Undefined".format(singlet_mode))
 
     def __viable_switch(self,viable_mode,**kwargs):
         """defines viable gating modes"""
         if viable_mode == None:
-            self.FCS.viable_remain = self.FCS.data.shape[0]              
+            self.FCS.viable_remain = self.FCS.data.shape[0]
         elif viable_mode.lower() == "auto":
             raise(NotImplementedError,"Auto Viability Gating has not been implemented")
         elif viable_mode.lower() == "fixed" and 'gate_coords' in kwargs:
@@ -134,13 +139,13 @@ class Process_FCS_Data(object):
             self.FCS.viable_remain = np.sum(viable_mask)
             self.data = self.data[viable_mask]
         else:
-            raise(ValueError,"Viablity Mode: {} is Undefined".format(viable_mode))        
+            raise(ValueError,"Viablity Mode: {} is Undefined".format(viable_mode))
 
     def __auto_singlet_gating(self,**kwargs):
         return GMM_doublet_detection(data=self.data,
                                      filename=self.FCS.filename,
                                      **kwargs)
-        
+
     def __Clean_up_columns(self, columns):
         """
         Provides error handling and clean up for manually entered parameter names
@@ -278,6 +283,22 @@ class Process_FCS_Data(object):
         projection = np.array(DF_array_data[[x_ax, y_ax]])
         index = gate.contains_points(projection)
         return index
+
+    def __1D_gating(self, gate):
+        """ Applys 1D specified by  given parameter/comparator/limit """
+        log.debug('Applying gating {} {} {}'.format(axis, comparator, limit))
+
+        gate.split(' ')
+        (axis, comparator, limit) = gate
+        if comparator == '>':
+            mask = DF[[axis]] > limit
+        elif comparator == '<':
+            mask = DF[[axis]] < limit
+        else:
+            raise ValueError('{} is not a valid comparator'.format(comparator))
+
+        self.FCS.gates["_".join(gate)]['remain'] = np.sum(mask)
+        self.data = self.data[mask]
 
     def _LogicleRescale(self, X_input, lin=['FSC-A', 'FSC-H'],
                         T=2**18, M=4.0, W=1, A=0, **kwargs):

@@ -3,8 +3,8 @@ import numpy as np
 np.set_printoptions(precision=2)
 
 from matplotlib import pyplot as plt
-import pylab
 from math import ceil
+import brewer2mpl
 
 from datetime import datetime, time, timedelta
 import logging
@@ -168,17 +168,17 @@ class FlowQC(object):
         """
 
         df.sort(['date', 'case_tube_idx', 'bin'], inplace=True)
-        ctis = df.case_tube_idx.unique()
+        ctis = df.case_tube_idx.unique()   # In order
 
         all_peaks = Peaks_1D_Set(name=name)
-        for cti in ctis:
+        for i, cti in enumerate(ctis):
             d = df.loc[df.case_tube_idx == cti, 'density'].values
             iname = "{}_{}".format(name, str(cti))
 
             if len(d) != 100:
                 raise ValueError('Length of vector for {} is {} rather than 100'.format(cti,
                                                                                         len(d)))
-            peaks = Peaks_1D(d, iname, str(cti))
+            peaks = Peaks_1D(data=d, name=iname, case_tube_idx=str(cti), order=i)
             if peak_detector == 'local_max':
                 peaks.local_max()
             elif peak_detector == 'cwt':
@@ -188,7 +188,6 @@ class FlowQC(object):
             else:
                 raise ValueError('peak_detector {} is not valid'.format(peak_detector))
 
-            peaks.plot()
             all_peaks.append(peaks)
 
         # Find multisample peaks
@@ -196,11 +195,18 @@ class FlowQC(object):
         # all_peaks.group_peaks.plot(name="{}_all".format(name))
 
         # Select number of peaks to follow
-        all_peaks.n_group_peaks()   # TODO: allow the number of peaks to be pre-defined
+        if 'npeaks' in kwargs and kwargs['npeaks'] is not None:
+            all_peaks.n_group_peaks(kwargs['npeaks'])
+        else:
+            all_peaks.n_group_peaks()
         log.info("Selecting {} main peaks".format(all_peaks.n_peaks))
 
         # Label peaks
         peaks_df = all_peaks.label_peaks()
+
+        # Print individual data
+        all_peaks.plot_individual()
+
         return peaks_df
 
     def histos2tile(self, df, peaks_df=None, name='test', **kwargs):
@@ -259,9 +265,10 @@ class FlowQC(object):
         plt.xticks(df.order[date_changes], dates[date_changes], fontweight='bold')
 
         if peaks_df is not None:
-            for col in peaks_df:
+            colors = brewer2mpl.get_map('YlOrRd', 'Sequential', peaks_df.shape[1]).hex_colors[::-1]
+            for i, col in enumerate(peaks_df):
                 plt.plot(peaks_df.index, peaks_df[col],
-                         linestyle='--', color='red', linewidth=1.5,  # TODO: cycle through colors
+                         linestyle='-', color=colors[i], linewidth=1.5,
                          scalex=False, scaley=False)
 
         plt.savefig(name + '.png', bbox_inches='tight', dpi=200)

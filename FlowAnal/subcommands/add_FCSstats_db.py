@@ -40,6 +40,8 @@ def build_parser(parser):
                         default=False)
     parser.add_argument('-n', '--n', help='Limit to n files (for testing)', default=None,
                         type=int)
+    parser.add_argument('--gates1d', default=[], nargs='+', action='store',
+                        type='str')
     add_filter_args(parser)
 
 

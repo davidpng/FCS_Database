@@ -4,6 +4,7 @@ from scipy.signal import find_peaks_cwt, argrelmax
 from sklearn.grid_search import GridSearchCV
 from sklearn.neighbors import KernelDensity
 from munkres import Munkres
+from math import ceil, floor
 import itertools
 
 from matplotlib import pyplot as plt
@@ -14,10 +15,11 @@ log = logging.getLogger(__name__)
 
 class Peaks_1D(object):
     """ Class that encapsulates methods for subdividing 1D vectors of intensity data """
-    def __init__(self, data, name, case_tube_idx=None):
+    def __init__(self, data, name, order, case_tube_idx=None):
         self.dat = data
         self.name = name
         self.case_tube_idx = case_tube_idx
+        self.order = order
 
     def find_peaks_cwt(self):
         """ Identify peaks using scipy.signal.find_peaks_cwt """
@@ -146,8 +148,12 @@ class Peaks_1D(object):
         if hasattr(self, 'peaks'):
             plt.plot(self.peaks, self.dat[self.peaks], 'ro')
             for i, x in enumerate(self.peaks):
-                plt.annotate('{:.2f}'.format(self.peak_scores[i]), (x, self.dat[x]))
-
+                plt.annotate('{:.2f}'.format(self.peak_scores[i]),
+                             (x + 1, self.dat[x] + max(self.dat)/50))
+        if hasattr(self, 'aligned_peaks'):
+            plt.plot(self.aligned_peaks,
+                     self.dat[self.aligned_peaks] + max(self.dat)/20,
+                     'g*')
         plt.title(self.name + ' peaks')
         plt.savefig(self.name + '.png', bbox_inches='tight', dpi=100)
         plt.close()
@@ -165,6 +171,11 @@ class Peaks_1D_Set(object):
         self.dat.append(peaks)
         self.peaks_all += peaks.peaks
 
+    def plot_individual(self):
+        """ Plot each 1D histogram """
+        for x in self.dat:
+            x.plot()
+
     def find_peaks(self):
         """ Find peaks from all peak data """
         all_peaks = np.asarray(self.peaks_all)
@@ -180,22 +191,25 @@ class Peaks_1D_Set(object):
 
         self.group_peaks = group_peaks
 
-    def n_group_peaks(self, thresh=1.0, percentile=75):
+    def n_group_peaks(self, npeaks=None, thresh=1.0, percentile=85, min_npeaks=2):
         """ Pick how many group peaks to align """
 
-        counts = []
-        for x in self.dat:
-            n = 0
-            for i, peak in enumerate(x.peaks):
-                if x.peak_scores[i] >= thresh:
-                    n += 1
-            counts.append(n)
+        if npeaks is not None:
+            self.n_peaks = npeaks
+        else:
+            counts = []
+            for x in self.dat:
+                n = 0
+                for i, peak in enumerate(x.peaks):
+                    if x.peak_scores[i] >= thresh:
+                        n += 1
+                counts.append(n)
 
-        choice = np.percentile(counts, percentile)
-        self.n_peaks = choice.astype(int)
+            choice = max(np.percentile(counts, percentile), min_npeaks)
+            self.n_peaks = choice.astype(int)
 
     def label_peaks(self, thresh=1.0,
-                    alignment_method='hungarian'):
+                    alignment_method='hungarian', window_size=20):
         """ Assign labels to peaks for each sample
 
         - This requires n_group_peaks to have runA
@@ -205,18 +219,31 @@ class Peaks_1D_Set(object):
 
         # Initialize peak locations (Using specimens with exactly self.n_peaks peaks above <thresh>
         d = []
-        for x in self.dat:
-            gpeaks = [p for i, p in enumerate(x.peaks)
-                      if x.peak_scores[i] >= thresh]
+        for i, x in enumerate(self.dat):
+            gpeaks = [p for j, p in enumerate(x.peaks)
+                      if x.peak_scores[j] >= thresh]
             if len(gpeaks) == self.n_peaks:
-                d.append([x.case_tube_idx] + gpeaks)
+                d.append([i] + gpeaks)
 
-        df = pd.DataFrame(d, columns=['case_tube_idx'] + peak_names)
-        df.set_index(['case_tube_idx'], drop=True, inplace=True)
-        medpeaks = df.median().values
+        df = pd.DataFrame(d, columns=['order'] + peak_names)
+        df.set_index(['order'], drop=True, inplace=True)
 
-        # Label peaks
-        for x in self.dat:
+        # Label peaks (re-run beginning again)
+        for x in self.dat + self.dat[0:window_size]:
+            i = x.order
+            # Pick sliding window
+            if (i + window_size/2) <= df.shape[0]:
+                start = int(max(0, ceil(i - window_size/2)))
+                end = int(min(ceil(start + window_size), df.shape[0]))
+            else:
+                end = df.shape[0]
+                start = int(max(0, ceil(end - window_size)))
+            log.debug("Window for {}: {} - {} of {}\r".format(i, start, end, df.shape[0]))
+
+            # Calculate median peak locations
+            df_i = df.iloc[range(start, end), :]
+            medpeaks = df_i.median().values
+
             if alignment_method == 'initial':
                 peaks = self.__first_try_peak_aligner(x, medpeaks)
             elif alignment_method == 'hungarian':
@@ -224,21 +251,21 @@ class Peaks_1D_Set(object):
             else:
                 raise ValueError('Improper alignment_method')
 
+            x.aligned_peaks = [y for y in peaks if y is not None]
+
             # Add to df
-            if x.case_tube_idx in df.index:
-                df.loc[x.case_tube_idx, :] = peaks
+            if i in df.index:
+                df.loc[i, :] = peaks
             else:
-                tmp = pd.DataFrame([tuple(peaks)], columns=peak_names, index=[x.case_tube_idx])
+                tmp = pd.DataFrame([tuple(peaks)], columns=peak_names, index=[i])
                 df = df.append(tmp)
-            df.index.names = ['case_tube_idx']
+                df.sort_index(inplace=True)
 
-            # Recalculate medians
-            medpeaks = df.median().values   # TODO: change this to work on sliding window surrounding data
-            print "Median peaks: {}\r".format(medpeaks),
-
+        df.index = [x.case_tube_idx for x in self.dat]
+        df.index.names = ['case_tube_idx']
         return df
 
-    def __hungarian_aligner(self, x, medpeaks, mismatch_weight=20):
+    def __hungarian_aligner(self, x, medpeaks, mismatch_weight=25):
         """ Converts into assignment problem and then solves """
 
         size = len(x.peaks) + len(medpeaks)

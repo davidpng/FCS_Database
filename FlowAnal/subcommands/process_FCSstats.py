@@ -36,6 +36,7 @@ def build_parser(parser):
                         action='store_true')
     parser.add_argument('--plot-1D-intensities', dest='plot_1D_intensities',
                         action='store_true')
+    parser.add_argument('--npeaks', default=None, dest='npeaks', type=int)
     add_filter_args(parser)
 
 
@@ -59,6 +60,6 @@ def action(args):
             else:
                 peaks_df = None
             if args.plot_1D_intensities is True:
-                a.histos2tile(df=df, peaks_df=peaks_df, name=name)
+                a.histos2tile(df=df, peaks_df=peaks_df, name=name, **vars(args))
 
 

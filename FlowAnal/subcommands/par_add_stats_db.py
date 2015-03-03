@@ -38,15 +38,16 @@ def build_parser(parser):
     parser.add_argument('-w', '--workers', help='Number of workers [default 32]',
                         default=32, type=int)
     parser.add_argument('-l', '--load', help='Number of .fcs files to process as group,  \
-    dependent on main memory size [default 600]',
-                        default=600, type=int)
+    dependent on main memory size [default 300]',
+                        default=300, type=int)
     parser.add_argument('--nosinglet', help='Turn off the singlet gate', action='store_true',
                         default=False)
     parser.add_argument('--noviability', help='Turn off the singlet gate', action='store_true',
                         default=False)
     parser.add_argument('-t', '--testing', help='Testing: run one load of workers',
                         default=False, action='store_true')
-
+    parser.add_argument('--gates1d', default=[], nargs='+', action='store',
+                        type='str')
     add_filter_args(parser)
 
 

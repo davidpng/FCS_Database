@@ -21,11 +21,11 @@ def add_filter_args(parser):
     parser.add_argument('-antigens', '--antigens', help='List of antigens to select',
                         nargs='+', action='store',
                         default=None, type=str)
-    parser.add_argument('-Channel_Name', '--Channel_Name',
+    parser.add_argument('-Channel_Name', '--Channel-Name',
                         help='List of Channel_Name\'s to select',
                         nargs='+', action='store',
                         default=None, type=str)
-    parser.add_argument('-Channel_Number', '--Channel_Number',
+    parser.add_argument('-Channel_Number', '--Channel-Number',
                         help='List of Channel_Number\'s to select',
                         nargs='+', action='store',
                         default=None, type=int)
@@ -58,6 +58,6 @@ def add_filter_args(parser):
                         dest='record_n',
                         help='Number of records for database to return',
                         default=None, type=int)
-
-
-
+    parser.add_argument('--total_events', '--total-events', dest='total_events',
+                        help='Minimum event count to accept',
+                        default=None, type=int)

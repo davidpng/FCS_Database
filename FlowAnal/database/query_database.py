@@ -316,25 +316,25 @@ class queryDB(object):
         """
         log.info('Looking for PmtHistos')
         # Build query
-        self.q = self.session.query(TubeCases.cytnum,
+        self.q = self.session.query(TubeCases.case_number,
+                                    TubeCases.cytnum,
                                     TubeCases.date,
                                     PmtTubeCases.Antigen,
                                     PmtTubeCases.Fluorophore,
                                     PmtTubeCases.Channel_Name,
                                     TubeTypesInstances.tube_type,
                                     TubeTypesInstances.tube_type_instance,
+                                    TubeStats.total_events,
                                     PmtHistos).\
             join(PmtTubeCases, PmtHistos.Pmt).\
             join(TubeCases, PmtTubeCases.Tube).\
-            join(TubeTypesInstances, TubeCases.TubeTypesInstance)
-            # order_by(func.datetime(TubeCases.date,
-            #          PmtHistos.case_tube_idx,
-            #          PmtHistos.Channel_Number,
-            #          PmtHistos.bin)
+            join(TubeTypesInstances, TubeCases.TubeTypesInstance).\
+            join(TubeStats, TubeCases.Stats)
 
         self.q.joined_tables = ['TubeCases', 'PmtHistos',
                                 'PmtTubeCases',
-                                'TubeTypesInstances']
+                                'TubeTypesInstances',
+                                'TubeStats']
         self.__add_mods_to_query(**kwargs)
         return self.compile_query()
 
@@ -528,6 +528,12 @@ def add_mods_to_query(q, **kwargs):
         q = q.filter(TubeCases.case_tube_idx.in_(case_tube_idxs_to_select))
         if 'TubeCases' not in q.joined_tables:
             q = q.join(TubeCases)
+
+    if 'total_events' in kwargs and kwargs['total_events'] is not None:
+        log.info('Looking for cti with total_events > {}'.format(kwargs['total_events']))
+        q = q.filter(TubeStats.total_events >= kwargs['total_events'])
+        if 'TubeStats' not in q.joined_tables:
+            q = q.join(TubeStats)
 
     if 'custom_set' in kwargs and kwargs['custom_set'] is not None:
         q = q.join(CustomCaseData)
