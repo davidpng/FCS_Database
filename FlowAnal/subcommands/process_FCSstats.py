@@ -17,6 +17,7 @@ from FlowAnal.FlowQC import FlowQC
 from __init__ import add_filter_args
 
 import logging
+import os
 log = logging.getLogger(__name__)
 
 
@@ -31,6 +32,11 @@ def build_parser(parser):
                         action='store_true')
     parser.add_argument('-table-format', '--table-format', dest='table_format',
                         default='tall', type=str)
+    parser.add_argument('--add-peaks', dest='add_peaks',
+                        action='store_true')
+    parser.add_argument('--plot-1D-intensities', dest='plot_1D_intensities',
+                        action='store_true')
+    parser.add_argument('--npeaks', default=None, dest='npeaks', type=int)
     add_filter_args(parser)
 
 
@@ -40,9 +46,20 @@ def action(args):
         print "Processing database %s" % args.db
 
         # Get QC data
-        if args.testing:
+        if args.testing is True:
+            if os.path.isfile(args.outdb):
+                os.remove(args.outdb)
             testdbcon = FCSdatabase(db=args.outdb, rebuild=True)
             args.table_format = 'tall'
-            qc = FlowQC(dbcon=dbcon, outdbcon=testdbcon, **vars(args))
+            FlowQC(dbcon=dbcon, outdbcon=testdbcon, **vars(args))
         else:
-            qc = FlowQC(dbcon=dbcon, **vars(args))
+            a = FlowQC(dbcon=dbcon, make_qc_data=False)
+            (df, name) = a.get_1D_intensities(**vars(args))
+            if args.add_peaks is True:
+                peaks_df = a.add_peaks(df=df, name=name, **vars(args))
+            else:
+                peaks_df = None
+            if args.plot_1D_intensities is True:
+                a.histos2tile(df=df, peaks_df=peaks_df, name=name, **vars(args))
+
+

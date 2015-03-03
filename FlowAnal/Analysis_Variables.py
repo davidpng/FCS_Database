@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Created on: Fri 09 Jan 2015 11:19:55 AM PST 
+Created on: Fri 09 Jan 2015 11:19:55 AM PST
 This file sets up analysis variables for testing and analysis
 imported from
 
@@ -20,10 +20,19 @@ __status__ = "Production"
 from FlowAnal.__init__ import package_data
 
 # set global variables
-gate_coords = {'singlet': [(0.01, 0.06), (0.60, 0.75), (0.93, 0.977), (0.988, 0.86),
-                           (0.456, 0.379), (0.05, 0.0), (0.0, 0.0)],
-               'viable':  [(0.358, 0.174), (0.609, 0.241), (0.822, 0.132), (0.989, 0.298),
-                           (1.0, 1.0), (0.5, 1.0), (0.358, 0.174)]}
+gate_coords = {'singlet': {
+    'coords': [(0.01, 0.06), (0.60, 0.75), (0.93, 0.977), (0.988, 0.86),
+               (0.456, 0.379), (0.05, 0.0), (0.0, 0.0)],
+    'x': 'FSC-A',
+    'y': 'FSC-H'},
+    'viable': {
+        'coords': [(0.358, 0.174), (0.609, 0.241), (0.822, 0.132), (0.989, 0.298),
+                   (1.0, 1.0), (0.5, 1.0), (0.358, 0.174)],
+        'x': 'SSC-H', 'y': 'FSC-H'},
+    'viable_simple': {
+        'coords': [(0, 0.1), (1, 0.1), (1, 1), (0, 1), (0, 0.1)],
+        'x': 'SSC-H', 'y': 'FSC-A', 'notes': 'Selects FSC-A > 0.1'}
+}
 
 comp_file = {'1': package_data('Spectral_Overlap_Lib_LSRA.txt'),
              '2': package_data('Spectral_Overlap_Lib_LSRB.txt'),

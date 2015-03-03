@@ -39,7 +39,8 @@ class Process_FCS_Data(object):
 
     def __init__(self, FCS, compensation_file, saturation_upper_range=1000,
                  rescale_lim=(-0.15, 1), strict=True, comp_flag = "table",
-                 singlet_flag = "fixed", viable_flag = "fixed", **kwargs):
+                 singlet_flag="fixed", viable_flag="fixed", gates1d=[],
+                 **kwargs):
         """
         Takes an FCS_object, and a spillover library. \n
         Can handle a spillover library as dictionary if keyed on the machine
@@ -82,14 +83,20 @@ class Process_FCS_Data(object):
             self.coords = kwargs['gate_coords']
         else:
             self.coords = None
-        self.__singlet_switch(singlet_mode=singlet_flag,**kwargs)
-        self.__viable_switch(viable_mode=viable_flag,**kwargs)
+
+        self.__singlet_switch(singlet_mode=singlet_flag, **kwargs)
+        self.__viable_switch(viable_mode=viable_flag, **kwargs)
+
+        # Apply 1D gates
+        for gate in gates1d:
+            self.__1D_gating(gate)
 
         self.FCS.data = self.data  # update FCS.data
         del self.data
 
     def __compensation_switch(self, comp_mode, compensation_file,
                               **kwargs):
+
         """defines viable gating modes"""
         if comp_mode == 'none':
             self.data = self.FCS.data
@@ -282,6 +289,22 @@ class Process_FCS_Data(object):
         projection = np.array(DF_array_data[[x_ax, y_ax]])
         index = gate.contains_points(projection)
         return index
+
+    def __1D_gating(self, gate):
+        """ Applys 1D specified by  given parameter/comparator/limit """
+        log.debug('Applying gating {} {} {}'.format(axis, comparator, limit))
+
+        gate.split(' ')
+        (axis, comparator, limit) = gate
+        if comparator == '>':
+            mask = DF[[axis]] > limit
+        elif comparator == '<':
+            mask = DF[[axis]] < limit
+        else:
+            raise ValueError('{} is not a valid comparator'.format(comparator))
+
+        self.FCS.gates["_".join(gate)]['remain'] = np.sum(mask)
+        self.data = self.data[mask]
 
     def _LogicleRescale(self, X_input, lin=['FSC-A', 'FSC-H'],
                         T=2**18, M=4.0, W=1, A=0, **kwargs):

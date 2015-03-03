@@ -43,8 +43,7 @@ class queryDB(object):
             kwargs['not_flagged'] = True
 
         # Choose query message based on kwargs
-        qmethods = ['getfiles', 'getPmtStats', 'getTubeStats',
-                    'getPmtCompCorr', 'getPmtHistos', 'getTubeInfo',
+        qmethods = ['getfiles',  'getTubeInfo',
                     'getCreationDate', 'getCases', 'pick_cti']
         qmethod = [m for m in qmethods
                    if (m in kwargs.keys() and kwargs[m] is True)]
@@ -54,13 +53,20 @@ class queryDB(object):
         dmethod = [m for m in dmethods
                    if (m in kwargs.keys() and kwargs[m] is True)]
 
-        if len(qmethod) > 1:
+        mmethods = ['getPmtStats', 'getTubeStats',
+                    'getPmtCompCorr', 'getPmtHistos']
+        mmethod = [m for m in mmethods
+                   if (m in kwargs.keys() and kwargs[m] is True)]
+
+        if len(qmethod + dmethod + mmethod) > 1:
             print 'Multiple query methods specified: %s by kwargs: %s' % (qmethod,
                                                                           kwargs)
         elif len(qmethod) == 1:
             self.results = getattr(self, '_queryDB__' + qmethod[0])(**kwargs)
         elif len(dmethod) == 1:
             getattr(self, '_queryDB__' + dmethod[0])(**kwargs)
+        elif len(mmethod) == 1:
+            self.qstring, self.params = getattr(self, '_queryDB__' + mmethod[0])(**kwargs)
         else:
             raise ValueError('query not specified properly: %s' %
                              '='.join(key, value) for key, value in kwargs.items())
@@ -229,21 +235,20 @@ class queryDB(object):
                                     PmtTubeCases.Channel_Name,
                                     PmtTubeCases.Voltage,
                                     TubeTypesInstances.tube_type,
+                                    TubeTypesInstances.tube_type_instance,
                                     PmtStats).\
             join(PmtTubeCases, PmtStats.Pmt).\
             join(TubeCases, PmtTubeCases.Tube).\
             join(TubeStats, TubeCases.Stats).\
-            join(TubeTypesInstances, TubeCases.TubeTypesInstance).\
-            order_by(func.datetime(TubeCases.date))
+            join(TubeTypesInstances, TubeCases.TubeTypesInstance)
+#            order_by(func.datetime(TubeCases.date))
 
         # keep track of explicitly joined tables
         self.q.joined_tables = ['TubeCases', 'PmtTubeCases', 'PmtStats',
                                 'TubeStats', 'TubeTypesInstances']
 
         self.__add_mods_to_query(**kwargs)
-        df = self.__q2df()
-
-        return df
+        return self.compile_query()
 
     def __getTubeStats(self, **kwargs):
         """
@@ -270,9 +275,7 @@ class queryDB(object):
                                 'TubeTypesInstances']
 
         self.__add_mods_to_query(**kwargs)
-
-        df = self.__q2df()
-        return df
+        return self.compile_query()
 
     def __getCaseAnnotations(self, **kwargs):
         """
@@ -313,23 +316,27 @@ class queryDB(object):
         """
         log.info('Looking for PmtHistos')
         # Build query
-        self.q = self.session.query(TubeCases.cytnum,
+        self.q = self.session.query(TubeCases.case_number,
+                                    TubeCases.cytnum,
                                     TubeCases.date,
                                     PmtTubeCases.Antigen,
                                     PmtTubeCases.Fluorophore,
+                                    PmtTubeCases.Channel_Name,
+                                    TubeTypesInstances.tube_type,
+                                    TubeTypesInstances.tube_type_instance,
+                                    TubeStats.total_events,
                                     PmtHistos).\
             join(PmtTubeCases, PmtHistos.Pmt).\
             join(TubeCases, PmtTubeCases.Tube).\
-            order_by(TubeCases.date,
-                     PmtHistos.case_tube_idx,
-                     PmtHistos.Channel_Number,
-                     PmtHistos.bin)
+            join(TubeTypesInstances, TubeCases.TubeTypesInstance).\
+            join(TubeStats, TubeCases.Stats)
 
-        self.q.joined_tables = ['TubeCases', 'PmtHistos', 'PmtTubeCases']
+        self.q.joined_tables = ['TubeCases', 'PmtHistos',
+                                'PmtTubeCases',
+                                'TubeTypesInstances',
+                                'TubeStats']
         self.__add_mods_to_query(**kwargs)
-
-        df = self.__q2df()
-        return df
+        return self.compile_query()
 
     def __getPmtCompCorr(self, **kwargs):
         """
@@ -356,9 +363,7 @@ class queryDB(object):
         self.q.joined_tables = ['TubeCases', 'PmtTubeCases', 'PmtTubeCasesIN', 'PmtCompCorr']
 
         self.__add_mods_to_query(**kwargs)
-
-        df = self.__q2df()
-        return df
+        return self.compile_query()
 
     def __getCreationDate(self, **kwargs):
         """ Returns creation_date of db """
@@ -480,6 +485,20 @@ def add_mods_to_query(q, **kwargs):
         if 'PmtTubeCases' not in q.joined_tables:
             q = q.join(PmtTubeCases)
 
+    if 'Channel_Number' in kwargs and kwargs['Channel_Number'] is not None:
+        channels_to_select = [x for x in kwargs['Channel_Number']]
+        log.info('Looking for channels: #%s' % channels_to_select)
+        q = q.filter(PmtTubeCases.Channel_Number.in_(channels_to_select))
+        if 'PmtTubeCases' not in q.joined_tables:
+            q = q.join(PmtTubeCases)
+
+    if 'Channel_Name' in kwargs and kwargs['Channel_Name'] is not None:
+        channels_to_select = [unicode(x) for x in kwargs['Channel_Name']]
+        log.info('Looking for channels: #%s' % channels_to_select)
+        q = q.filter(PmtTubeCases.Channel_Name.in_(channels_to_select))
+        if 'PmtTubeCases' not in q.joined_tables:
+            q = q.join(PmtTubeCases)
+
     if 'daterange' in kwargs and kwargs['daterange'] is not None:
         log.info('Looking for daterange: [%s, %s]' % (kwargs['daterange'][0],
                                                       kwargs['daterange'][1]))
@@ -509,6 +528,12 @@ def add_mods_to_query(q, **kwargs):
         q = q.filter(TubeCases.case_tube_idx.in_(case_tube_idxs_to_select))
         if 'TubeCases' not in q.joined_tables:
             q = q.join(TubeCases)
+
+    if 'total_events' in kwargs and kwargs['total_events'] is not None:
+        log.info('Looking for cti with total_events > {}'.format(kwargs['total_events']))
+        q = q.filter(TubeStats.total_events >= kwargs['total_events'])
+        if 'TubeStats' not in q.joined_tables:
+            q = q.join(TubeStats)
 
     if 'custom_set' in kwargs and kwargs['custom_set'] is not None:
         q = q.join(CustomCaseData)

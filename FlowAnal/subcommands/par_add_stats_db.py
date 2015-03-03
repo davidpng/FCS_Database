@@ -38,13 +38,12 @@ def build_parser(parser):
     parser.add_argument('-w', '--workers', help='Number of workers [default 32]',
                         default=32, type=int)
     parser.add_argument('-l', '--load', help='Number of .fcs files to process as group,  \
-    dependent on main memory size [default 600]',
-                        default=600, type=int)
+    dependent on main memory size [default 300]',
+                        default=300, type=int)
     parser.add_argument('-t', '--testing', help='Testing: run one load of workers',
                         default=False, action='store_true')
-    add_process_args(parser)
     add_filter_args(parser)
-
+    add_process_args(parser)
 
 def worker(in_list, **kwargs):
     """
