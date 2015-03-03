@@ -58,14 +58,9 @@ def action(args):
             filepath = path.join(args.dir, relpath)
             fFCS = FCS(filepath=filepath, case_tube_idx=case_tube_idx, import_dataframe=True)
 
-            #            try:
             fFCS.comp_scale_FCS_data(compensation_file=comp_file,
                                      gate_coords=gate_coords,
                                      strict=False, **vars(args))
             fFCS.extract_FCS_histostats()
-            # except:
-            #     fFCS.flag = 'stats_extraction_fail'
-            #     fFCS.error_message = str(sys.exc_info()[0])
-            #     log.debug(fFCS.error_message)
 
             fFCS.histostats_to_db(db=out_db)

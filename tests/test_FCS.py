@@ -243,9 +243,9 @@ class Test_FCS(TestBase):
         filepath = data(test_fcs_fn)
 
         a = FCS(filepath=filepath, import_dataframe=True)
-        a.comp_scale_FCS_data(compensation_file=comp_file,gate_coords=gate_coords,
-                              strict=False, rescale_lim=(-0.5,1.0),
-                              comp_flag='table',singlet_flag=None,
+        a.comp_scale_FCS_data(compensation_file=comp_file, gate_coords=gate_coords,
+                              strict=False, rescale_lim=(-0.5, 1.0),
+                              comp_flag='table', singlet_flag='none',
                               viable_flag='fixed')
         a.extract_FCS_histostats()
 
@@ -258,6 +258,7 @@ class Test_FCS(TestBase):
             np.testing.assert_allclose(pd.Series(a.TubeStats).values, TubeStats.values,
                                        rtol=1e-3, atol=0, err_msg="Tube Statistics results are more \
                                        different than tolerable")
+
     def test_auto_singlet(self):
         """
         Tests auto singlet gating
@@ -270,7 +271,7 @@ class Test_FCS(TestBase):
                               comp_flag='table',singlet_flag='auto',
                               viable_flag='fixed',classes=5,
                               singlet_verbose=True,save_dir=self.mkoutdir())
-                             
+
     def test_auto_comp(self):
         """ Tests the auto compensation subroutine of comp_scale_FCS_data
 
@@ -282,7 +283,7 @@ class Test_FCS(TestBase):
                            '1':'1', '2':'2', '3':'3'}
 
         filepath = data(test_fcs_fn)
-        
+
         a = FCS(filepath=filepath, import_dataframe=True)
         a.comp_scale_FCS_data(compensation_file=comp_file,gate_coords=gate_coords,
                               strict=False,comp_flag='table',singlet_flag="fixed",

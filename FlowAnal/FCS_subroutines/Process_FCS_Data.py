@@ -128,7 +128,8 @@ class Process_FCS_Data(object):
             self.FCS.singlet_remain, percent_loss = auto_gate_obj.calculate_stats()
             self.data = self.data[singlet_mask]
         elif singlet_mode == "fixed" and 'gate_coords' in kwargs:
-            singlet_mask = self._gating(self.data, 'FSC-A', 'FSC-H', self.coords['singlet'])
+            singlet_mask = self._gating(self.data, 'FSC-A', 'FSC-H',
+                                        self.coords['singlet']['coords'])
             self.FCS.singlet_remain = np.sum(singlet_mask)
             self.data = self.data[singlet_mask]
         else:
@@ -141,7 +142,8 @@ class Process_FCS_Data(object):
         elif viable_mode == "auto":
             raise(NotImplementedError,"Auto Viability Gating has not been implemented")
         elif viable_mode == "fixed" and 'gate_coords' in kwargs:
-            viable_mask = self._gating(self.data, 'SSC-H', 'FSC-H', self.coords['viable'])
+            viable_mask = self._gating(self.data, 'SSC-H', 'FSC-H',
+                                       self.coords['viable']['coords'])
             self.FCS.viable_remain = np.sum(viable_mask)
             self.data = self.data[viable_mask]
         else:
