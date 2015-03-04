@@ -146,8 +146,8 @@ class queryDB(object):
         # Add common filters
         self.__add_mods_to_query(**kwargs)
 
-        log.debug('Query:')
         log.debug(self.q.statement)
+        log.info('Query: {} results'.format(self.q.count()))
 
         # Handle export data
         if exporttype == 'dict_dict':
@@ -494,7 +494,7 @@ def add_mods_to_query(q, **kwargs):
 
     if 'Channel_Name' in kwargs and kwargs['Channel_Name'] is not None:
         channels_to_select = [unicode(x) for x in kwargs['Channel_Name']]
-        log.info('Looking for channels: #%s' % channels_to_select)
+        log.info('Looking for channels name: %s' % channels_to_select)
         q = q.filter(PmtTubeCases.Channel_Name.in_(channels_to_select))
         if 'PmtTubeCases' not in q.joined_tables:
             q = q.join(PmtTubeCases)

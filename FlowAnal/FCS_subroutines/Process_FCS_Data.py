@@ -52,6 +52,7 @@ class Process_FCS_Data(object):
         """
         self.strict = strict
         self.FCS = FCS
+        self.FCS.gates = []
 
         # save columns because data is redfined after comp
         self.columns = self.__Clean_up_columns(self.FCS.parameters.loc['Channel_Name'])
@@ -294,19 +295,19 @@ class Process_FCS_Data(object):
 
     def __1D_gating(self, gate):
         """ Applys 1D specified by  given parameter/comparator/limit """
-        log.debug('Applying gating {} {} {}'.format(axis, comparator, limit))
 
-        gate.split(' ')
-        (axis, comparator, limit) = gate
+        (axis, comparator, limit) = gate.split(' ')
+        log.debug('Applying gating {} {} {}'.format(axis, comparator, limit))
         if comparator == '>':
-            mask = DF[[axis]] > limit
+            mask = self.data[axis] > float(limit)
         elif comparator == '<':
-            mask = DF[[axis]] < limit
+            mask = self.data[axis] < float(limit)
         else:
             raise ValueError('{} is not a valid comparator'.format(comparator))
 
-        self.FCS.gates["_".join(gate)]['remain'] = np.sum(mask)
-        self.data = self.data[mask]
+        self.FCS.gates.append(("_".join([axis, comparator, limit]), np.sum(mask)))
+
+        self.data = self.data.loc[mask, :]
 
     def _LogicleRescale(self, X_input, lin=['FSC-A', 'FSC-H'],
                         T=2**18, M=4.0, W=1, A=0, **kwargs):

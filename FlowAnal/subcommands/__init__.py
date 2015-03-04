@@ -79,5 +79,6 @@ def add_process_args(parser):
                         help='Viablity gate mode',
                         choices=['fixed', 'auto', 'none'],
                         type=str)
-    parser.add_argument('--gates1d', default=[], nargs='+', action='store',
-                        type='str')
+    parser.add_argument('--gates1d', default=[], nargs='+',
+                        action='store', help='1D gating (list)',
+                        type=str)

@@ -33,8 +33,6 @@ def build_parser(parser):
     parser.add_argument('-outdb', '--outdb', help='Output sqlite3 db for Flow meta data \
     [default: db/fcs_stats.db]',
                         default="db/fcs_stats.db", type=str)
-    parser.add_argument('--gates1d', default=[], nargs='+', action='store',
-                        type='str')
     add_filter_args(parser)
     add_process_args(parser)
 

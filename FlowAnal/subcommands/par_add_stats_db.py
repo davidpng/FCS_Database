@@ -45,6 +45,7 @@ def build_parser(parser):
     add_filter_args(parser)
     add_process_args(parser)
 
+
 def worker(in_list, **kwargs):
     """
     Still need to work on handling of cases that did not extract correctly
@@ -92,7 +93,7 @@ def action(args):
 
     # Setup args
     vargs = {key: value for key, value in vars(args).items()
-             if key in ['viable_flag', 'singlet_flag', 'comp_flag']}
+             if key in ['viable_flag', 'singlet_flag', 'comp_flag', 'gates1d']}
 
     i = 0
     for sublist in sublists:
