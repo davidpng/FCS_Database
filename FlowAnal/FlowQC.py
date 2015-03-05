@@ -145,7 +145,7 @@ class FlowQC(object):
         df = pd.read_sql_query(sql=dq.qstring,
                                con=self.db.engine,
                                params=dq.params)
-        df.sort(['date', 'case_tube_idx', 'bin'], inplace=True)
+        df.sort(['date', 'case_number', 'case_tube_idx', 'bin'], inplace=True)
         log.debug("Size of df: {}".format(df.shape))
 
         # Make name base
@@ -265,7 +265,8 @@ class FlowQC(object):
         plt.xticks(df.order[date_changes], dates[date_changes], fontweight='bold')
 
         if peaks_df is not None:
-            colors = brewer2mpl.get_map('YlOrRd', 'Sequential', peaks_df.shape[1]).hex_colors[::-1]
+            colors = brewer2mpl.get_map('YlOrRd', 'Sequential',
+                                        max(peaks_df.shape[1], 3)).hex_colors[::-1]
             for i, col in enumerate(peaks_df):
                 plt.plot(peaks_df.index, peaks_df[col],
                          linestyle='-', color=colors[i], linewidth=1.5,

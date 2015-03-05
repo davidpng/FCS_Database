@@ -14,7 +14,11 @@ __status__ = "Production"
 
 from FlowAnal.database.FCS_database import FCSdatabase
 from FlowAnal.FlowQC import FlowQC
+from FlowAnal.QC_subroutines.Flow_Comparison import Flow_Comparison
 from __init__ import add_filter_args
+import pandas as pd
+import numpy as np
+from matplotlib import pyplot as plt
 
 import logging
 import os
@@ -37,6 +41,12 @@ def build_parser(parser):
     parser.add_argument('--plot-1D-intensities', dest='plot_1D_intensities',
                         action='store_true')
     parser.add_argument('--npeaks', default=None, dest='npeaks', type=int)
+    parser.add_argument('--cross-anal', '--crossanal', dest='crossanal',
+                        action='store', default=None,
+                        help='do paired analyses across tube types [tubes] or cytnums [cytnum]')
+    parser.add_argument('--outp', '--prefix', dest='outp',
+                        type=str, help='file prefix for output',
+                        default='test_out')
     add_filter_args(parser)
 
 
@@ -53,13 +63,15 @@ def action(args):
             args.table_format = 'tall'
             FlowQC(dbcon=dbcon, outdbcon=testdbcon, **vars(args))
         else:
-            a = FlowQC(dbcon=dbcon, make_qc_data=False)
-            (df, name) = a.get_1D_intensities(**vars(args))
-            if args.add_peaks is True:
-                peaks_df = a.add_peaks(df=df, name=name, **vars(args))
+            if args.crossanal is not None:
+                a = Flow_Comparison()
+                a.Peak_Comparisons(args, dbcon)
             else:
-                peaks_df = None
-            if args.plot_1D_intensities is True:
-                a.histos2tile(df=df, peaks_df=peaks_df, name=name, **vars(args))
-
-
+                a = FlowQC(dbcon=dbcon, make_qc_data=False)
+                (df, name) = a.get_1D_intensities(**vars(args))
+                if args.add_peaks is True:
+                    peaks_df = a.add_peaks(df=df, name=name, **vars(args))
+                else:
+                    peaks_df = None
+                if args.plot_1D_intensities is True:
+                    a.histos2tile(df=df, peaks_df=peaks_df, name=name, **vars(args))
