@@ -15,10 +15,11 @@ log = logging.getLogger(__name__)
 
 class Peaks_1D(object):
     """ Class that encapsulates methods for subdividing 1D vectors of intensity data """
-    def __init__(self, data, name, order, case_tube_idx=None):
+    def __init__(self, data, name, order, case_tube_idx=None, case_number=None):
         self.dat = data
         self.name = name
         self.case_tube_idx = case_tube_idx
+        self.case_number = case_number
         self.order = order
 
     def find_peaks_cwt(self):
@@ -331,6 +332,3 @@ class Peaks_1D_Set(object):
         log.debug("Initial {} => final {}".format(x.peaks, peaks))
 
         return peaks
-
-
-
