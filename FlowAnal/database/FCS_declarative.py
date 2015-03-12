@@ -12,6 +12,7 @@ class Base(object):
 
 Base = declarative_base(cls=Base)
 
+
 class PmtTubeCases(Base):
     __tablename__ = 'PmtTubeCases'
 
@@ -143,6 +144,16 @@ class PmtStats(Base):
                        backref='PmtStats')
 
 Index('ix_PmtStats_Channel_Number', PmtStats.Channel_Number)
+
+
+class Beads8peaks(Base):
+    __tablename__ = 'Beads8peaks'
+    id = Column(Integer, primary_key=True)
+    Fluorophore = Column(String(20), nullable=False)  # , primary_key=True)
+    cytnum = Column(String(3), nullable=False)  # primary_key=True)
+    date = Column(DateTime, nullable=False)  # primary_key=True)
+    peak = Column(String(2), nullable=False)  # primary_key=True)
+    MFI = Column(Float)
 
 
 class PmtHistos(Base):
