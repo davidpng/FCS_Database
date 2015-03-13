@@ -54,7 +54,7 @@ class queryDB(object):
                    if (m in kwargs.keys() and kwargs[m] is True)]
 
         mmethods = ['getPmtStats', 'getTubeStats',
-                    'getPmtCompCorr', 'getPmtHistos']
+                    'getPmtCompCorr', 'getPmtHistos', 'getbeads']
         mmethod = [m for m in mmethods
                    if (m in kwargs.keys() and kwargs[m] is True)]
 
@@ -68,7 +68,7 @@ class queryDB(object):
         elif len(mmethod) == 1:
             self.qstring, self.params = getattr(self, '_queryDB__' + mmethod[0])(**kwargs)
         else:
-            raise ValueError('query not specified properly: %s' %
+            raise ValueError('query method not specified properly: %s' %
                              '='.join(key, value) for key, value in kwargs.items())
 
         self.session.close()
@@ -168,6 +168,32 @@ class queryDB(object):
             return df
         else:
             raise "Unknown type"
+
+    def __getbeads(self, **kwargs):
+        """        Collect bead data based on kwargs
+        """
+        log.info('Collecting bead QC data')
+
+        self.q = self.session.query(Beads8peaks)
+
+        if 'fluorophores' in kwargs and kwargs['fluorophores'] is not None:
+            fluo_to_select = [unicode(x) for x in kwargs['fluorophores']]
+            log.info('Looking for fluorophores (%s)' % ", ".join(fluo_to_select))
+            self.q = self.q.filter(Beads8peaks.Fluorophore.in_(fluo_to_select))
+
+        if 'cytnum' in kwargs and kwargs['cytnum'] is not None:
+            cytnum_to_select = [unicode(x) for x in kwargs['cytnum']]
+            log.info('Looking for cytnum #%s' % ", ".join(cytnum_to_select))
+            self.q = self.q.filter(Beads8peaks.cytnum.in_(cytnum_to_select))
+
+        # if 'daterange' in kwargs and kwargs['daterange'] is not None:
+        #     log.info('Looking for daterange: [%s, %s]' % (kwargs['daterange'][0],
+        #                                                   kwargs['daterange'][1]))
+        #     date_start = datetime.strptime(kwargs['daterange'][0], '%Y-%m-%d')
+        #     date_end = datetime.strptime(kwargs['daterange'][1], '%Y-%m-%d')
+        #     self.q = self.q.filter(func.date(Beads8peaks.date).between(date_start, date_end))
+
+        return self.compile_query()
 
     def __pick_cti(self, **kwargs):
         """

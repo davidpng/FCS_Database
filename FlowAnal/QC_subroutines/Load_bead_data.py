@@ -4,14 +4,16 @@ from datetime import datetime
 
 peak_matcher = re.compile('.*peaks.*', re.IGNORECASE)
 fn_parser = re.compile("""
-        ^\w+
-        \s\w+
+        ^\w*
+        (\s\w+)
         \s(\d+)     # month
         \s(\d+)     # day
         \s(\d+)     # year
-        \s([\w\s]+) # type
+        \s([\w]+) # type
         \.csv\s*$""", re.VERBOSE)
-lastdir_parser = re.compile('^\w+\s(\d+)\s(\w+)$')
+
+lastdir_parser = re.compile('^\w+?\s?(\d+)\s(\w+)$')
+lastdir_parser2 = re.compile('^(\w+)\s?(\w*\s)?(\d+)$')
 
 
 class load_beadQC_from_csv(object):
@@ -29,9 +31,22 @@ class load_beadQC_from_csv(object):
     def __load_8peaks(self, fp):
         """ Read fp file and turn into dataframe """
 
-        df = pd.read_csv(fp, header=None).T
+        try:
+            df = pd.read_csv(fp, header=None).T
+        except pd.parser.CParserError:
+            try:
+                df = pd.read_csv(fp, header=None, skiprows=4).T  # Skip some lines
+            except pd.parser.CParserError:
+                df = pd.read_csv(fp, header=None, skiprows=6).T  # Skip some lines
+
         df.columns = df.iloc[0, :]
         df = df.drop(0, axis=0)
+
+        if (df.shape[0] not in (9, 10, 11, 12)) or \
+           (df.shape[1] not in (9, 10, 11)):
+            print df
+            raise ValueError('FP {} made df of shape {}'.format(fp,
+                                                                df.shape))
         return df
 
     def __parse_fp(self, fp):
@@ -41,16 +56,31 @@ class load_beadQC_from_csv(object):
         fn = fp_comps[len(fp_comps)-1]
 
         # Dir
-        lastdir_m = lastdir_parser.search(lastdir)
-        last_dir_year = int(lastdir_m.group(1))
-        instr = lastdir_m.group(2)
+        try:
+            lastdir_m = lastdir_parser.search(lastdir)
+            last_dir_year = int(lastdir_m.group(1))
+            instr = lastdir_m.group(2)
+        except AttributeError:
+            lastdir_m = lastdir_parser2.search(lastdir)
+            last_dir_year = int(lastdir_m.group(3))
+            instr = lastdir_m.group(1)
 
         # fn
-        fn = fn.replace('_', ' ')
+        fn = re.sub('(\d)_(\d)', '\1 \2', fn)
         fn = fn.replace('  ', ' ')
+        fn = fn.replace('8 peak', '8peak')
         fn_m = fn_parser.search(fn)
-        fn_date = datetime.strptime(fn_m.group(1) + fn_m.group(2) + fn_m.group(3), '%m%d%y')
-        fn_type = fn_m.group(4)
+
+        try:
+            fn_date = datetime.strptime(fn_m.group(2) + fn_m.group(3) + fn_m.group(4), '%m%d%y')
+        except:
+            try:
+                fn_date = datetime.strptime(fn_m.group(2) + fn_m.group(3) + fn_m.group(4),
+                                            '%m%d%Y')
+            except:
+                raise AttributeError('FN {} not working!!'.format(fn))
+
+        fn_type = fn_m.group(5)
 
         # Date check
         if last_dir_year != fn_date.year:
@@ -67,9 +97,9 @@ class load_beadQC_from_csv(object):
             cyt = instr.upper()
 
         # Parse bead_type
-        if fn_type.lower() == '8 peaks':
+        if '8peak' in fn_type.lower():
             bead_type = '8peaks'
-        elif fn_type.lower() == 'ultra':
+        elif 'ultra' in fn_type.lower():
             bead_type = 'ultra'
         else:
             bead_type = fn_type.lower()

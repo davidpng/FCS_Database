@@ -35,6 +35,8 @@ def build_parser(parser):
                         default='tall', type=str)
     parser.add_argument('--add-peaks', dest='add_peaks',
                         action='store_true')
+    parser.add_argument('--add-beads', dest='add_beads',
+                        action='store_true')
     parser.add_argument('--plot-1D-intensities', dest='plot_1D_intensities',
                         action='store_true')
     parser.add_argument('--npeaks', default=None, dest='npeaks', type=int)
@@ -71,14 +73,20 @@ def action(args):
         else:
             if args.crossanal is not None:
                 a = Flow_Comparison(args, dbcon)
-                # a.Peak_Comparisons(args, dbcon)
-                a.Global_Comparisons(args, dbcon)
             else:
                 a = FlowQC(dbcon=dbcon, make_qc_data=False)
                 (df, name) = a.get_1D_intensities(**vars(args))
+
+                if args.add_beads is True:
+                    beads_df = a.get_beads(**vars(args))
+                else:
+                    beads_df = None
+
                 if args.add_peaks is True:
                     peaks_df = a.add_peaks(df=df, name=name, **vars(args))
                 else:
                     peaks_df = None
+
                 if args.plot_1D_intensities is True:
-                    a.histos2tile(df=df, peaks_df=peaks_df, name=name, **vars(args))
+                    a.histos2tile(df=df, peaks_df=peaks_df, beads_df=beads_df,
+                                  name=name, **vars(args))

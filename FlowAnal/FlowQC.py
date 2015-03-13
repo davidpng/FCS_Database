@@ -5,12 +5,12 @@ np.set_printoptions(precision=2)
 from matplotlib import pyplot as plt
 from math import ceil
 import brewer2mpl
-
 from datetime import datetime, time, timedelta
 import logging
 log = logging.getLogger(__name__)
 
 from QC_subroutines.Peaks_1D import Peaks_1D, Peaks_1D_Set
+from FlowAnal.FCS_subroutines.Process_FCS_Data import LogicleTransform
 
 
 def normalize_timeseries(df, time_quantile=5, **kwargs):
@@ -139,6 +139,7 @@ class FlowQC(object):
 
         kwargs['getPmtHistos'] = True
         dq = self.db.query(**kwargs)
+        kwargs['getPmtHistos'] = None
         log.debug("Query: [{}]".format(dq.qstring))
         log.info("Query result count: {}".format(dq.q.count()))
 
@@ -156,11 +157,51 @@ class FlowQC(object):
                     name = "_".join(kwargs[k])
                 else:
                     name = "{}_{}".format(name, "_".join(kwargs[k]))
-
         return (df, name)
+
+    def get_beads(self, beadtype='8peaks', smooth=True, **kwargs):
+        kwargs['getbeads'] = True
+#        kwargs['fluorophores'] = ['PE-Cy7']  # PE-Texas Red']  # PE-Cy7']  # , 'PE-Texas Red']
+        dq = self.db.query(**kwargs)
+        log.debug("Query: [{}] with params [{}]".format(dq.qstring, dq.params))
+        log.info("Query result count: {}".format(dq.q.count()))
+
+        df = pd.read_sql_query(sql=dq.qstring,
+                               con=self.db.engine,
+                               params=dq.params,
+                               parse_dates=None)
+        df.date = df.date.astype(np.datetime64)
+        df.drop(['id'], inplace=True, axis=1)
+        df = df.loc[(df.date >= np.datetime64(kwargs['daterange'][0])) &
+                    (df.date <= np.datetime64(kwargs['daterange'][1])), :]
+        df.sort(['date', 'cytnum', 'Fluorophore', 'peak'])
+        df.MFI = LogicleTransform(df.MFI, A=0)  # Transform
+        df.MFI = df.MFI.values / np.float(2**18)  # Scale
+        df.MFI = (df.MFI.values - (-0.15)) / (1.0 - (-0.15))  # Rescale
+
+        df.sort(['date', 'Fluorophore', 'peak'], inplace=True)
+        df.MFI *= 100
+
+        if smooth is True:
+            bead_df2 = []
+            bdg = df.groupby(['Fluorophore', 'peak'])
+            for name, g in bdg:
+                g.MFI = pd.rolling_mean(g.MFI,
+                                        window=5,
+                                        center=True,
+                                        min_periods=1)
+                bead_df2.append(g)
+            df = pd.concat(bead_df2)
+
+
+        # Quick fix
+        df.Fluorophore.loc[df.Fluorophore == 'PE-Texas Red'] = 'PE-TR'
+
+        return df
 
     def add_peaks(self, df, name='test',
                   trim_peaks=False, peak_detector='local_max',
+                  beads_df=None,
                   **kwargs):
         """ Find peaks, and label
 
@@ -209,7 +250,7 @@ class FlowQC(object):
 
         return peaks_df
 
-    def histos2tile(self, df, peaks_df=None, name='test', **kwargs):
+    def histos2tile(self, df, peaks_df=None, beads_df=None, name='test', **kwargs):
         """ Pull 1D histograms (PmtHistos) for a single channel/antigen/..., find peaks, and plot
         """
 
@@ -257,6 +298,17 @@ class FlowQC(object):
             peaks_df.set_index(['order'], inplace=True)
             peaks_df.sort_index(axis=0, inplace=True)
 
+        if beads_df is not None:
+            tmp = df.loc[:, ['order', 'date']].drop_duplicates()
+            tmp.date = pd.DatetimeIndex(tmp.date).date.astype(str)
+
+            beads_df.date = pd.DatetimeIndex(beads_df.date).date.astype(str)
+
+            beads_df = pd.merge(beads_df, tmp, how='right', left_on='date', right_on='date')
+            beads_df.drop(['cytnum', 'Fluorophore', 'date'], axis=1, inplace=True)
+            beads_df = beads_df.groupby(['order', 'peak'])['MFI'].mean()
+            beads_df = beads_df.unstack()
+
         # Plot
         fsize = (max(ceil(df.shape[0]/4000), 12.5*3), max(ceil(df.shape[0]/20000), 5*3))
         plt.figure(figsize=fsize)
@@ -270,6 +322,14 @@ class FlowQC(object):
             for i, col in enumerate(peaks_df):
                 plt.plot(peaks_df.index, peaks_df[col],
                          linestyle='-', color=colors[i], linewidth=1.5,
+                         scalex=False, scaley=False)
+
+        if beads_df is not None:
+            colors = brewer2mpl.get_map('YlOrRd', 'Sequential',
+                                        max(beads_df.shape[1], 3)).hex_colors[::-1]
+            for i, col in enumerate(beads_df):
+                plt.plot(beads_df.index, beads_df[col],
+                         linestyle='-', color=colors[i], linewidth=0.5,
                          scalex=False, scaley=False)
 
         plt.savefig(name + '.png', bbox_inches='tight', dpi=200)

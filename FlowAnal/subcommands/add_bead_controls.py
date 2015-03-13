@@ -15,7 +15,9 @@ __status__ = "Production"
 import logging
 import os
 import pandas as pd
+import numpy as np
 import fnmatch
+import datetime
 
 from FlowAnal.database.FCS_database import FCSdatabase
 log = logging.getLogger(__name__)
@@ -53,13 +55,10 @@ def action(args):
             try:
                 a = load_beadQC_from_csv(fullpath)
                 if a.bead_type == '8peaks':
-                    if a.df.shape != (11, 11):
-                        raise ValueError('FP {} made df of shape {}'.format(fp, a.df.shape))
-                    else:
-                        bead_dfs.append(a.df)
-            except Exception, e:
-                log.info('FP {} failed because of {}'.format(fp, str(e)))
-
+                    bead_dfs.append(a.df)
+            except Exception as ex:
+                log.info('Exception [{}]: FP {} failed because of {}'.format(ex.__class__,
+                                                                             fp, ex.message))
             if args.n is not None and i > args.n:
                 break
 
@@ -79,5 +78,5 @@ def action(args):
     bead_df.index.rename(['Fluorophore', 'cytnum', 'date', 'peak'], inplace=True)
     bead_df.name = 'MFI'
     bead_df = bead_df.reset_index()
-    bead_df['date'] = pd.DatetimeIndex(bead_df.date).date
+    bead_df['date'] = pd.DatetimeIndex(bead_df.date).date.astype(str)   # Gave up because dates are too hard
     db.add_df(df=bead_df, table='Beads8peaks')

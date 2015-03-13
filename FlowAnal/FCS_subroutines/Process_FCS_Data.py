@@ -24,6 +24,117 @@ import logging
 log = logging.getLogger(__name__)
 
 
+def LogicleTransform(input_array, T=2**18, M=4.0, W=1, A=1.0):
+    """
+    interpolated inverse of the biexponential function
+
+    ul = np.log10(2**18+10000)
+    x = np.logspace(0, ul, 10000)
+    x = x[::-1] - 400000
+    # x = np.arange(-200000, 2**18+10000, 50)
+    """
+    xn = np.linspace(-2**19, 0, 20000)
+    # set up a linear range from -2**19 to zero
+    xp = np.logspace(0, np.log10(2**18+10000), 10000)
+    # set up a log range from 0 to 2**18+10000
+    x = np.concatenate([xn, xp])
+    y = BiexponentialFunction(x, T, M, W, A)
+    output = interp1d(y.T, x.T, bounds_error=False, fill_value=np.nan)
+    return output(input_array)  # NOTE: This fails if values fall outside the defined range
+
+
+def BiexponentialFunction(input_array, T, M, W, A):
+    """
+    LOGICLE performs logicle transform of flow data
+        T = top of scale data
+        M = total plot width in asymptotic decades
+        W = width of linearization                              = 3
+       A = number of additional decades of negative data values =0
+
+    This function references: Moore, W et al. "Update for the Logicle Data Scale Including
+    Operational Code Implementation" Cytometry Part A. 81A 273-277, 2012
+    """
+    input_array = input_array/float(T)
+
+    b = (M+A)*np.log(10)
+    w = np.float(W)/np.float(M+A)
+
+    d = rtsafe(w, b)
+    if (d < 0) | (d > b):
+        raise NameError('d must satisfy 0 < d < b')
+
+    x2 = np.float(A)/np.float(M+A)
+    x1 = x2+w
+    x0 = x1+w
+
+    c_a = np.exp((b+d)*x0)
+    f_a = -np.exp(b*x1)+c_a*np.exp(-d*x1)
+    a = T/(np.exp(b)-c_a*np.exp(-d)+f_a)
+    f = f_a*a
+    c = c_a*a
+
+    return (a*np.e**(b*input_array) - c*np.e**(-d*input_array)+f)
+
+
+def rtsafe(w, b):
+    """
+    Modified from 'Numerical recipes: the art of scientific computing'
+    solves the following equation for d : w = 2ln(d/b) / (b+d)
+    where d = (0,b)
+    """
+
+    #the functions
+    def gFunction(d):                           #This defines the function we are 'rooting' for
+        return (w*(b+d) + 2*(np.log(d)-np.log(b)))
+    def derivFunction(d):                       #Derivative of g
+        return (w+2/d)
+
+    X_ACCURACY = 0.0000001
+    MAX_IT = 1000
+
+    lowerLimit = 0.0  #defines upper and lower limits where to find the roots
+    upperLimit = np.float(b)
+
+    if ((gFunction(lowerLimit)>0) & (gFunction(upperLimit)>0)) | ((gFunction(lowerLimit)<0) & (gFunction(upperLimit)<0)):
+        raise NameError('Root must be bracketed') # if the f(d) at both ends have the same sign, there is no root
+
+    if gFunction(lowerLimit)<0:
+        xLow = lowerLimit
+        xHigh = upperLimit
+    else:
+        xLow = upperLimit
+        xHigh = lowerLimit
+
+    root = np.float(lowerLimit + upperLimit)/2      #sets the intial guess for root at midpoint
+    dxOld = np.abs(upperLimit - lowerLimit)    #differenance from previous guess
+    dx = dxOld                              #no reason - define dx just in case
+    g = gFunction(root)                     #intitial function value at root_0
+    dg = derivFunction(root)                #intial derivative value at root_0
+
+    for i in range(0,MAX_IT):
+        if (((root-xHigh)*dg-g)*((root-xLow)*dg-g) > 0)|(abs(2*g) > abs(dxOld*dg)):
+            #Bisect method
+            dxOld = dx
+            dx = (xHigh-xLow)/2
+            root = xLow + dx
+        else:
+            #Newton method
+            dxOld = dx
+            dx = g/dg
+            root = root - dx
+
+        if (abs(dx) < X_ACCURACY):
+            return root #stop condition and return root
+
+        g = gFunction(root)         #reinitialize g to new root
+        dg = derivFunction(root)    #reinitialize dg to new derivative
+
+        if g < 0: #move the xLow or xHigh to the new search area
+            xLow = root
+        else:
+            xHigh = root
+
+
 class Process_FCS_Data(object):
     """
     This class will compensate and scale data from an .fcs file given an FCSobject and
@@ -66,7 +177,7 @@ class Process_FCS_Data(object):
         #Saturation Gate might need to go here
         #sat_gate = self._SaturationGate()
 
-        self.data = self._LogicleRescale(self.data, T=2**18, M=4, W=0.5, A=0)
+        self.data = self.LogicleRescale(self.data, T=2**18, M=4, W=0.5, A=0)
         self.FCS.data = self.data  # update FCS.data
 
         nan_mask = self.__nan_gate(self.data)
@@ -322,8 +433,9 @@ class Process_FCS_Data(object):
         else:
             log = [x for x in X_input.columns.values if x not in lin + ['Time']]
         output = X_input.copy()
-        output[log] = self.__LogicleTransform(X_input[log].values, T, M, W, A)/np.float(2**18) #logicle transform and rescaling
-        output[lin] = X_input[lin].values/np.float(2**18) #rescale forward scatter linear
+        # logicle transform and rescaling
+        output[log] = LogicleTransform(X_input[log].values, T, M, W, A)/np.float(2**18)
+        output[lin] = X_input[lin].values/np.float(2**18)  # rescale forward scatter linear
 
         return output
 

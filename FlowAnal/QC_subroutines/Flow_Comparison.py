@@ -129,6 +129,30 @@ class Flow_Comparison(object):
             setattr(args, args.crossanal, [var])
             a = FlowQC(dbcon=dbcon, make_qc_data=False)
             (df, name) = a.get_1D_intensities(**vars(args))
+
+            # if args.add_beads is True:
+            #     # Have to apply this earlier
+            #     beads_df = a.get_beads(**vars(args))
+
+            #     # Simplification
+            #     beads_df = beads_df.loc[beads_df.peak == 'P8', :]  # Pick #8
+            #     beads_df.drop(['peak'], axis=1, inplace=True)
+
+            #     mean_beadMFI = beads_df.MFI.mean()
+
+            #     beads_df['day'] = pd.DatetimeIndex(beads_df.date).date.astype(str)
+            #     beads_df.drop(['date'], axis=1, inplace=True)
+
+            #     df['day'] = pd.DatetimeIndex(df.date).date.astype(str)
+            #     df = pd.merge(df, beads_df, how='left', left_on=['day', 'cytnum', 'Fluorophore'],
+            #                   right_on=['day', 'cytnum', 'Fluorophore'])
+
+            #     # Normalize
+            #     print df.head()
+            #     df.density = np.divide(df.density, df.MFI) * mean_beadMFI
+
+            print df.head()
+            quit()
             peaks_df = a.add_peaks(df=df, name=name, **vars(args))
             peaks_df.index = [int(x) for x in peaks_df.index]
 

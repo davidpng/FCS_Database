@@ -151,7 +151,7 @@ class Beads8peaks(Base):
     id = Column(Integer, primary_key=True)
     Fluorophore = Column(String(20), nullable=False)  # , primary_key=True)
     cytnum = Column(String(3), nullable=False)  # primary_key=True)
-    date = Column(DateTime, nullable=False)  # primary_key=True)
+    date = Column(String(20), nullable=False)  # primary_key=True)
     peak = Column(String(2), nullable=False)  # primary_key=True)
     MFI = Column(Float)
 
