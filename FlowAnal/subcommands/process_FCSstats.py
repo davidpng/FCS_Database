@@ -51,6 +51,9 @@ def build_parser(parser):
                         type=int)
     parser.add_argument('--comparison', help='Type of comparison', default='global', type=str,
                         choices=["global", "peaks"])
+    parser.add_argument('--restrict-to-pairs', dest='restrict_to_pairs',
+                        help='Restrict samples to where have multiple samples per case',
+                        action='store_true')
     parser.add_argument('--linear_align', '--linear-align', dest='linear_align',
                         action='store_true')
     parser.add_argument('-split', '--split_array_factor', default=None,

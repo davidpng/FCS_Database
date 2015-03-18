@@ -40,9 +40,13 @@ class Flow_Comparison(object):
         cases['order'] = range(cases.shape[0])
         cases.sort(['case_number', 'tube_type', 'case_tube_idx'], inplace=True)
 
-        ctis = cases.groupby(['case_number']).\
+        if args.restrict_to_pairs is True:
+            ctis = cases.groupby(['case_number']).\
                 filter(lambda x: len(np.unique(x['tube_type'].values)) > 1)
-        ctis = ctis.groupby(['case_number', 'tube_type']).tail(1)
+            ctis = ctis.groupby(['case_number', 'tube_type']).tail(1)
+        else:
+            ctis = cases.copy()
+
         df = pd.merge(df, ctis[['case_tube_idx']], left_on=['case_tube_idx'],
                       right_on=['case_tube_idx'], how='right')
         df.set_index(['case_tube_idx', 'bin'], inplace=True)
