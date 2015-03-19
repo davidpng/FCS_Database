@@ -135,23 +135,6 @@ class FCSdatabase(SqliteConnection):
         s.close()
         self.add_df(df=a, table='TubeTypesInstances')
 
-    def removeCases(self, df=None, ll=None):
-        """ Method to remove a set of cases from the database based on a dataframe (or list of lists)
-
-        df --
-        ll -- list of [case, case_tube_idx, error_message]
-        """
-
-        if ll is not None:
-            a = pd.DataFrame.from_records(data=ll)
-        elif df is not None:
-            a = df
-        else:
-            raise ValueError('No cases specified to remove, must provide df or ll')
-
-        print a
-        quit()
-
     def addCustomCaseData(self, file, whittle=True):
         """ Method to load file (tab-text) into database table CustomCaseData
 

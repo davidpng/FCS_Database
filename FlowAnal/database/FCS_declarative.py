@@ -44,7 +44,8 @@ class TubeCases(Base):
     case_tube = Column(String(100), nullable=False)
     filename = Column(String(100), nullable=False)
     dirname = Column(String(255), nullable=False)
-    case_number = Column(String(10), ForeignKey('Cases.case_number'), nullable=False)
+    case_number = Column(String(10),
+                         ForeignKey('Cases.case_number'), nullable=False)
     tube_type_instance = Column(Integer, ForeignKey('TubeTypesInstances.tube_type_instance'))
     date = Column(DateTime)
     num_events = Column(Integer)
@@ -53,6 +54,8 @@ class TubeCases(Base):
     flag = Column(String(30), nullable=False)
     error_message = Column(Text)
     version = Column(String(30), nullable=False)
+
+
 
     Pmts = relationship("PmtTubeCases", backref="Tube", cascade='delete, delete-orphan')
     Stats = relationship("TubeStats", uselist=False, backref="Tube")
@@ -68,6 +71,7 @@ class Cases(Base):
     case_number = Column(String(10), primary_key=True)
 
     Tubes = relationship("TubeCases", backref='Case', cascade='delete, delete-orphan')
+    HPdb = relationship("HPdb", backref='Case', cascade='delete, delete-orphan')
 
 
 class CustomCaseData(Base):
@@ -77,6 +81,94 @@ class CustomCaseData(Base):
     category = Column(String(30))
 
     Cases = relationship("Cases", uselist=False, backref='CustomData')
+
+
+class HPdb(Base):
+    __tablename__ = 'HPdb'
+
+    id_pat = Column(Integer)
+    case_number = Column(String(10),
+                         ForeignKey('Cases.case_number'),
+                         primary_key=True)
+    case_type = Column(String(3), primary_key=True)
+    AccNum = Column(String(50))
+    MRN = Column(String(50), ForeignKey('Patients.MRN'))
+    LastName = Column(String(50))
+    FirstName = Column(String(50))
+    DOB = Column(String(50))
+    SpecimenType = Column(String(30))
+    CollDate = Column(String(50))
+    Hospital = Column(String(50))
+    ReportType = Column(String(30))
+    Clinicalinfo = Column(Text)
+    Diagnosis = Column(Text)
+    Sex = Column(String(10))
+    LISSpecimen = Column(String(50))
+    SpecimenID = Column(String(50))
+    RecDtTm = Column(DateTime)
+    FirstMiddleName = Column(String)
+    MiddleName = Column(String)
+    FullNameSorted = Column(String)
+
+Index('ix_HPdb_patient_test', HPdb.MRN, HPdb.AccNum)
+Index('ix_HPdb_RecDtTm', HPdb.RecDtTm)
+
+
+class LISdb(Base):
+    __tablename__ = 'LISdb'
+    TestId = Column(Integer, primary_key=True)
+    MRN = Column(String(50), ForeignKey('Patients.MRN'))
+    PatName = Column(String(255))
+    DOB = Column(DateTime)
+    Sex = Column(String(10))
+    PatLoc = Column(String(30))
+    Facility = Column(String(30))
+    LocType = Column(String(30))
+    Login_Loc = Column(String(30))
+    Ord_comment = Column(String(30))
+    Priority = Column(String(30))
+    OrdDoc = Column(String(50))
+    OrdDoc_Name = Column(String(50))
+    CollDate = Column(DateTime)
+    CollTime = Column(DateTime)
+    RecDate = Column(DateTime)
+    RecTime = Column(DateTime)
+    ResDate = Column(DateTime)
+    ResTime = Column(DateTime)
+    CollDtTm = Column(DateTime)
+    RecDtTm = Column(DateTime)
+    ResDtTm = Column(DateTime)
+    AccNum = Column(String(10))
+    PackCode = Column(String(20))
+    PackName = Column(String(50))
+    BattCode = Column(String(20))
+    BattName = Column(String(50))
+    TestCode = Column(String(10))
+    TestName = Column(String(30))
+    Result = Column(String(30))
+    Addl_Result = Column(String(50))
+    Units = Column(String(10))
+
+    __table_args__ = (ForeignKeyConstraint(['MRN', 'AccNum'],
+                                           ['HPdb.MRN',
+                                            'HPdb.AccNum'],
+                                           name='fk_LISdb_HPdb'),)
+
+    HPdb = relationship("HPdb", uselist=False,
+                        foreign_keys=[MRN, AccNum],
+                        backref='LISdb')
+
+Index('ix_LISdb_test_type', LISdb.TestCode)
+Index('ix_LISdb_patient_test', LISdb.MRN, LISdb.AccNum)
+Index('ix_LISdb_RecDtTm', LISdb.RecDtTm)
+
+
+class Patients(Base):
+    __tablename__ = 'Patients'
+    MRN = Column(String(50), primary_key=True)
+
+    HPdb = relationship("HPdb", backref='Patient', cascade='delete, delete-orphan')
+    LISdb = relationship("LISdb", backref='Patient', cascade='delete, delete-orphan')
 
 
 class TubeTypesInstances(Base):
