@@ -541,6 +541,15 @@ def add_mods_to_query(q, **kwargs):
         if 'TubeCases' not in q.joined_tables:
             q = q.join(TubeCases)
 
+    if 'specimens' in kwargs and kwargs['specimens'] is not None:
+        specimens_to_select = [unicode(x) for x in kwargs['specimens']]
+        log.info('Looking for specimens [%s]' % ", ".join(specimens_to_select))
+        q = q.filter(HPdb.SpecimenType.in_(specimens_to_select))
+        if 'Cases' not in q.joined_tables:
+            q = q.join(Cases)
+        if 'HPdb' not in q.joined_tables:
+            q = q.join(HPdb)
+
     if 'cytnum' in kwargs and kwargs['cytnum'] is not None:
         cytnums_to_select = [unicode(x) for x in kwargs['cytnum']]
         log.info('Looking for cytnum #%s' % ", ".join(cytnums_to_select))

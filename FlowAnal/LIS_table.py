@@ -1,7 +1,6 @@
 import logging
 log = logging.getLogger(__name__)
 import pandas as pd
-import numpy as np
 import datetime
 from hsqr.lab_pred import Lab_pred_table
 
@@ -15,6 +14,7 @@ class LIS_table(Lab_pred_table):
         self.pt_id = pt_id
 
         if file is not None:
+            self.file = file
             self.__load_from_file(file=file)
             self.__process_dat()
         else:
@@ -88,6 +88,8 @@ class LIS_table(Lab_pred_table):
     def push_to_db(self):
         """ Push data to sqlite db """
 
+        log.info('Pushing file {} to db {}'.format(self.file,
+                                                   self.db.db_file))
         # Add patients to the full case list
         self.db.add_list(x=self.dat.MRN.tolist(), table='Patients')
 

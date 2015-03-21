@@ -14,15 +14,15 @@ __maintainer__ = "Daniel Herman"
 __email__ = "ngdavid@uw.edu"
 __status__ = "Production"
 
-import sys
 import logging
 import pandas as pd
 from itertools import chain
 
 from os import path
-from sqlalchemy.exc import IntegrityError
+import sys
+import traceback
 
-from __init__ import add_filter_args
+from __init__ import add_filter_args, add_process_args
 
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
@@ -43,10 +43,20 @@ def build_parser(parser):
                         default="db/fcs_features.hdf5", type=str)
     parser.add_argument('-method', '--feature-extration-method',
                         help='The method to use to extract features [default: Full]',
-                        default='Full', type=str, dest='feature_extraction_method')
-    parser.add_argument('-ow','--overwrite',help='Overwrite Feature-hdf5 file',type=bool,
-                         default=True, dest='clobber')
+                        default='2d', type=str, dest='feature_extraction_method',
+                        choices=['full', '2d'])
+    parser.add_argument('-bins', '--bins', default=10, type=int, help='Number of bins to extract')
+    parser.add_argument('-exclude', '--params-to-exclude', dest='params_to_exclude',
+                        help='List of parameters to exclude from extraction',
+                        nargs='+', type=str, default=['Time'])
+    parser.add_argument('-rebuild', '--rebuild', help='Wipe and rebuild Feature-hdf5 file',
+                        type=bool,
+                        default=True, dest='clobber')
+    parser.add_argument('-feature_label', '--label_features_with',
+                        help='What field to use to label features',
+                        default='Antigen', type=str)
     add_filter_args(parser)
+    add_process_args(parser)
 
 
 def action(args):
@@ -80,29 +90,19 @@ def action(args):
             try:
                 fFCS.comp_scale_FCS_data(compensation_file=comp_file,
                                          gate_coords=gate_coords,
-                                         rescale_lim=(-0.5, 1),
-                                         strict=False, auto_comp=False)
+                                         strict=False, **vars(args))
                 fFCS.feature_extraction(extraction_type=args.feature_extraction_method,
-                                        bins=10)
+                                        bins=args.bins,
+                                        exclude_params=args.params_to_exclude,
+                                        label_with=args.label_features_with)
                 HDF_obj.push_fcs_features(case_tube_idx=case_tube_idx,
                                           FCS=fFCS, db=db)
-            except ValueError, e:
-                print("Skipping feature extraction for case: {} because of 'ValueError {}'".
-                      format(case, str(e)))
-            except KeyError, e:
-                print "Skipping FCS %s because of KeyError: %s" % (filepath, str(e))
-            except IntegrityError, e:
-                print "Skipping Case: {}, Tube: {}, Date: {}, filepath: {} because \
-                of IntegrityError: {}".format(case, case_tube_idx, filepath, str(e))
-            except:
-                print "Skipping FCS %s because of unknown error related to: %s" % \
-                    (filepath, sys.exc_info()[0])
-                e = sys.exc_info()[0]
-
+            except Exception as ex:
+                print "Skipping FCS [{}] because of unknown error related to {}: {}".\
+                    format(filepath, ex.__class__, ex.message)
+                traceback.print_exc(file=sys.stdout)
+                feature_failed_CTIx.append([case, case_tube_idx, ex.message])
             print("{:6d} of {} cases found and loaded\r".format(i, num_results)),
-            if 'e' in locals():
-                feature_failed_CTIx.append([case, case_tube_idx, e])
-                del(e)
 
             i += 1
 

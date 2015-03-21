@@ -114,4 +114,7 @@ def main(argv=None):
 
     logging.basicConfig(stream=arguments.logfile, format=logformat, level=loglevel)
 
+    log = logging.getLogger(__name__)
+    log.info('flowanal version: {}'.format(version))
+
     return action(arguments)

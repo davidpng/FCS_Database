@@ -29,8 +29,10 @@ def action(args):
     # Copy database
     if args.outdb is not None:
         shutil.copyfile(args.db, args.outdb)
+        log.info('Adding clinical information from db {} to db {}'.format(args.db, args.outdb))
     else:
         args.outdb = args.db
+        log.info('Adding clinical information to db {}'.format(args.outdb))
 
     # Open database
     outdb = FCSdatabase(db=args.outdb, rebuild=False)

@@ -23,6 +23,7 @@ class HP_table(Lab_pred_table):
         self.pt_id = pt_id
 
         if file is not None:
+            self.file = file
             self.__load_from_file(file=file)
             self.__process_dat()
         else:
@@ -95,6 +96,9 @@ class HP_table(Lab_pred_table):
 
     def push_to_db(self):
         """ Push data to sqlite db """
+
+        log.info('Pushing file {} to db {}'.format(self.file,
+                                                   self.db.db_file))
 
         # Add patients
         pts = self.dat.MRN

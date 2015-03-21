@@ -11,6 +11,56 @@ from multiprocessing import Pool
 from math import floor
 
 
+class Flow_Comparison2D(object):
+
+    def __init__(self, shape):
+        self.make_bin_dist(shape)
+
+    def make_bin_dist(self, shape):
+
+        bin_dist = np.empty(shape=(np.prod(shape), np.prod(shape)))
+        #  Make bin distance array
+        for i in range(shape[0] * shape[1]):
+            for j in range(shape[0] * shape[1]):
+                bin_dist[i, j] = abs((i // shape[1]) - (j // shape[1])) + \
+                                 abs((i % shape[1]) - (j % shape[1]))
+
+        self.bin_dist = bin_dist.copy(order='C')
+
+    def calc_emds(self, df, workers=1):
+
+        densities = df.values.copy(order='C')
+
+        sample_comps = list(itertools.combinations(range(df.shape[0]), 2))
+
+        if workers == 1:
+            emd_dists = calc_emd_comps(densities, sample_comps,
+                                       bin_dist=self.bin_dist)
+            a_df = pd.DataFrame(emd_dists, columns=['ctiA', 'ctiB', 'emd_dist'])
+        elif workers > 1:
+            p = Pool(workers)
+            n_size = len(sample_comps) // workers
+            sample_comps_i = [sample_comps[i:i+n_size]
+                              for i in range(0, len(sample_comps), n_size)]
+
+            for comp in sample_comps_i:
+                emd_dists = [p.apply_async(calc_emd_comps,
+                                           args=(densities, comps, self.bin_dist))
+                             for comps in sample_comps_i]
+            p.close()
+
+            a_df = pd.DataFrame({}, columns=['ctiA', 'ctiB', 'emd_dist'])
+            for x in emd_dists:
+                a_df = pd.concat(a_df,
+                                 pd.DataFrame(x.get(),
+                                              columns=['ctiA', 'ctiB', 'emd_dist']))
+
+        a_df.ctiA = df.index.values[[a_df.ctiA.values]]
+        a_df.ctiB = df.index.values[[a_df.ctiB.values]]
+
+        return a_df
+
+
 class Flow_Comparison(object):
     """ Compare QC data across samples """
     def __init__(self, args, dbcon):
@@ -238,7 +288,7 @@ class Flow_Comparison(object):
 
 
 def calc_emd(densities, i, bin_dist, linear_align=False, max_allowable_shift=np.Inf):
-    """ Calculate and return emd distance between row i and all other rows in densities
+    """ Calculate and return emd distance between row i and all other rows below it in densities
 
     * linear_align: linear shift of two arrays based on max cross-correlation
     * max_allowable_shift: The maximum linear shift that is permissible
@@ -246,7 +296,7 @@ def calc_emd(densities, i, bin_dist, linear_align=False, max_allowable_shift=np.
     results = []
     a = densities[i, :]
     no_shift = int(len(a) - 1)
-    for j in range(densities.shape[0]):
+    for j in range(i + 1, densities.shape[0]):
         a2 = a.copy()
         b = densities[j, :]
 
@@ -269,4 +319,17 @@ def calc_emd(densities, i, bin_dist, linear_align=False, max_allowable_shift=np.
 
         results.append((i, j,
                         emd(a2, b, bin_dist)))
+    return results
+
+
+def calc_emd_comps(densities, comps, bin_dist):
+    """ Calculate and return emd distance between rows in tuple comps
+
+    """
+    results = []
+    for i, j in comps:
+        results.append((i, j,
+                       emd(densities[i, :],
+                           densities[j, :],
+                           bin_dist)))
     return results

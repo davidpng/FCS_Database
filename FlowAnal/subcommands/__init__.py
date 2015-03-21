@@ -36,6 +36,9 @@ def add_filter_args(parser):
     parser.add_argument('-cases', '--cases', help='List of cases to select',
                         nargs='+', action='store',
                         default=None, type=str)
+    parser.add_argument('-specimens', '--specimens', help='List of specimen types to select',
+                        nargs='+', action='store',
+                        default=None, type=str)
     parser.add_argument('-cytnum', '--cytnum',
                         help='List of cytnums (cytometer numbers) to include',
                         nargs='+', action='store',

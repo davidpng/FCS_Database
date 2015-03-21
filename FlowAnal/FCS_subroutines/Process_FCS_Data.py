@@ -176,8 +176,7 @@ class Process_FCS_Data(object):
 
         #Saturation Gate might need to go here
         #sat_gate = self._SaturationGate()
-
-        self.data = self.LogicleRescale(self.data, T=2**18, M=4, W=0.5, A=0)
+        self.data = self._LogicleRescale(T=2**18, M=4, W=0.5, A=0)
         self.FCS.data = self.data  # update FCS.data
 
         nan_mask = self.__nan_gate(self.data)
@@ -420,8 +419,9 @@ class Process_FCS_Data(object):
 
         self.data = self.data.loc[mask, :]
 
-    def _LogicleRescale(self, X_input, lin=['FSC-A', 'FSC-H'],
-                        T=2**18, M=4.0, W=1, A=0, **kwargs):
+    def _LogicleRescale(self, lin=['FSC-A', 'FSC-H'],
+                        T=2**18, M=4.0, W=1, A=0, max_val=2**18,
+                        **kwargs):
         """
         Applies logicle transformation to columns defined by log_mask
         Applies rescaling from [0,1) to columns defined on rescale_mask
@@ -431,11 +431,15 @@ class Process_FCS_Data(object):
         if 'log_param' in kwargs:
             log = kwargs.get("log_param")
         else:
-            log = [x for x in X_input.columns.values if x not in lin + ['Time']]
-        output = X_input.copy()
+            log = [x for x in self.data.columns.values
+                   if x not in lin + ['Time']]
+
+        output = self.data.copy()
+
         # logicle transform and rescaling
-        output[log] = LogicleTransform(X_input[log].values, T, M, W, A)/np.float(2**18)
-        output[lin] = X_input[lin].values/np.float(2**18)  # rescale forward scatter linear
+        output[log] = LogicleTransform(self.data[log].values, T, M, W, A) / np.float(max_val)
+
+        output[lin] = self.data[lin].values / np.float(max_val)  # rescale forward scatter linear
 
         return output
 

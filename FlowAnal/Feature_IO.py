@@ -19,9 +19,9 @@ from HDF5_subroutines.HDF5_IO import HDF5_IO
 import numpy as np
 import pandas as pd
 import h5py
-import os
 import logging
 log = logging.getLogger(__name__)
+from itertools import chain
 
 
 class Feature_IO(HDF5_IO):
@@ -39,13 +39,9 @@ class Feature_IO(HDF5_IO):
         clobber -- <bool> Flag to overwrite a HDF5 file object
 
         """
-        HDF5_IO.__init__(self,filepath)
+        super(Feature_IO, self).__init__(filepath=filepath, clobber=clobber)
 
-        #self.filepath = filepath
-        if clobber is True and os.path.exists(filepath):
-            os.remove(filepath)
-
-    def make_single_tube_analysis(self, case_tube_list):
+    def make_single_tube_analysis(self, case_tube_list, index_to_use_method='all'):
         """
         This function will call a series of case_tube_idx as listed and merge
         into a dense array that is the union of sparse matrix columns
@@ -53,38 +49,60 @@ class Feature_IO(HDF5_IO):
         merged features <pd.DataFrame>
         not_in_data <list>
         merge_failure <list>
-        
+        indexes_to_use = ['union', 'all']
+
         """
         fh = h5py.File(self.filepath, 'a')
 
         # error checking
         not_in_data = set([str(x) for x in case_tube_list]) - set(fh['data'].keys())
-        not_in_data = [int(i) for i in not_in_data] 
+        not_in_data = [int(i) for i in not_in_data]
         if not_in_data:
             log.info("Some of the listed case_tubes are not in the dataset: {}".format(not_in_data))
         cleaned_up_cti_list = [i for i in case_tube_list if i not in not_in_data]
         if cleaned_up_cti_list == []:
             raise ValueError("Aborting single tube analysis creation; provide cases do not \
                               exist in the data file")
-        # get union of indices
-        index_union = self.__get_check_merge_indices(cleaned_up_cti_list)
+
+        if index_to_use_method == 'union':
+            # get union of indices
+            indexes_to_use = self.__get_check_merge_indices(cleaned_up_cti_list)
+
+        elif index_to_use_method == 'all':
+
+            feature_desc = self.__get_feature_descriptions(fh=fh)
+            total_indices = feature_desc.sum()
+            indexes_to_use = range(total_indices)
+        else:
+            raise ValueError('Index_to_use_method is wrong: {}'.format(index_to_use_method))
+
         # intialize bin number dataframe AND merge dataframe
-        bin_num_df = pd.DataFrame(index_union,columns=['bin_num'])
-        merged = bin_num_df
+        merged = pd.DataFrame(indexes_to_use, columns=['bin_num'])
         merge_failure = []
         for case in cleaned_up_cti_list:
-            #load FCS Feature Dataframe
+            #  load FCS Feature Dataframe
             try:
                 FCS_ft_df = self.__translate_FCS_feature(case)
                 # do a relation algebra join on the bin_number on the union of bin
                 # numbers and index/bin_number of the FCS_features
-                merged = pd.merge(merged,FCS_ft_df,how='left', \
-                                  left_on='bin_num',right_index=True)
+                merged = pd.merge(merged, FCS_ft_df, how='left',
+                                  left_on='bin_num', right_index=True)
             except:
                 merge_failure.append(case)
-        merged.fillna(0,inplace=True) # clear out nan to zero
-        return merged, not_in_data, merge_failure
 
+        # Label rows
+        if index_to_use_method == 'all':
+            merged['parameter'] = np.repeat(feature_desc.index.values, feature_desc.values)
+            merged['bin'] = np.asarray(list(chain(*[range(x)
+                                                    for x in feature_desc.values])))
+            merged.set_index(['parameter', 'bin'], drop=True, inplace=True)
+            merged.drop(['bin_num'], axis=1, inplace=True)
+        else:
+            merged.set_index(['bin_num'], drop=True, inplace=True)
+
+        merged.fillna(0, inplace=True)  # clear out nan to zero
+
+        return merged, not_in_data, merge_failure
 
     def push_fcs_features(self, case_tube_idx, FCS, db):
         """
@@ -93,9 +111,9 @@ class Feature_IO(HDF5_IO):
         """
         self.schema = self.__make_schema(str(case_tube_idx))
         fh = h5py.File(self.filepath, 'a')
-	
+
         self.__push_check_version(hdf_fh=fh, FCS=FCS, db=db)
-        
+
         # push sparse data into dir named for case_tube_idx
         fh[self.schema['sdat']] = FCS.FCS_features.histogram.data
         fh[self.schema['sidx']] = FCS.FCS_features.histogram.indices
@@ -112,6 +130,18 @@ class Feature_IO(HDF5_IO):
         meta_schema = self.__make_schema("MetaData")
         self.push_DataFrame(DF = cti_list,
                             path = meta_schema["Case_Tube_Failures_DF"])
+
+    def __get_feature_descriptions(self, fh=None):
+
+        if fh is None:
+            fh = h5py.File(self.filepath, 'r')
+
+        if ~hasattr(self, 'schema'):
+            self.schema = self.__make_schema()
+
+        a = self.pull_Series(path=self.schema['feature_descriptions'],
+                             ext_filehandle=fh)
+        return a
 
     def get_fcs_features(self, case_tube_idx):
         """
@@ -157,19 +187,20 @@ class Feature_IO(HDF5_IO):
         for k in meta_keys:
             try:
                 meta_data[k] = fh[meta_schema[k]].value
-            except AttributeError:  #if the meta_schema name failed, try extracting with DF
+            except AttributeError:  # if the meta_schema name failed, try extracting with DF
                 try:
-                    meta_data[k] = self.pull_DataFrame(meta_schema[k],ext_filehandle=fh)
+                    meta_data[k] = self.pull_DataFrame(meta_schema[k],
+                                                       ext_filehandle=fh)
                 except KeyError:
-                    meta_data[k] = self.pull_Series(meta_schema[k],ext_filehandle=fh)
+                    meta_data[k] = self.pull_Series(meta_schema[k],
+                                                    ext_filehandle=fh)
             except:
                 raise ValueError("{} is undefined in the hdf5 object {}".format(
                                  k, fh))
         fh.close()
         return meta_data
 
-
-    def __translate_FCS_feature(self,case_tube_idx):
+    def __translate_FCS_feature(self, case_tube_idx):
         """
         makes a dataframe containing the index and data information of the
         original sparse matrix
@@ -178,7 +209,6 @@ class Feature_IO(HDF5_IO):
         return pd.DataFrame(data=sparse_mtx.data,
                             index=sparse_mtx.indices,
                             columns=[str(case_tube_idx)])
-
 
     def __get_check_merge_indices(self, case_tube_list):
         """
@@ -195,8 +225,9 @@ class Feature_IO(HDF5_IO):
             shape.append(fh[schema['sshp']].value)
         fh.close()
 
-        #check shape matches
-        areTrue = [shape[i]==shape[i-1] for i in range(1,len(shape))]
+        # check shape matches
+        areTrue = [shape[i] == shape[i-1]
+                   for i in range(1, len(shape))]
         if not np.all(areTrue):
             print np.array(shape)
             raise "The length/shape of one case does not match the others"
@@ -213,7 +244,7 @@ class Feature_IO(HDF5_IO):
 
         Items used: FCS.version, FCS.FCS_features.type, db.date, db.db_file
         """
-	        
+
         if self.schema['database_filepath'] in hdf_fh:
             if hdf_fh[self.schema['database_filepath']].value != db.db_file:
                 raise ValueError('Filepaths do not match: %s <==> %s' %
@@ -221,28 +252,28 @@ class Feature_IO(HDF5_IO):
                                   db.db_file))
         else:
             hdf_fh[self.schema['database_filepath']] = db.db_file
-        
+
         db_creation_date = db.creation_date.strftime("%Y-%m-%d")  # HDF5 does not handle datetime
         if self.schema['database_datetime'] in hdf_fh:
             if hdf_fh[self.schema['database_datetime']].value != db_creation_date:
                 raise ValueError('DB dates do not match')
         else:
             hdf_fh[self.schema['database_datetime']] = db_creation_date
-        
+
         if self.schema['enviroment_version'] in hdf_fh:
             if hdf_fh[self.schema['enviroment_version']].value != FCS.version:
                 raise ValueError('Evn versions do not match')
         else:
             hdf_fh[self.schema['enviroment_version']] = FCS.version
-        #chek/add Extraction type
-        
+
+        # check/add Extraction type
         if self.schema['extraction_type'] in hdf_fh:
-            if hdf_fh[self.schema['extraction_type']].value != FCS.FCS_features.type:
+            if hdf_fh[self.schema['extraction_type']].value != FCS.FCS_features.extraction_type:
                 raise ValueError('Evn versions do not match')
         else:
-            hdf_fh[self.schema['extraction_type']] = FCS.FCS_features.type
-        
-        #check/add bin_descriptions
+            hdf_fh[self.schema['extraction_type']] = FCS.FCS_features.extraction_type
+
+        # check/add bin_descriptions
         bin_desc = FCS.FCS_features.bin_description
         if self.schema['bin_description'] in hdf_fh:
             pass
@@ -254,14 +285,24 @@ class Feature_IO(HDF5_IO):
 	    #if not bin_desc.equals(fh_bin_desc):
             #    raise ValueError('Bin Descriptions do not match')
         else:
-            self.push_Series(SR=bin_desc, path=self.schema['bin_description'],ext_filehandle=hdf_fh)
+            self.push_Series(SR=bin_desc,
+                             path=self.schema['bin_description'],
+                             ext_filehandle=hdf_fh)
 
+    # check/add feature_descriptions
+        feat_desc = FCS.FCS_features.feature_descriptions
+        if self.schema['feature_descriptions'] in hdf_fh:
+            pass
+        else:
+            self.push_Series(SR=feat_desc,
+                             path=self.schema['feature_descriptions'],
+                             ext_filehandle=hdf_fh)
 
         log.debug('Schema: %s' % ', '.join([i + '=' + str(hdf_fh[self.schema[i]].value)
                                             for i in ['extraction_type', 'enviroment_version',
                                             'database_datetime', 'database_filepath']]))
 
-    def __make_schema(self, case_tube_idx):
+    def __make_schema(self, case_tube_idx=None):
         """
         makes a dictionary containing the storage schema
         """
@@ -271,8 +312,12 @@ class Feature_IO(HDF5_IO):
                   "extraction_type": "/extraction_type",
                   "Case_Tube_Failures_DF": "/failed_cti",
                   "bin_description": "/bin_description/",
-                  "sdat": "/data/"+case_tube_idx+"/data",
-                  "sidx": "/data/"+case_tube_idx+"/indices",
-                  "sind": "/data/"+case_tube_idx+"/indptr",
-                  "sshp": "/data/"+case_tube_idx+"/shape"}
+                  "feature_descriptions": "/feature_descriptions/"}
+        if case_tube_idx is not None:
+            y = {"sdat": "/data/"+case_tube_idx+"/data",
+                 "sidx": "/data/"+case_tube_idx+"/indices",
+                 "sind": "/data/"+case_tube_idx+"/indptr",
+                 "sshp": "/data/"+case_tube_idx+"/shape"}
+            schema.update(y)
+
         return schema

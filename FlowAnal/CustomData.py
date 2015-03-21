@@ -13,11 +13,12 @@ class CustomData(object):
     ATTRIBUTES:
     .dat -- pd DataFrame from input text. row index = 'case_number'
     """
-    def __init__(self, fp):
-        self.dat = self.__load(fp)
+    def __init__(self, fp, sep="\t"):
+        self.dat = self.__load(fp, sep=sep)
 
-    def __load(self, filepath):
-        a = pd.read_csv(filepath, sep="\t")
+    def __load(self, filepath, sep):
+
+        a = pd.read_csv(filepath, sep=sep)
 
         # ### Handle column names ###
         a.columns = [c.lower() for c in a.columns.values]
@@ -32,5 +33,12 @@ class CustomData(object):
         a.columns = a_cols
 
         a.set_index(keys='case_number', drop=True, inplace=True)
+
+        # Remove two letters if present from all
+        cases = a.index.tolist()
+        if cases[0][0:2].startswith('HP'):
+            cases = [x[2:] for x in cases]
+            a.index = cases
+
         return a
 

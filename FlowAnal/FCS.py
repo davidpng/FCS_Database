@@ -108,7 +108,7 @@ class FCS(object):
         else:
             raise RuntimeError("Comp_Scale_FCS_Data method has already been run")
 
-    def feature_extraction(self, extraction_type='Full', bins=10, **kwargs):
+    def feature_extraction(self, extraction_type='full', bins=10, **kwargs):
         """
         Quasi interal function to FCS, to be accessed by other functions?
         Will extract features to an sparse data array
@@ -123,12 +123,14 @@ class FCS(object):
 
         elif type_flag == '2d':
             self.FCS_features = p2D_Feature_Extraction(FCS=self,
-                                                      bins=bins,
-                                                      **kwargs)
+                                                       bins=bins,
+                                                       **kwargs)
         else:
-            raise ValueError("Extraction type undefined")
+            raise ValueError("Extraction type '{}' undefined".format(extraction_type))
 
-    def Push_FCS_features_to_HDF5(self,case_tube_index, HDF5_object, db_h):
+        self.FCS_features.extraction_type = type_flag
+
+    def Push_FCS_features_to_HDF5(self, case_tube_index, HDF5_object, db_h):
         """
         This will push object described
         """
@@ -136,7 +138,7 @@ class FCS(object):
             raise ValueError("FCS_features does not exist, did you call \
                    _feature_extraction first to make?")
 
-        HDF5_object.push_FCS_features(case_tube_index,FCS=self,db_h=db_h,)
+        HDF5_object.push_FCS_features(case_tube_index, FCS=self, db_h=db_h,)
 
     def make_inferred_FCS(self, filepaths):
         """

@@ -33,6 +33,9 @@ def build_parser(parser):
     parser.add_argument('-annot', '--case_annot',
                         help='Tab-separated text table with Case information. \
     Columns must include <case_number>', type=str)
+    parser.add_argument('-sep', '--sep',
+                        help='Annotation field separator',
+                        default='\t', type=str)
     add_filter_args(parser)
 
 
@@ -51,14 +54,17 @@ def action(args):
     feature_cti = HDF_feature_obj.get_case_tube_idxs()
 
     # Load annotations (row-index is case_number)
-    ann = CustomData(args.case_annot).dat
+    ann = CustomData(args.case_annot, args.sep).dat
     ann_cases = Set(ann.index.tolist())
+    log.info("Found {} cases with annotations".format(len(ann_cases)))
     log.debug("Annotation cases: {}".format(ann_cases))
 
     # Get/pick case, case_tube_idx list
     feature_cases = Set(db.query(getCases=True,
                                  aslist=True,
                                  case_tube_idxs=feature_cti).results)
+    log.info('Found features for {} ctis and {} cases'.format(len(feature_cti),
+                                                              len(feature_cases)))
     log.debug("Feature cases: {}".format(feature_cases))
 
     # Identify annotation cases not represented in HDF5
@@ -69,6 +75,10 @@ def action(args):
     cases_to_consider = ann_cases & feature_cases
     argd['cases'] = list(cases_to_consider)
     argd['case_tube_idxs'] = feature_cti
+    log.info('Considering {} cases'.format(len(cases_to_consider)))
+    log.info('Excluded {} cases because there were no features'.format(len(exclusions_dic['no_features'])))
+
+    # Pick most recent cti for each case
     q = db.query(pick_cti=True,
                  **argd)
     case_tube_index_list = q.results.case_tube_idx.tolist()
@@ -79,11 +89,11 @@ def action(args):
 
     # Keep track of cases that were excluded at the query step
     exclusions_dic['excluded_by_DB_query'] = list(cases_to_consider - case_list)
+    log.info('Excluded {} cases in query step'.format(len(exclusions_dic['excluded_by_DB_query'])))
     log.debug(exclusions_dic)
 
     # Get features [assuming that features are returned in order!]
     features_df, not_in_data, merge_fail = HDF_feature_obj.make_single_tube_analysis(case_tube_index_list)
-    features_df.set_index('bin_num', drop=True, inplace=True)
     features_df.columns = case_list
     features_df = features_df.T
     log.debug(features_df.head())
@@ -95,23 +105,7 @@ def action(args):
     # Send features_df, annotation_df, and exclusions to ML_input_HDF5 (args.ml_hdf5_fp)
     Merged_ML_feat_obj = MergedFeatures_IO(filepath=args.ml_hdf5_fp,
                                            clobber=True)
-
-    Merged_ML_feat_obj.push_features(features_df)
-    Merged_ML_feat_obj.push_annotations(annotation_df)
-    Merged_ML_feat_obj.push_not_found(exclusions_dic)  # exclusions is a dictionary
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    Merged_ML_feat_obj.push_all(feat_DF=features_df,
+                                anno_DF=annotation_df,
+                                fail_DF=exclusions_dic,
+                                feat_HDF=HDF_feature_obj)
