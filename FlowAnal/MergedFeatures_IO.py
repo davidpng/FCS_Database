@@ -43,6 +43,8 @@ class MergedFeatures_IO(HDF5_IO):
 
         """
         super(MergedFeatures_IO, self).__init__(filepath=filepath, clobber=clobber)
+        self.schema = self.__make_schema()
+        # self.__check_file_schema()
 
     def push_all(self, feat_DF, anno_DF, fail_DF, feat_HDF):
         """wrapper for a bunch of functions"""
@@ -60,11 +62,10 @@ class MergedFeatures_IO(HDF5_IO):
 
     def push_not_found(self, not_found_dic):
         """pushed not found list to the HDF5 """
-        schema = self.__make_schema()
         fh = h5py.File(self.filepath, 'a')
 
         for key, value in not_found_dic.iteritems():
-            path = os.path.join(schema['Not_Found'], key)
+            path = os.path.join(self.schema['Not_Found'], key)
             try:
                 fh[path] = value
             except:
@@ -75,30 +76,27 @@ class MergedFeatures_IO(HDF5_IO):
 
     def get_not_found(self):
         """get not found list from the HDF5 """
-        schema = self.__make_schema()
         fh = h5py.File(self.filepath, 'r')
-        paths = [str(i) for i in fh[schema['Not_Found']].keys()]
+        paths = [str(i) for i in fh[self.schema['Not_Found']].keys()]
         output = {}
         for p in paths:
-            output[p] = fh[os.path.join(schema['Not_Found'], p)]
+            output[p] = fh[os.path.join(self.schema['Not_Found'], p)]
+        fh.close()
         return output
 
     def push_annotations(self, annotation_DF):
         """
         This will push the annotation dataframe
         """
-        schema = self.__make_schema()
         self.push_DataFrame(DF=annotation_DF,
-                            path=schema['Annotation_DF'])
+                            path=self.schema['Annotation_DF'])
         log.debug("Succesfully pushed annotation dataframe to ML_input hdf5")
 
     def get_annotations(self):
         """
         This will get the annotation dataframe
         """
-        self.__check_file_schema()
-        schema = self.__make_schema()
-        DF = self.pull_DataFrame(path=schema['Annotation_DF'])
+        DF = self.pull_DataFrame(path=self.schema['Annotation_DF'])
         log.debug("Succesfully retrived annotation dataframe: {}".format(DF.head()))
         return DF
 
@@ -106,18 +104,15 @@ class MergedFeatures_IO(HDF5_IO):
         """
         This will push the annotation dataframe
         """
-        schema = self.__make_schema()
         self.push_DataFrame(DF=Feature_DF,
-                            path=schema['Feature_DF'])
+                            path=self.schema['Feature_DF'])
         log.debug("Succesfully pushed Feature dataframe to ML_input hdf5")
 
     def get_features(self):
         """
         This will push the annotation dataframe
         """
-        self.__check_file_schema()
-        schema = self.__make_schema()
-        DF = self.pull_DataFrame(path=schema['Feature_DF'], dtype=float)
+        DF = self.pull_DataFrame(path=self.schema['Feature_DF'], dtype=float)
         log.debug("Succesfully retrived feature dataframe: {}".format(DF.head()))
         return DF
 
@@ -126,24 +121,16 @@ class MergedFeatures_IO(HDF5_IO):
         This checks to make sure the base schema of the input HDF5 file matches
         the given schema
         """
-        schema = self.__make_schema()
-        schema_check_fail = False
         fh = h5py.File(self.filepath, 'r')
 
-        for key, value in schema.iteritems():
-            try:
-                temp = fh[value]
-            except:
-                log.debug("{} does not exist in the hdf5 file at {}".format(value,
-                                                                            self.filepath))
-                schema_check_fail = True
-
-        if schema_check_fail:
-            raise IOError("Input file schema does not match")
+        for key, value in self.schema.iteritems():
+            if value not in fh:
+                raise IOError("{} does not exist in the hdf5 file {}".format(value,
+                                                                             self.filepath))
+        fh.close()
 
     def push_meta_data(self, FTIO_obj):
 
-        self.schema = self.__make_schema()
         fh = h5py.File(self.filepath, 'a')
 
         FTIO_meta = FTIO_obj.get_meta_data()
@@ -159,12 +146,15 @@ class MergedFeatures_IO(HDF5_IO):
                          path=self.schema['feature_descriptions'],
                          ext_filehandle=fh)
 
+        fh.close()
+
     def __make_schema(self):
         """
         makes a dictionary containing the storage schema
         """
         schema = {"Annotation_DF": "/annotations/",
                   "Feature_DF": "/features/",
+                  "Distance_DF": "/distance/",
                   "Not_Found": "/missing_because/",
                   "database_filepath": "/database_version/filepath",
                   "database_datetime": "/database_version/date",

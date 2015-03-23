@@ -48,7 +48,7 @@ def action(args):
     # Connect to database
     db = FCSdatabase(db=argd['db'], rebuild=False)
 
-    # Get features_HDF case_tube_idx's
+    # Get list of ctis in features_HDF
     HDF_feature_obj = Feature_IO(filepath=argd['feature_hdf5_fp'],
                                  clobber=False)
     feature_cti = HDF_feature_obj.get_case_tube_idxs()
@@ -59,10 +59,12 @@ def action(args):
     log.info("Found {} cases with annotations".format(len(ann_cases)))
     log.debug("Annotation cases: {}".format(ann_cases))
 
-    # Get/pick case, case_tube_idx list
-    feature_cases = Set(db.query(getCases=True,
-                                 aslist=True,
-                                 case_tube_idxs=feature_cti).results)
+    # Get cti, case from db for ctis in features_HDF
+    feature_cases_ctis = db.query(getCases=True,
+                                  aslist=True,
+                                  case_tube_idxs_list=feature_cti).results
+    feature_cti, feature_cases = zip(*feature_cases_ctis)
+    feature_cases = Set(feature_cases)
     log.info('Found features for {} ctis and {} cases'.format(len(feature_cti),
                                                               len(feature_cases)))
     log.debug("Feature cases: {}".format(feature_cases))
@@ -73,19 +75,22 @@ def action(args):
 
     # Cases to consider (insersection of annotations and HDF5 features)
     cases_to_consider = ann_cases & feature_cases
-    argd['cases'] = list(cases_to_consider)
-    argd['case_tube_idxs'] = feature_cti
     log.info('Considering {} cases'.format(len(cases_to_consider)))
     log.info('Excluded {} cases because there were no features'.format(len(exclusions_dic['no_features'])))
+    cc_to_consider = {}
+    for x in [y for y in feature_cases_ctis
+              if y[1] in ann_cases]:
+        if x[1] in cc_to_consider:
+            cc_to_consider[x[1]].append(x[0])
+        else:
+            cc_to_consider[x[1]] = [x[0]]
 
     # Pick most recent cti for each case
     q = db.query(pick_cti=True,
-                 **argd)
-    case_tube_index_list = q.results.case_tube_idx.tolist()
-    case_list = Set(q.results.case_number.tolist())
-    log.debug('Selected case/cti: {}'.
-              format([[list(case_list)[i], case_tube_index_list[i]]
-                      for i in range(len(case_tube_index_list))]))
+                 cc_list=cc_to_consider,
+                 **argd).results
+    case_tube_index_list = zip(*q)[0]
+    case_list = Set(zip(*q)[1])
 
     # Keep track of cases that were excluded at the query step
     exclusions_dic['excluded_by_DB_query'] = list(cases_to_consider - case_list)

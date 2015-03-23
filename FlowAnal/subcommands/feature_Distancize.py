@@ -6,12 +6,16 @@ NOTE: There are some files that are not found because of discordance of filename
 and filename internal to .fcs file (meta info)
 """
 import logging
+import warnings
 import numpy as np
+import tables
+from multiprocessing import Pool
 
 from FlowAnal.MergedFeatures_IO import MergedFeatures_IO
 from FlowAnal.QC_subroutines.Flow_Comparison import Flow_Comparison2D
 
 log = logging.getLogger(__name__)
+warnings.simplefilter('ignore', tables.NaturalNameWarning)
 
 
 def build_parser(parser):
@@ -19,10 +23,16 @@ def build_parser(parser):
                         help='Input hdf5 filepath for FCS features \
     [default: db/ML_input.hdf5]',
                         dest='ml_hdf5_fp', default="db/ML_input.hdf5", type=str)
+    parser.add_argument('-workers', '--workers', type=int,
+                        default=20,
+                        help='Number of workers')
+
+
+def calc_emds(a, df):
+    return a.calc_emds(df)
 
 
 def action(args):
-
     # Get data
     HDF_dat = MergedFeatures_IO(filepath=args.ml_hdf5_fp, clobber=False)
 
@@ -32,16 +42,11 @@ def action(args):
 
     a = Flow_Comparison2D(shape=(10, 10))
 
-    for p in params:
-        df = feature_df[p]
-        df_emds = a.calc_emds(df)
-        print df_emds.iloc[0:50, :]
+    p = Pool(args.workers)
+    results = [p.apply_async(calc_emds, args=(a, feature_df[x]))
+               for x in params]
+    p.close()
 
-        # Store this somewhere (perhaps back in the same MergedFeatures_IO)
-        # Could add to schema and have a list of distance matrices
-
-        quit()
-    print params
-    quit()
-    for p in feature_df.columns:
-        print p
+    for i, r in enumerate(results):
+        r.get().to_hdf(args.ml_hdf5_fp, '/distance/{}/'.format(params[i]))
+        log.info('Finished {} [{} of {}]\r'.format(params[i], i+1, len(params))),

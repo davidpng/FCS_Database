@@ -55,8 +55,6 @@ class TubeCases(Base):
     error_message = Column(Text)
     version = Column(String(30), nullable=False)
 
-
-
     Pmts = relationship("PmtTubeCases", backref="Tube", cascade='delete, delete-orphan')
     Stats = relationship("TubeStats", uselist=False, backref="Tube")
 

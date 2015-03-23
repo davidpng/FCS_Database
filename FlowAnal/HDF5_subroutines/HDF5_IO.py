@@ -20,11 +20,11 @@ import h5py
 import os
 import logging
 log = logging.getLogger(__name__)
-import json
+
 
 class HDF5_IO(object):
     def __init__(self, filepath, clobber=False):
-        """
+        """ Base interface with HDF file/object
         """
         self.filepath = filepath
 
@@ -42,6 +42,7 @@ class HDF5_IO(object):
             fh = h5py.File(self.filepath, 'a')
         fh[os.path.join(path, 'index')] = [str(i) for i in SR.index]
         fh[os.path.join(path, 'data')] = SR.values.astype(str)
+        fh[os.path.join(path, 'dtype')] = SR.dtype
         if not ext_filehandle:
             fh.close()
 
@@ -53,6 +54,9 @@ class HDF5_IO(object):
             fh = ext_filehandle
         else:
             fh = h5py.File(self.filepath, 'r')
+
+        # if os.path.join(path, 'dtype') in fh:
+        #     dtype = fh[os.path.join(path, 'dtype')].value
 
         SR = pd.Series(data=fh[os.path.join(path, 'data')].value,
                        index=fh[os.path.join(path, 'index')].value,

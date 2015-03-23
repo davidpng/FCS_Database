@@ -16,14 +16,12 @@ __status__ = "Production"
 
 import logging
 import pandas as pd
-from itertools import chain
 
 from os import path
 import sys
-import traceback
+from multiprocessing import Pool
 
 from __init__ import add_filter_args, add_process_args
-
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
 from FlowAnal.Feature_IO import Feature_IO
@@ -55,8 +53,35 @@ def build_parser(parser):
     parser.add_argument('-feature_label', '--label_features_with',
                         help='What field to use to label features',
                         default='Antigen', type=str)
+    parser.add_argument('-w', '--workers', help='Number of workers [default 20]',
+                        default=20, type=int)
+    parser.add_argument('-l', '--load', help='Number of .fcs files to process as group,  \
+    dependent on main memory size [default 300]',
+                        default=300, type=int)
+    parser.add_argument('-t', '--testing', help='Testing: run one load of workers',
+                        default=False, action='store_true')
     add_filter_args(parser)
     add_process_args(parser)
+
+
+def worker(in_list, **kwargs):
+    filepath = in_list[0]
+    case_tube_idx = in_list[1]
+    fFCS = FCS(filepath=filepath, case_tube_idx=case_tube_idx, import_dataframe=True)
+    try:
+        fFCS.comp_scale_FCS_data(compensation_file=comp_file,
+                                 gate_coords=gate_coords,
+                                 strict=False, **kwargs)
+        fFCS.feature_extraction(extraction_type=kwargs['feature_extraction_method'],
+                                bins=kwargs['bins'],
+                                exclude_params=kwargs['params_to_exclude'],
+                                label_with=kwargs['label_features_with'])
+        fFCS.clear_FCS_cache()
+    except:
+        fFCS.flag = 'feature_extraction_fail'
+        fFCS.error_message = str(sys.exc_info()[0])
+
+    return fFCS
 
 
 def action(args):
@@ -76,39 +101,50 @@ def action(args):
     # initalize empty list to append case_tube_idx that failed feature extraction
     feature_failed_CTIx = []
 
-    num_results = len(list(chain(*q.results.values())))
-    i = 1
-    log.info("Found {} case_tube_idx's".format(num_results))
+    q_list = []
     for case, case_info in q.results.items():
         for case_tube_idx, relpath in case_info.items():
-            # this nested for loop iterates over all case_tube_idx
-            log.info("Case: %s, Case_tube_idx: %s, File: %s [%s of %s]" %
-                     (case, case_tube_idx, relpath, i, num_results))
-            filepath = path.join(args.dir, relpath)
-            fFCS = FCS(filepath=filepath, case_tube_idx=case_tube_idx, import_dataframe=True)
+            q_list.append((path.join(args.dir, relpath),
+                           case_tube_idx))
 
-            try:
-                fFCS.comp_scale_FCS_data(compensation_file=comp_file,
-                                         gate_coords=gate_coords,
-                                         strict=False, **vars(args))
-                fFCS.feature_extraction(extraction_type=args.feature_extraction_method,
-                                        bins=args.bins,
-                                        exclude_params=args.params_to_exclude,
-                                        label_with=args.label_features_with)
-                HDF_obj.push_fcs_features(case_tube_idx=case_tube_idx,
-                                          FCS=fFCS, db=db)
-            except Exception as ex:
-                print "Skipping FCS [{}] because of unknown error related to {}: {}".\
-                    format(filepath, ex.__class__, ex.message)
-                traceback.print_exc(file=sys.stdout)
-                feature_failed_CTIx.append([case, case_tube_idx, ex.message])
-            print("{:6d} of {} cases found and loaded\r".format(i, num_results)),
+    log.info("Found {} case_tube_idx's".format(len(q_list)))
 
+    # Setup lists
+    n = args.load  # length of sublists
+    sublists = [q_list[i:i+n] for i in range(0, len(q_list), n)]
+    log.info("Number of sublists to process: {}".format(len(sublists)))
+
+    # Setup args
+    vargs = {key: value for key, value in vars(args).items()
+             if key in ['viable_flag', 'singlet_flag', 'comp_flag', 'gates1d',
+                        'feature_extraction_method', 'bins', 'params_to_exclude',
+                        'label_features_with']}
+
+    i = 0
+    for sublist in sublists:
+        p = Pool(args.workers)
+        results = [p.apply_async(worker, args=(case_info, ), kwds=vargs)
+                   for case_info in sublist]
+        p.close()
+
+        for f in results:
             i += 1
+            fFCS = f.get()
+            if fFCS.flag != 'feature_extraction_fail':
+                HDF_obj.push_fcs_features(case_tube_idx=fFCS.case_tube_idx,
+                                          FCS=fFCS, db=db)
+            else:
+                feature_failed_CTIx.append([fFCS.case_number,
+                                            fFCS.case_tube_idx,
+                                            fFCS.error_message])
+            del fFCS
+            print "Case_tubes: {} of {} have been processed\r".format(i, len(q_list)),
+        del results
+
+        if args.testing is True:
+            break
 
     if feature_failed_CTIx == []:
-        # if no features failed, we will create a dummy dataframe to load
-        # otherwise when reading this will cause a failure
         failed_DF = pd.DataFrame([['NaN', 'NaN', 'NaN']],
                                  columns=['case_number', 'case_tube_idx', 'error_message'])
         log.info("Nothing failed feature extraction!")
@@ -121,5 +157,3 @@ def action(args):
                  format(failed_DF.case_tube_idx.unique()))
 
     HDF_obj.push_failed_cti_list(failed_DF)
-
-

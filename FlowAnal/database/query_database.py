@@ -195,7 +195,10 @@ class queryDB(object):
 
         return self.compile_query()
 
-    def __pick_cti(self, **kwargs):
+    def __pick_cti(self,
+                   cc_list,
+                   max_n=100,
+                   **kwargs):
         """
         Picks a single case_tube_idx for each case,
         filters on specified criteria, and returns pd.DataFrame of case, case_tube_idx
@@ -205,42 +208,69 @@ class queryDB(object):
         """
         log.info('Looking for case_tube_indx\'s')
 
+        # Make sublists from cases/ctis
+        ks = cc_list.keys()
+        cc_list_i = []
+        for i in range(0, len(ks), max_n):
+            cc_list_i.append(dict((ks[x], cc_list[ks[x]])
+                                  for x in range(i, min(i+max_n, len(ks)))))
+
         # Build query
         # ## First case_tube_idx
-        q1 = self.session.query(TubeCases.case_number,
-                                func.max(func.datetime(TubeCases.date)).label("last_dttm")).\
-            group_by(TubeCases.case_number)
-        q1.joined_tables = ['TubeCases']
-        q1 = add_mods_to_query(q1, **kwargs)
-        q1 = q1.subquery()
+        results = []
+        for x in cc_list_i:
+            cases = x.keys()
+            ctis = []
+            for y in x.values():
+                ctis.extend(y)
 
-        self.q = self.session.query(TubeCases.case_number,
-                                    func.max(TubeCases.case_tube_idx).label("case_tube_idx")).\
-            join(q1, and_(TubeCases.case_number == q1.c.case_number,
-                          TubeCases.date == q1.c.last_dttm)).\
-            group_by(TubeCases.case_number)
-        self.q.joined_tables = ['TubeCases']
+            q1 = self.session.query(TubeCases.case_number,
+                                    func.max(func.datetime(TubeCases.date)).label("last_dttm")).\
+                filter(TubeCases.case_number.in_(cases)).\
+                filter(TubeCases.case_tube_idx.in_(ctis)).\
+                group_by(TubeCases.case_number)
+            q1.joined_tables = ['TubeCases']
+            q1 = add_mods_to_query(q1, **kwargs)
+            q1 = q1.subquery()
 
-        # Add common filters
-        self.__add_mods_to_query(**kwargs)
-        log.debug("\nQuery:\n{}\n".format(self.q.statement))
+            self.q = self.session.query(TubeCases.case_number,
+                                        func.max(TubeCases.case_tube_idx).label("case_tube_idx")).\
+                join(q1, and_(TubeCases.case_number == q1.c.case_number,
+                              TubeCases.date == q1.c.last_dttm)).\
+                filter(TubeCases.case_number.in_(cases)).\
+                filter(TubeCases.case_tube_idx.in_(ctis)).\
+                group_by(TubeCases.case_number)
+            self.q.joined_tables = ['TubeCases']
+            self.__add_mods_to_query(**kwargs)
 
-        # Output
-        df = self.__q2df()
-        df.sort(['case_number', 'case_tube_idx'], inplace=True)
-        return df
+            results.extend([(c.case_tube_idx, c.case_number)
+                            for c in self.q.all()])
 
-    def __getCases(self, aslist=False, **kwargs):
+        return results
+
+    def __getCases(self, case_tube_idxs_list,
+                   aslist=False, n=1000, **kwargs):
         """ Return list of cases """
-        self.q = self.session.query(Cases.case_number)
-        self.q.joined_tables = ['Cases']
+        self.q = self.session.query(TubeCases.case_tube_idx, Cases.case_number)
+        self.q = self.q.join(Cases, TubeCases.Case)
+        self.q.joined_tables = ['Cases', 'TubeCases']
         self.__add_mods_to_query(**kwargs)
-        d = self.q.all()
+
+        case_tube_idxs_list_i = [case_tube_idxs_list[i:(i+n)]
+                                 for i in range(0, len(case_tube_idxs_list), n)]
+
+        d = []
+        for x in case_tube_idxs_list_i:
+            q = self.q
+            q = add_join_to_query(q, 'TubeCases')
+            q = q.filter(TubeCases.case_tube_idx.in_(x))
+            d.extend(q.all())
 
         if aslist is False:
             return d
         else:
-            return [c.case_number for c in d]
+            return [(c.case_tube_idx, c.case_number)
+                    for c in d]
 
     def __getPmtStats(self, **kwargs):
         """
@@ -491,39 +521,41 @@ class queryDB(object):
         return df
 
 
+def add_join_to_query(q, table):
+    if table not in q.joined_tables:
+        q = q.join(eval(table))
+        q.joined_tables.append(table)
+    return q
+
+
 def add_mods_to_query(q, **kwargs):
     if 'not_flagged' in kwargs and kwargs['not_flagged'] is True:
         q = q.filter(TubeCases.flag == 'GOOD')
-        if 'TubeCases' not in q.joined_tables:
-            q = q.join(TubeCases)
+        q = add_join_to_query(q, 'TubeCases')
 
     if 'tubes' in kwargs and kwargs['tubes'] is not None:
         tubes_to_select = [unicode(x) for x in kwargs['tubes']]
         log.info('Looking for tubes: %s' % tubes_to_select)
         q = q.filter(TubeTypesInstances.tube_type.in_(tubes_to_select))
-        if 'TubeTypesInstances' not in q.joined_tables:
-            q = q.join(TubeTypesInstances)
+        q = add_join_to_query(q, 'TubeTypesInstances')
 
     if 'antigens' in kwargs and kwargs['antigens'] is not None:
         antigens_to_select = [unicode(x) for x in kwargs['antigens']]
         log.info('Looking for antigens: %s' % antigens_to_select)
         q = q.filter(PmtTubeCases.Antigen.in_(antigens_to_select))
-        if 'PmtTubeCases' not in q.joined_tables:
-            q = q.join(PmtTubeCases)
+        q = add_join_to_query(q, 'PmtTubeCases')
 
     if 'Channel_Number' in kwargs and kwargs['Channel_Number'] is not None:
         channels_to_select = [x for x in kwargs['Channel_Number']]
         log.info('Looking for channels: #%s' % channels_to_select)
         q = q.filter(PmtTubeCases.Channel_Number.in_(channels_to_select))
-        if 'PmtTubeCases' not in q.joined_tables:
-            q = q.join(PmtTubeCases)
+        q = add_join_to_query(q, 'PmtTubeCases')
 
     if 'Channel_Name' in kwargs and kwargs['Channel_Name'] is not None:
         channels_to_select = [unicode(x) for x in kwargs['Channel_Name']]
         log.info('Looking for channels name: %s' % channels_to_select)
         q = q.filter(PmtTubeCases.Channel_Name.in_(channels_to_select))
-        if 'PmtTubeCases' not in q.joined_tables:
-            q = q.join(PmtTubeCases)
+        q = add_join_to_query(q, 'PmtTubeCases')
 
     if 'daterange' in kwargs and kwargs['daterange'] is not None:
         log.info('Looking for daterange: [%s, %s]' % (kwargs['daterange'][0],
@@ -531,54 +563,46 @@ def add_mods_to_query(q, **kwargs):
         date_start = datetime.strptime(kwargs['daterange'][0], '%Y-%m-%d')
         date_end = datetime.strptime(kwargs['daterange'][1], '%Y-%m-%d')
         q = q.filter(func.date(TubeCases.date).between(date_start, date_end))
-        if 'TubeCases' not in q.joined_tables:
-            q = q.join(TubeCases)
+        q = add_join_to_query(q, 'TubeCases')
 
     if 'cases' in kwargs and kwargs['cases'] is not None:
         cases_to_select = [unicode(x) for x in kwargs['cases']]
         log.info('Looking for cases #%s' % ", ".join(cases_to_select))
         q = q.filter(TubeCases.case_number.in_(cases_to_select))
-        if 'TubeCases' not in q.joined_tables:
-            q = q.join(TubeCases)
+        q = add_join_to_query(q, 'TubeCases')
 
     if 'specimens' in kwargs and kwargs['specimens'] is not None:
         specimens_to_select = [unicode(x) for x in kwargs['specimens']]
         log.info('Looking for specimens [%s]' % ", ".join(specimens_to_select))
         q = q.filter(HPdb.SpecimenType.in_(specimens_to_select))
-        if 'Cases' not in q.joined_tables:
-            q = q.join(Cases)
-        if 'HPdb' not in q.joined_tables:
-            q = q.join(HPdb)
+        q = add_join_to_query(q, 'Cases')
+        q = add_join_to_query(q, 'HPdb')
 
     if 'cytnum' in kwargs and kwargs['cytnum'] is not None:
         cytnums_to_select = [unicode(x) for x in kwargs['cytnum']]
         log.info('Looking for cytnum #%s' % ", ".join(cytnums_to_select))
         q = q.filter(TubeCases.cytnum.in_(cytnums_to_select))
-        if 'TubeCases' not in q.joined_tables:
-            q = q.join(TubeCases)
+        q = add_join_to_query(q, 'TubeCases')
 
     if 'case_tube_idxs' in kwargs and kwargs['case_tube_idxs'] is not None:
         case_tube_idxs_to_select = [int(x) for x in kwargs['case_tube_idxs']]
         log.info('Looking for case_tube_idxs #{}'.format(case_tube_idxs_to_select))
         q = q.filter(TubeCases.case_tube_idx.in_(case_tube_idxs_to_select))
-        if 'TubeCases' not in q.joined_tables:
-            q = q.join(TubeCases)
+        q = add_join_to_query(q, 'TubeCases')
 
     if 'total_events' in kwargs and kwargs['total_events'] is not None:
         log.info('Looking for cti with total_events > {}'.format(kwargs['total_events']))
         q = q.filter(TubeStats.total_events >= kwargs['total_events'])
-        if 'TubeStats' not in q.joined_tables:
-            q = q.join(TubeStats)
+        q = add_join_to_query(q, 'TubeStats')
 
     if 'custom_set' in kwargs and kwargs['custom_set'] is not None:
-        q = q.join(CustomCaseData)
+        q = add_join_to_query(q, 'CustomCaseData')
 
     if 'random_order' in kwargs and kwargs['random_order'] is True:
         q = q.order_by(func.random())
     elif 'date_order' in kwargs and kwargs['date_order'] is True:
         q = q.order_by(func.datetime(TubeCases.date))
-        if 'TubeCases' not in q.joined_tables:
-            q = q.join(TubeCases)
+        q = add_join_to_query(q, 'TubeCases')
 
     if 'record_n' in kwargs and kwargs['record_n'] is not None:
         q = q.limit(kwargs['record_n'])

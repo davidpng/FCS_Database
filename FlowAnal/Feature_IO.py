@@ -157,7 +157,7 @@ class Feature_IO(HDF5_IO):
         s = fh[self.schema['sshp']].value
 
         fh.close()
-        return csr_matrix((d,i,p),shape=s)
+        return csr_matrix((d, i, p), shape=s)
 
     def get_case_tube_idxs(self):
         """This function returns the case_tube_indices present in the file
@@ -176,13 +176,13 @@ class Feature_IO(HDF5_IO):
         keyed on the information name and values
         """
         meta_schema = self.__make_schema("MetaData")
-        #create dictionary with meta info, won't use sparse matrix info to make it "MetaData"
-        csr_keys = ['sdat','sidx','sind','sshp']
-        #these are the sparse matrix keys to remove
+        #  create dictionary with meta info, won't use sparse matrix info to make it "MetaData"
+        csr_keys = ['sdat', 'sidx', 'sind', 'sshp']
+        #  these are the sparse matrix keys to remove
         meta_keys = [k for k in meta_schema.keys() if k not in csr_keys]
 
         fh = h5py.File(self.filepath, 'r')
-        meta_data = {} # intialize empty dictionary and load it in for loop
+        meta_data = {}  # intialize empty dictionary and load it in for loop
 
         for k in meta_keys:
             try:
