@@ -26,6 +26,9 @@ import os
 import logging
 import sys
 log = logging.getLogger(__name__)
+import pandas as pd
+import numpy as np
+import scipy as sp
 
 
 class MergedFeatures_IO(HDF5_IO):
@@ -147,6 +150,23 @@ class MergedFeatures_IO(HDF5_IO):
                          ext_filehandle=fh)
 
         fh.close()
+
+    def get_dist_groups(self):
+        """ List of feature distance keys """
+
+        fh = h5py.File(self.filepath, 'r')
+        a = fh[self.schema['Distance_DF']].keys()
+        fh.close()
+        return a
+
+    def get_dist_matrix(self, group):
+        """ return the distance matrix for specific group/param """
+
+        df = pd.read_hdf(self.filepath,
+                         os.path.join(self.schema['Distance_DF'], group))
+        m = sp.spatial.distance.squareform(df.iloc[:, 2].values)
+        s = df.iloc[:, 0].unique()
+        return (m, s)
 
     def __make_schema(self):
         """

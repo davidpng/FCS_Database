@@ -75,11 +75,12 @@ def add_process_args(parser):
                         type=str)
     parser.add_argument('--singlet_flag', '--singlet-flag',
                         help='Singlet gate mode',
-                        default='Fixed',
+                        default='none',
                         choices=['fixed', 'auto', 'none'],
                         type=str)
     parser.add_argument('--viable_flag', '--viability-flag',
                         help='Viablity gate mode',
+                        default='none',
                         choices=['fixed', 'auto', 'none'],
                         type=str)
     parser.add_argument('--gates1d', default=[], nargs='+',

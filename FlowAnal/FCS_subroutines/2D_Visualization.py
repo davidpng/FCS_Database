@@ -24,7 +24,7 @@ schema = {'comp': {1: {1: (5, 10), 2: (6, 10)},
                    9: {1: (14, 13)}}}
 
 
-class Comp_Visualization(object):
+class Visualization_2D(object):
     def __init__(self, FCS, outfile, outfiletype, schema_choice='comp'):
         self.FCS = FCS
         self.filename = outfile
