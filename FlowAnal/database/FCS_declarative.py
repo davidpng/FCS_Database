@@ -161,12 +161,42 @@ Index('ix_LISdb_patient_test', LISdb.MRN, LISdb.AccNum)
 Index('ix_LISdb_RecDtTm', LISdb.RecDtTm)
 
 
+class AML_Cyto(Base):
+    __tablename__ = 'AML_Cyto'
+    AML_CytogeneticsId = Column(Integer, primary_key=True)
+    MRN = Column(String(20), ForeignKey('Patients.MRN'))
+    PtName = Column(String(150))
+    AML_DxDate = Column(DateTime)
+    ArrivalDate = Column(DateTime)
+    PtDOD = Column(DateTime)
+    DLC = Column(DateTime)
+    CytoComment = Column(String(2000))
+    CollDate = Column(DateTime)
+    RecDate = Column(DateTime)
+    SampleSource = Column(String(150))
+    SWOG_Category = Column(String(255))
+    CytoRisk = Column(String(255))
+    CytoData = Column(String(2000))
+    CleanedDataCyto = Column(String(2000))
+    FISH_Summary = Column(String(2000))
+    Others = Column(String(2000))
+    FISH = Column(String(2000))
+    AccNum = Column(String(20))
+    ReportSource = Column(String(50))
+
+Index('ix_AML_Cyto_patient_test', AML_Cyto.MRN, AML_Cyto.AccNum)
+Index('ix_AML_Cyto_RecDate', AML_Cyto.RecDate)
+Index('ix_AML_Cyto_Cyto', AML_Cyto.CytoRisk)
+Index('ix_AML_Cyto_SWOG', AML_Cyto.SWOG_Category)
+
+
 class Patients(Base):
     __tablename__ = 'Patients'
     MRN = Column(String(50), primary_key=True)
 
     HPdb = relationship("HPdb", backref='Patient', cascade='delete, delete-orphan')
     LISdb = relationship("LISdb", backref='Patient', cascade='delete, delete-orphan')
+    AML_Cyto = relationship("AML_Cyto", backref='Patient', cascade='delete, delete-orphan')
 
 
 class TubeTypesInstances(Base):

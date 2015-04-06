@@ -137,12 +137,41 @@ make
 # make check
 make install
 make check-install
-cd ../..
+cd ..
 export HDF5_DIR=$venv
 export HDF5_VERSION=1.8.14
 cat >> $VENV/bin/activate <<EOF
 export LD_LIBRARY_PATH=$venv
 EOF
+
+# # Install Cairo
+# cd src
+# http://cairographics.org/releases/pixman-0.32.6.tar.gz
+# tar -xf pixman-0.32.6.tar.gz
+# cd pixman-0.32.6
+# ./configure --prefix=$venv --disable-static
+# make
+# make install
+# export PKG_CONFIG_PATH="$HOME/repos/flow_anal/flow_anal-env/lib/pkgconfig"
+# cd ..
+
+# wget http://cairographics.org/releases/cairo-1.14.2.tar.xz
+# tar -xf cairo-1.14.2.tar.xz
+# cd cairo-1.14.2
+# ./configure --prefix=$venv --disable-static --enable-tee
+# make
+# make install
+# cd ..
+
+# wget https://launchpad.net/ubuntu/+archive/primary/+files/libxt_1.1.1.orig.tar.gz
+# tar -xf libxt_1.1.1.orig.tar.gz
+# cd libXt-1.1.1
+# ./configure --prefix=$venv
+# make
+# make install
+# cd ..
+
+cd ..  # Return to root
 
 # install python packages from pipy or wheels
 grep -v -E '^#|git+|^-e' $REQFILE | while read pkg; do

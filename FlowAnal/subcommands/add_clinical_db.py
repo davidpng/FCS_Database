@@ -7,6 +7,7 @@ import shutil
 from FlowAnal.database.FCS_database import FCSdatabase
 from FlowAnal.LIS_table import LIS_table
 from FlowAnal.HP_lab_table import HP_table
+from FlowAnal.Cyto_table import Cyto_table
 
 log = logging.getLogger(__name__)
 
@@ -16,6 +17,8 @@ def build_parser(parser):
                         help='CSV table created from LIS db', type=str)
     parser.add_argument('--hpdb-file', '-hpdb', dest='hpdb_file',
                         help='CSV table created from hematopathology database', type=str)
+    parser.add_argument('--aml-cyto', '-cyto', dest='aml_cyto', type=str,
+                        help='AML Cytogenetics table')
     parser.add_argument('-db', '--db',
                         help='Input sqlite3 db for Flow meta data \
     [default: db/fcs.db]',
@@ -45,6 +48,11 @@ def action(args):
     if args.hpdb_file is not None:
         # Load hemepath data
         a = HP_table(db=outdb, file=args.hpdb_file)
+        a.push_to_db()
+
+    if args.aml_cyto is not None:
+        # Load AML Cytogenetics table
+        a = Cyto_table(db=outdb, file=args.aml_cyto)
         a.push_to_db()
 
     outdb.close()
