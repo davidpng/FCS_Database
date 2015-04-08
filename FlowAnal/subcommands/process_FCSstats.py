@@ -23,6 +23,9 @@ log = logging.getLogger(__name__)
 
 
 def build_parser(parser):
+    parser.add_argument('anal',
+                        help='Type of analysis',
+                        choices=['compare', 'compensation'], type=str)
     parser.add_argument('--db', '-db', help='sqlite3 db with flow stats data \
     [default: db/fcs_stats.db]',
                         default="db/fcs_stats.db", type=str)
@@ -67,29 +70,36 @@ def action(args):
         print "Processing database %s" % args.db
 
         # Get QC data
-        if args.testing is True:
-            if os.path.isfile(args.outdb):
-                os.remove(args.outdb)
-            testdbcon = FCSdatabase(db=args.outdb, rebuild=True)
-            args.table_format = 'tall'
-            FlowQC(dbcon=dbcon, outdbcon=testdbcon, **vars(args))
-        else:
-            if args.crossanal is not None:
-                a = Flow_Comparison(args, dbcon)
+        if args.anal == 'compare':
+            if args.testing is True:
+                if os.path.isfile(args.outdb):
+                    os.remove(args.outdb)
+                testdbcon = FCSdatabase(db=args.outdb, rebuild=True)
+                args.table_format = 'tall'
+                FlowQC(dbcon=dbcon, outdbcon=testdbcon, **vars(args))
             else:
-                a = FlowQC(dbcon=dbcon, make_qc_data=False)
-                (df, name) = a.get_1D_intensities(**vars(args))
-
-                if args.add_beads is True:
-                    beads_df = a.get_beads(**vars(args))
+                if args.crossanal is not None:
+                    a = Flow_Comparison(args, dbcon)
                 else:
-                    beads_df = None
+                    a = FlowQC(dbcon=dbcon, make_qc_data=False)
+                    (df, name) = a.get_1D_intensities(**vars(args))
 
-                if args.add_peaks is True:
-                    peaks_df = a.add_peaks(df=df, name=name, **vars(args))
-                else:
-                    peaks_df = None
+                    if args.add_beads is True:
+                        beads_df = a.get_beads(**vars(args))
+                    else:
+                        beads_df = None
 
-                if args.plot_1D_intensities is True:
-                    a.histos2tile(df=df, peaks_df=peaks_df, beads_df=beads_df,
-                                  name=name, **vars(args))
+                    if args.add_peaks is True:
+                        peaks_df = a.add_peaks(df=df, name=name, **vars(args))
+                    else:
+                        peaks_df = None
+
+                    if args.plot_1D_intensities is True:
+                        a.histos2tile(df=df, peaks_df=peaks_df, beads_df=beads_df,
+                                      name=name, **vars(args))
+        elif args.anal == 'compensation':
+            a = FlowQC(dbcon, make_qc_data=False)
+            a.process_compensation(**vars(args))
+
+            quit()
+

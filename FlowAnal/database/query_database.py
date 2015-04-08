@@ -394,7 +394,7 @@ class queryDB(object):
         self.__add_mods_to_query(**kwargs)
         return self.compile_query()
 
-    def __getPmtCompCorr(self, **kwargs):
+    def __getPmtCompCorr(self, get_fluorophore_list=False, **kwargs):
         """
         Gets Pmt Compensation Correlation
 
@@ -403,20 +403,23 @@ class queryDB(object):
 
         """
         log.info('Looking for PmtCompCorr')
-        PmtTubeCasesFROM = aliased(PmtTubeCases)
 
-        self.q = self.session.query(TubeCases.date.label('date'),
-                                    TubeCases.cytnum.label('cytnum'),
-                                    PmtTubeCases.Antigen.label('Antigen_IN'),
-                                    PmtTubeCases.Fluorophore.label('Fluorophore_IN'),
-                                    PmtTubeCasesFROM.Antigen.label('Antigen_FROM'),
-                                    PmtTubeCasesFROM.Fluorophore.label('Fluorophore_FROM'),
-                                    PmtCompCorr).\
-            join(PmtTubeCasesFROM, PmtCompCorr.PMT_FROM).\
-            join(PmtTubeCases, PmtCompCorr.PMT_IN).\
-            join(TubeCases, PmtTubeCases.Tube)
-
-        self.q.joined_tables = ['TubeCases', 'PmtTubeCases', 'PmtTubeCasesIN', 'PmtCompCorr']
+        if get_fluorophore_list is False:
+            PmtTubeCasesFROM = aliased(PmtTubeCases)
+            self.q = self.session.query(TubeCases.date.label('date'),
+                                        TubeCases.cytnum.label('cytnum'),
+                                        PmtTubeCases.Antigen.label('Antigen_IN'),
+                                        PmtTubeCases.Fluorophore.label('Fluorophore_IN'),
+                                        PmtTubeCasesFROM.Antigen.label('Antigen_FROM'),
+                                        PmtTubeCasesFROM.Fluorophore.label('Fluorophore_FROM'),
+                                        PmtCompCorr).\
+                join(PmtTubeCasesFROM, PmtCompCorr.PMT_FROM).\
+                join(PmtTubeCases, PmtCompCorr.PMT_IN).\
+                join(TubeCases, PmtTubeCases.Tube)
+            self.q.joined_tables = ['TubeCases', 'PmtTubeCases', 'PmtTubeCasesIN', 'PmtCompCorr']
+        else:
+            self.q = self.session.query(PmtTubeCases.Fluorophore)
+            self.q.joined_tables = ['PmtTubeCases']
 
         self.__add_mods_to_query(**kwargs)
         return self.compile_query()
@@ -543,6 +546,12 @@ def add_mods_to_query(q, **kwargs):
         antigens_to_select = [unicode(x) for x in kwargs['antigens']]
         log.info('Looking for antigens: %s' % antigens_to_select)
         q = q.filter(PmtTubeCases.Antigen.in_(antigens_to_select))
+        q = add_join_to_query(q, 'PmtTubeCases')
+
+    if 'fluorophores' in kwargs and kwargs['fluorophores'] is not None:
+        fluorophores_to_select = [unicode(x) for x in kwargs['fluorophores']]
+        log.info('Looking for fluorophores: %s' % fluorophores_to_select)
+        q = q.filter(PmtTubeCases.Fluorophore.in_(fluorophores_to_select))
         q = add_join_to_query(q, 'PmtTubeCases')
 
     if 'Channel_Number' in kwargs and kwargs['Channel_Number'] is not None:

@@ -151,12 +151,95 @@ class FlowQC(object):
 
         # Make name base
         name = ""
-        for k in ['tubes', 'antigens', 'Channel_Name', 'Channel_Number']:
+        for k in ['tubes', 'antigens', 'Channel_Name', 'Channel_Number', 'cytnum']:
             if k in kwargs and kwargs[k] is not None:
                 if name == "":
-                    name = "_".join(kwargs[k])
+                    name = "_".join(str(x) for x in kwargs[k])
                 else:
-                    name = "{}_{}".format(name, "_".join(kwargs[k]))
+                    name = "{}_{}".format(name, "_".join(str(x) for x in kwargs[k]))
+        return (df, name)
+
+    def process_compensation(self, **kwargs):
+        """
+
+        """
+        kwargs['getPmtCompCorr'] = True
+        dq = self.db.query(get_fluorophore_list=True, **kwargs)
+        kwargs['getPmtCompCorr'] = None
+
+        df = pd.read_sql_query(sql=dq.qstring,
+                               con=self.db.engine,
+                               params=dq.params)
+        fluorophores = [x for x in df.Fluorophore.unique()
+                        if x is not None]
+
+        for cytnum in [1, 2]:
+            for f in fluorophores:
+                kwargs['fluorophores'] = [f]
+                kwargs['cytnum'] = [cytnum]
+                (df, name) = self.__get_compensation_histogram(**kwargs)
+                df.sort(['Fluorophore_FROM', 'date'], inplace=True)
+
+                if len(df) > 100:
+                    self.__plot_compensation(df, name='.'.join([kwargs['outp'], name]),
+                                             **kwargs)
+                kwargs['fluorophores'] = None
+                kwargs['cytnum'] = None
+
+    def __plot_compensation(self, df, name, win=50, **kwargs):
+        """
+        """
+        # Plot
+        fsize = (max(ceil(df.shape[0]/4000), 12.5*3),
+                 max(ceil(df.shape[0]/20000), 5*3))
+        plt.figure(figsize=fsize)
+        plt.title(name)
+
+        # TODO: add moving average
+        df_c = df.copy()
+        df_c = df_c.groupby(['Fluorophore_FROM']).filter(lambda x: len(x) > 10)
+        df_cg = df_c.groupby(['Fluorophore_FROM'])
+
+        leg_handles = []
+        for g, dfg in df_cg:
+            rm = pd.stats.moments.rolling_median(dfg.Pearson_R,
+                                                 window=win, center=True, min_periods=win/2)
+            leg_handle, = plt.plot(dfg.date, rm, '-',
+                                   scalex=True, scaley=False, label=g)
+            leg_handles.append(leg_handle)
+
+        plt.legend(handles=leg_handles, loc=4)
+
+        plt.savefig(name + '.png', bbox_inches='tight', dpi=200)
+        plt.close()
+
+    def __get_compensation_histogram(self, **kwargs):
+        """ Pull Compensation cross-talk matrix for single channel/antigen/...
+
+        Return tuple of df and name
+        """
+
+        kwargs['getPmtCompCorr'] = True
+        dq = self.db.query(**kwargs)
+        kwargs['getPmtCompCorr'] = None
+
+        log.debug("Query: [{}]".format(dq.qstring))
+        log.info("Query result count: {}".format(dq.q.count()))
+
+        df = pd.read_sql_query(sql=dq.qstring,
+                               con=self.db.engine,
+                               params=dq.params)
+        df.sort(['date', 'cytnum'], inplace=True)
+        log.debug("Size of df: {}".format(df.shape))
+
+        # Make name base
+        name = ""
+        for k in ['tubes', 'fluorophores', 'antigens', 'Channel_Name', 'Channel_Number', 'cytnum']:
+            if k in kwargs and kwargs[k] is not None:
+                if name == "":
+                    name = "_".join(str(x) for x in kwargs[k])
+                else:
+                    name = "{}_{}".format(name, "_".join(str(x) for x in kwargs[k]))
         return (df, name)
 
     def get_beads(self, beadtype='8peaks', smooth=True, **kwargs):
