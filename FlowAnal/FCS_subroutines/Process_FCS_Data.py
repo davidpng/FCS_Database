@@ -24,6 +24,17 @@ import logging
 log = logging.getLogger(__name__)
 
 
+def Gate_2D(DF_array_data, x_ax, y_ax, coords):
+    """
+    Returns a logical index given set of gate coordinates
+    """
+    log.debug('Applying gate coords {} to axes {} and {}'.format(coords, x_ax, y_ax))
+    gate = Path(coords, closed=True)
+    projection = np.array(DF_array_data[[x_ax, y_ax]])
+    index = gate.contains_points(projection)
+    return index
+
+
 def LogicleTransform(input_array, T=2**18, M=4.0, W=1, A=1.0):
     """
     interpolated inverse of the biexponential function
@@ -166,13 +177,18 @@ class Process_FCS_Data(object):
         self.FCS.gates = []
 
         # save columns because data is redfined after comp
-        self.columns = self.__Clean_up_columns(self.FCS.parameters.loc['Channel_Name'])
+        self.columns = self.FCS.parameters.loc['Channel_Name']
+
         self.FCS.total_events = self.FCS.data.shape[0]   # initial event count
 
         # Compensate data (or not)
         self.__compensation_switch(comp_mode=comp_flag,
                                    compensation_file=compensation_file,
                                    **kwargs)
+
+        self.data = pd.DataFrame(data=self.data,
+                                 columns=self.columns,
+                                 dtype=np.float32)  # create a dataframe with columns
 
         #Saturation Gate might need to go here
         #sat_gate = self._SaturationGate()
@@ -225,9 +241,6 @@ class Process_FCS_Data(object):
         else:
             raise(ValueError,"Compenstation Mode {} is Undefined".format(comp_mode))
 
-        self.data = pd.DataFrame(data=self.data,
-                                 columns=self.columns,
-                                 dtype=np.float32)  # create a dataframe with columns
 
     def __singlet_switch(self, singlet_mode, **kwargs):
         """defines singlet gating modes"""
@@ -239,8 +252,8 @@ class Process_FCS_Data(object):
             self.FCS.singlet_remain, percent_loss = auto_gate_obj.calculate_stats()
             self.data = self.data[singlet_mask]
         elif singlet_mode == "fixed" and 'gate_coords' in kwargs:
-            singlet_mask = self._gating(self.data, 'FSC-A', 'FSC-H',
-                                        self.coords['singlet']['coords'])
+            singlet_mask = Gate_2D(self.data, 'FSC-A', 'FSC-H',
+                                   self.coords['singlet']['coords'])
             self.FCS.singlet_remain = np.sum(singlet_mask)
             self.data = self.data[singlet_mask]
         else:
@@ -253,8 +266,8 @@ class Process_FCS_Data(object):
         elif viable_mode == "auto":
             raise(NotImplementedError,"Auto Viability Gating has not been implemented")
         elif viable_mode == "fixed" and 'gate_coords' in kwargs:
-            viable_mask = self._gating(self.data, 'SSC-H', 'FSC-H',
-                                       self.coords['viable']['coords'])
+            viable_mask = Gate_2D(self.data, 'SSC-H', 'FSC-H',
+                                  self.coords['viable']['coords'])
             self.FCS.viable_remain = np.sum(viable_mask)
             self.data = self.data[viable_mask]
         else:
@@ -268,6 +281,7 @@ class Process_FCS_Data(object):
     def __Clean_up_columns(self, columns):
         """
         Provides error handling and clean up for manually entered parameter names
+        !! This should be extraneous !!
         """
         output = [c.replace('CD ', 'CD') for c in columns]
         return output
@@ -392,16 +406,6 @@ class Process_FCS_Data(object):
         lim = 2**18-limit
         upper_limit = np.any(X_input[mask] > lim, axis=1)  # fine events with compensated params >max less 1000
         return np.logical_not(np.logical_or(lower_limit, upper_limit))
-
-    def _gating(self, DF_array_data, x_ax, y_ax, coords):
-        """
-        Returns a logical index given set of gate coordinates
-        """
-        log.debug('Applying gate coords {} to axes {} and {}'.format(coords, x_ax, y_ax))
-        gate = Path(coords, closed=True)
-        projection = np.array(DF_array_data[[x_ax, y_ax]])
-        index = gate.contains_points(projection)
-        return index
 
     def __1D_gating(self, gate):
         """ Applys 1D specified by  given parameter/comparator/limit """

@@ -248,6 +248,16 @@ class queryDB(object):
 
         return results
 
+    # def __getComp(self, cur_Channel_Name, cur_date):
+
+    #     q1 = self.session.query(func.strftime('%s', SingleComp.date)).\
+    #          filter(func.strftime('%s', cur_date) <= func.strftime('%s', SingleComp.date)).\
+    #          filter(SingleComp.Channel_Name == cur_Channel_Name).\
+    #          filter(SingleComp.N >= 1000)
+
+    #                             select strftime('%s', '2015-02-20 20:10:00') - strftime('%s', date) from SingleComp where (strftime('%s', '2015-02-20 20:10:00') - strftime('%s', date)) > 0 and N > 1000 and Channel_Name = 'CD3 PE-TR' limit 100;
+
+
     def __getCases(self, case_tube_idxs_list,
                    aslist=False, n=1000, **kwargs):
         """ Return list of cases """

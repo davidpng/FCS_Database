@@ -12,12 +12,12 @@ log = logging.getLogger(__name__)
 def build_parser(parser):
     parser.add_argument('dir', help='Directory with Flow FCS files [required]',
                         type=str)
-    parser.add_argument('-o', '--file_list', dest='file_list',
-                        help='Output filelist of found FCS files\
-    [default: db/FoundFile.txt]', default='db/FoundFile.txt', type=str)
+    parser.add_argument('file_list',
+                        help='Output filelist of found FCS files', type=str)
     parser.add_argument('-exclude', '--ex', help='List of directories to exclude',
                         default=[".."], nargs='+', type=str)
-    parser.add_argument('-n', '--n_files', help='For testing purposes only find N files',
+    parser.add_argument('-n', '--n_files',
+                        help='For testing purposes only find N files',
                         default=None, type=int)
 
 

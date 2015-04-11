@@ -13,6 +13,24 @@ class Base(object):
 Base = declarative_base(cls=Base)
 
 
+class SingleComp(Base):
+    __tablename__ = 'SingleComp'
+
+    comp_tube_idx = Column(Integer, primary_key=True)
+    date = Column(DateTime)
+    cytnum = Column(String(3))
+    Antigen = Column(String(10), ForeignKey('Antigens.Antigen'))
+    Fluorophore = Column(String(10), ForeignKey('Fluorophores.Fluorophore'))
+    Channel_Name = Column(String(20), nullable=False)
+    xt_Channel_Number = Column(Integer, nullable=False, primary_key=True)
+    m = Column(Float)
+    b = Column(Float)
+    N = Column(Integer)
+    score = Column(Float)
+    old = Column(String(5))
+    filename = Column(String(100), nullable=False)
+
+
 class PmtTubeCases(Base):
     __tablename__ = 'PmtTubeCases'
 

@@ -20,10 +20,50 @@ from re import compile, findall, search
 from datetime import datetime
 from warnings import warn
 from struct import calcsize, unpack
-from os.path import basename
+from os import path
 import logging
 
 log = logging.getLogger(__name__)
+
+
+def parse_channel_name(unparsed_name):
+    """ Standardize channel names.
+
+    Input: Channel_Name string
+    Return: (Channel_Name, antigen, fluorophore)
+    """
+
+    # handling for empty antigen names
+    unparsed_name = unparsed_name.replace("Pacific Blue", "PB")  # "Pacific_Blue"
+    unparsed_name = unparsed_name.replace("PE-Texas Red", "PE-TR")  # "PE-Texas_Red"
+    unparsed_name = unparsed_name.replace("cyto Kappa", "cyto_Kappa")
+    unparsed_name = unparsed_name.replace("cyto Lambda", "cyto_Lambda")
+    unparsed_name = unparsed_name.replace("SYTO 16", "Syto16")
+    unparsed_name = unparsed_name.replace("CD ", "CD")
+
+    parsed_name = unparsed_name.split(" ", 1)
+
+    if 'FSC' in unparsed_name or 'SSC' in unparsed_name or 'Time' in unparsed_name:
+        antigen = None
+        fluorophore = None
+    elif len(parsed_name) == 2:
+        antigen = parsed_name[0].replace("-H", "").strip().upper()
+        fluorophore = parsed_name[1].strip("-H").strip().upper()
+        unparsed_name = ' '.join([antigen, fluorophore])
+    elif len(parsed_name) == 1:
+        if parsed_name[0][0:2] == 'CD':
+            antigen = parsed_name[0].replace("-H", "").strip().upper()
+            fluorophore = None
+            unparsed_name = antigen
+        else:
+            antigen = None
+            fluorophore = parsed_name[0].strip("-H").strip().upper()
+            unparsed_name = fluorophore
+    else:
+        antigen = None
+        fluorophore = None
+
+    return (unparsed_name, antigen, fluorophore)
 
 
 class loadFCS(object):
@@ -53,6 +93,8 @@ class loadFCS(object):
         import_dataframe not included, will just read the header
         """
 
+        self.ftype = FCS.ftype
+
         # Load raw data
         self.filepath = filepath
         self.fh = open(filepath, 'rb')
@@ -64,38 +106,80 @@ class loadFCS(object):
         # Load processed data
         self.parameters = self.__parameter_header()
         self.channels = self.parameters.loc['Channel_Name'].tolist()
+        self.cytometer, self.cytnum = self.__get_cytometer_info(convert_cytnum=True)
+        self.num_events = self.__get_num_events()
+        self.date = self.__py_export_time()
+
         if 'import_dataframe' in kwargs:
             if kwargs['import_dataframe']:
                 self.data = pd.DataFrame(self.__parse_data(), columns=self.channels)
             else:
                 self.data = self.__parse_data()
-        self.date = self.__py_export_time()
-        self.filename = self.__get_filename(filepath)
-        self.case_number = self.__get_case_number(filepath)
-        self.case_tube = self.filename.strip('.fcs')
-        self.cytometer, self.cytnum = self.__get_cytometer_info(convert_cytnum=True)
-        self.num_events = self.__get_num_events()
-        self.fh.close()  # not included in FCM package, without it, it leads to a memory leak
 
-        # Export processed data to FCS object
+        if self.ftype == 'standard':
+            self.filename = self.__get_filename(filepath)
+            self.case_number = self.__get_case_number(filepath)
+            self.case_tube = self.filename.strip('.fcs')
+        elif self.ftype == 'comp':
+            self.filename = self.__get_filename(filepath, pattern=None)
+            self.old = 'old' in self.filename.lower()
+            self.single_antigen = self.__capture_single_antigen()
+            log.debug('Single antigen: {}'.format(self.single_antigen))
+
         self.__export(FCS=FCS)
+        self.fh.close()  # not included in FCM package, without it, it leads to a memory leak
 
     def __export(self, FCS):
         """ Export loaded parameters to FCS object """
         FCS.parameters = self.parameters
         FCS.date = self.date
         FCS.filepath = self.filepath
-        FCS.filename = self.filename
         FCS.cytometer = self.cytometer
-        FCS.case_number = self.case_number
-        FCS.case_tube = self.case_tube
         FCS.cytnum = self.cytnum
         FCS.num_events = self.num_events
-        if hasattr(self, 'data'):
-            FCS.data = self.data
         FCS.version = self.version
         FCS.empty = False
         FCS.flag = self.flag
+        FCS.filename = self.filename
+
+        if self.ftype == 'standard':
+            FCS.case_number = self.case_number
+            FCS.case_tube = self.case_tube
+        elif self.ftype == 'comp':
+            FCS.single_antigen = self.single_antigen
+            FCS.old = self.old
+
+        if hasattr(self, 'data'):
+            FCS.data = self.data
+
+    def __capture_single_antigen(self):
+        """
+        Figure out which is the antigen/fluorophore included
+        """
+        target_i = [i for i, x in enumerate(self.parameters.loc['Antigen', :].tolist())
+                    if x is not None]
+        if len(target_i) > 1:
+            raise ValueError('Too many antigens in parameters')
+        elif len(target_i) == 0:
+            dirname = path.basename(path.dirname(self.filepath))
+            (cname, antigen, fluorophore) = parse_channel_name(dirname)
+
+            target_i = [i for i, x in enumerate(self.parameters.loc['Fluorophore', :].tolist())
+                        if x == fluorophore]
+            if len(target_i) != 1:
+                target_i = [i for i, x in enumerate(self.parameters.loc['Antigen', :].tolist())
+                            if x == antigen]
+            if len(target_i) != 1:
+                raise ValueError('Cannot precisely determine single antibody-fluorophore')
+
+        target_col = self.parameters.columns.values[target_i][0]
+        target_antigen = self.parameters.loc['Antigen', target_col]
+        target_fluorophore = self.parameters.loc['Fluorophore', target_col]
+        target_number = self.parameters.loc['Channel_Number', target_col]
+        return {'Column Name': target_col,
+                'Antigen': target_antigen,
+                'Fluorophore': target_fluorophore,
+                'Channel_Number': target_number}
 
     def __get_case_number(self, filepath):
         """
@@ -105,7 +189,7 @@ class loadFCS(object):
             Filepath schema does not match experiment name schema
         otherwise it will return a database number from either the filepath or experiment name
         """
-        file_number = findall(r"\d+.-\d{5}", basename(filepath))
+        file_number = findall(r"\d+.-\d{5}", path.basename(filepath))
         if self.text.has_key('experiment name'):
             casenum = self.text['experiment name']
             casenum = findall(r"\d+.-\d{5}", casenum)  # clean things up to standard
@@ -122,15 +206,18 @@ class loadFCS(object):
         else:
             raise ValueError("Filepath and Experiment Name do not match")
 
-    def __get_filename(self, filepath):
+    def __get_filename(self, filepath, pattern=r"\d+.-\d{5}"):
         """Provides error handling in case parameter is undefined"""
-        output = basename(filepath)
+        output = path.basename(filepath)
         if 'fil' in self.text:
             fname = self.text['fil']
-            if search(r"\d+.-\d{5}", fname):
-                output = fname
+            if pattern is not None:
+                if search(pattern, fname):
+                    output = fname
+                else:
+                    raise ValueError("Fil: [%s], filepath: [%s]" % (self.text['fil'], output))
             else:
-                raise ValueError("Fil: [%s], filepath: [%s]" % (self.text['fil'], output))
+                output = fname
         return output
 
     def __get_cytometer_info(self,convert_cytnum=True):
@@ -228,7 +315,7 @@ class loadFCS(object):
             export_time = self.text['date']+'-'+self.text['etim']
         else:
             export_time = '31-DEC-2014-12:00:00'
-        return datetime.strptime(export_time,'%d-%b-%Y-%H:%M:%S')
+        return datetime.strptime(export_time, '%d-%b-%Y-%H:%M:%S')
 
     def __parameter_header(self):
         """
@@ -236,76 +323,57 @@ class loadFCS(object):
         equal to the number of parameters
         """
         par = int(self.text['par'])  # number of parameters
-        framework = [['s','Channel_Name'],
-                     ['a','Antigen'],
-                     ['p','Fluorophore'],
-                     ['i','Channel_Number'],
-                     ['n','Short_name'],
-                     ['b','Bits'],
-                     ['e','Amp_type'],
-                     ['g','Amp_gain'],
-                     ['r','Range'],
-                     ['v','Voltage'],
-                     ['f','Optical_Filter_Name'],
-                     ['l','Excitation_Wavelength'],
-                     ['o','Excitation_Power'],
-                     ['t','Detector_Type'],
-                     ['d','suggested_scale']]
+        framework = [['s', 'Channel_Name'],
+                     ['a', 'Antigen'],
+                     ['p', 'Fluorophore'],
+                     ['i', 'Channel_Number'],
+                     ['n', 'Short_name'],
+                     ['b', 'Bits'],
+                     ['e', 'Amp_type'],
+                     ['g', 'Amp_gain'],
+                     ['r', 'Range'],
+                     ['v', 'Voltage'],
+                     ['f', 'Optical_Filter_Name'],
+                     ['l', 'Excitation_Wavelength'],
+                     ['o', 'Excitation_Power'],
+                     ['t', 'Detector_Type'],
+                     ['d', 'suggested_scale']]
         framework = np.array(framework)
         depth = len(framework)
         columns = []
-        for i in range(1,par+1):
-            columns.append(self.text['p{}n'.format(i)]) #parameters column keys same as with data columns
-        header_df = pd.DataFrame(data=None, index=framework[:,1] ,columns=columns)
-        for i in range(1,par+1): #iterate over columns
-            for j in range(depth): #iterate over rows
+        for i in range(1, par+1):
+            # parameters column keys same as with data columns
+            columns.append(self.text['p{}n'.format(i)])
+
+        header_df = pd.DataFrame(data=None, index=framework[:, 1], columns=columns)
+
+        for i in range(1, par+1):  # iterate over columns
+            for j in range(depth):  # iterate over rows
                 x = columns[i-1]
-                y = framework[j,1]
-                if 'p{}{}'.format(i,framework[j,0]) in self.text:
-                    if self.text['p{}{}'.format(i,framework[j,0])].isdigit():
-                        header_df[x][y] = int(self.text['p{}{}'.format(i,framework[j,0])])
+                y = framework[j, 1]
+                if 'p{}{}'.format(i, framework[j, 0]) in self.text:
+                    if self.text['p{}{}'.format(i, framework[j, 0])].isdigit():
+                        header_df[x][y] = int(self.text['p{}{}'.format(i, framework[j, 0])])
                     else:
-                        temp = self.text['p{}{}'.format(i,framework[j,0])]
-                        header_df[x][y] = temp.replace('CD ','CD') #handles space after 'CD '
-                elif framework[j,0] == 'i':
+                        temp = self.text['p{}{}'.format(i, framework[j, 0])]
+                        header_df[x][y] = temp.replace('CD ', 'CD')  # handles space after 'CD '
+                elif framework[j, 0] == 'i':
                     header_df[x][y] = i  # allowance to number the channels
 
-        #handles parsing for the channel names
-        for i in range(1,par+1):
+        # handles parsing for the channel names
+        for i in range(1, par+1):
             x = columns[i-1]
             if pd.isnull(header_df[x]['Channel_Name']):
                 header_df[x]['Channel_Name'] = header_df[x]['Short_name']
-            unparsed_name = header_df[x]['Channel_Name']
-            #handling for empty antigen names
 
-            unparsed_name = unparsed_name.replace("Pacific Blue","PB") #"Pacific_Blue"
-            unparsed_name = unparsed_name.replace("PE-Texas Red","PE-TR") #"PE-Texas_Red"
-            # PB and PE-TR are the names used for channels with assoc antigens.
-            unparsed_name = unparsed_name.replace("cyto Kappa","cyto_Kappa")
-            unparsed_name = unparsed_name.replace("cyto Lambda","cyto_Lambda")
-            unparsed_name = unparsed_name.replace("SYTO 16","Syto16")
-            #end of handling for empty antigen names
-            parsed_name = unparsed_name.split(" ", 1)
+            (header_df[x]['Channel_Name'],
+             header_df[x]['Antigen'],
+             header_df[x]['Fluorophore']) = parse_channel_name(header_df[x]['Channel_Name'])
 
-            if 'FSC' in unparsed_name:
-                header_df[x]['Antigen'] = None
-                header_df[x]['Fluorophore'] = None
-            elif 'SSC' in unparsed_name:
-                header_df[x]['Antigen'] = None
-                header_df[x]['Fluorophore'] = None
-            elif 'Time' in parsed_name:
-                header_df[x]['Antigen'] = None
-                header_df[x]['Fluorophore'] = None
-            elif len(parsed_name) == 2:
-                header_df[x]['Antigen'] = parsed_name[0].replace("-H","")
-                header_df[x]['Fluorophore'] = parsed_name[1].strip("-H") #replace("-H","") #problem with APC-H7
-            elif len(parsed_name) == 1: #if only one parsed name, its an fluor
-                header_df[x]['Antigen'] = None
-                header_df[x]['Fluorophore'] = parsed_name[0]
-            else:
-                header_df[x]['Antigen'] = None
-                header_df[x]['Fluorophore'] = None
+        if header_df.loc['Channel_Name', :][0:4].tolist() != ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H']:
+            raise ValueError('First 4 channels out of order')
 
+        header_df.columns = header_df.loc['Channel_Name', :]
         return header_df
 
     def __parse_text(self):

@@ -16,7 +16,9 @@ class Find_Clinical_FCS_Files(object):
     """
     Finds all FCS files matching a pattern NN-NNNNN in a given directory
     """
-    def __init__(self, directory=None, Filelist_Path=None, exclude=[], n_files=None, **kwargs):
+    def __init__(self, directory=None, Filelist_Path=None, exclude=[], n_files=None,
+                 pattern='[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9]*.fcs',
+                 **kwargs):
         """
         if directory ends with .txt we will load the text file as a list
         else if directory will be treated as a directory
@@ -25,9 +27,11 @@ class Find_Clinical_FCS_Files(object):
         self.excludes = exclude
         self.n_files = n_files
         self.file_list = Filelist_Path
+        self.pattern = pattern
 
         print('Excluding the following Directories {}'.format(exclude))
-        if self.directory is None and self.file_list is not None:
+        if self.directory is None and \
+           self.file_list is not None:
             log.info('Loading filepaths from %s' % self.file_list)
             self.filenames = self.__load_files()
         elif self.directory is not None:
@@ -58,13 +62,13 @@ class Find_Clinical_FCS_Files(object):
         sub_directories = os.listdir(self.directory)
 
         # remove sub directories in the exclude list
-        sub_directories = list(set(sub_directories)-set(self.excludes))
+        sub_directories = list(set(sub_directories)-set(self.excludes)) + ['.']
         print("Sub-directories to be searched: {}".format(sub_directories))
         for sub_dirs in sub_directories:
             # search individual sub_directories
             for dirpath, dirnames, files in os.walk(os.path.join(self.directory, sub_dirs)):
                 # for files that match the XX-XXXXX pattern
-                filteredlist = fnmatch.filter(files, '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9]*.fcs')
+                filteredlist = fnmatch.filter(files, self.pattern)
                 filenum += len(files)
                 for f in filteredlist:
                     # and add it to the filenames list
@@ -72,7 +76,7 @@ class Find_Clinical_FCS_Files(object):
                     filecount += 1
                     # then update the status count
                     # print("FileCount: {:06d} of {:06d}\r".format(filecount, filenum)),
-                log.info("FileCount: {:06d} of {:06d}\r".format(filecount, filenum))
+                print "FileCount: {:06d} of {:06d}\r".format(filecount, filenum),
 
                 # update screen/filecount
                 if self.n_files is not None and filecount > self.n_files:
@@ -80,6 +84,7 @@ class Find_Clinical_FCS_Files(object):
                     break
             if done is True:
                 break
+        print "\n"
 
         return filenames
 
@@ -102,13 +107,13 @@ class Find_Clinical_FCS_Files(object):
             self.make_dict = True
         return folder_name
 
-    def write_found_files(self,Filelist_Path):
+    def write_found_files(self, Filelist_Path):
         """
         This will write the found filenames to a text file
         """
-        dir_FoundFiles = os.path.join(os.getcwd(),Filelist_Path)
+        dir_FoundFiles = os.path.join(os.getcwd(), Filelist_Path)
 
-        with open(dir_FoundFiles,'w+') as fo:
+        with open(dir_FoundFiles, 'w+') as fo:
             for f in self.filenames:
                 fo.write(f+'\n')
         fo.close()
@@ -119,4 +124,3 @@ if __name__ == '__main__':
 
     Finder_obj = Find_Clinical_FCS_Files(Dir)
     print Finder_obj.filenames
-

@@ -86,3 +86,19 @@ def add_process_args(parser):
     parser.add_argument('--gates1d', default=[], nargs='+',
                         action='store', help='1D gating (list)',
                         type=str)
+
+
+def add_multiprocess_args(parser):
+    """ Add multiprocessing arguments to parser """
+    parser.add_argument('-w', '--workers', help='Number of workers [default 32]',
+                        default=5, type=int)
+    parser.add_argument('-l', '--load',
+                        help='Number of .fcs files to process as group,  \
+    dependent on main memory size [default 300]',
+                        default=200, type=int)
+    parser.add_argument('-wl', '--worker-load',
+                        help='Number of .fcs files to process per worker [default: 50]',
+                        default=50, type=int)
+    parser.add_argument('-n', '--n', help='Number of files to process',
+                        default=None, type=int)
+

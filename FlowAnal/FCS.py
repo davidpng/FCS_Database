@@ -47,7 +47,8 @@ class FCS(object):
     filepaths -- list of fullpaths to be loaded for InferenceMatching
 
     """
-    def __init__(self, version=__version__,
+    def __init__(self, ftype='standard',
+                 version=__version__,
                  filepaths=None,
                  filepath=None,
                  db=None,
@@ -56,19 +57,28 @@ class FCS(object):
         self.__version = version
         self.__filepath = filepath
         self.__comp_scale_ran = False
-        if filepath is not None:
-            self.case_tube_idx = case_tube_idx
+        self.ftype = ftype
+
+        if ftype == 'standard':
+            if filepath is not None:
+                self.case_tube_idx = case_tube_idx
+                try:
+                    self.load_from_file(**kwargs)
+                except Exception, e:
+                    self.make_emptyFCS(error_message=str(e), **kwargs)
+            elif filepaths is not None:
+                raise Exception("Not implemneted yet!!!!!!!!!")
+                self.make_inferred_FCS(filepaths=filepaths)
+            elif db is not None:
+                self.load_from_db(db)
+            else:
+                self.make_emptyFCS(**kwargs)
+        elif ftype == 'comp':
             try:
+                self.comp_tube_idx = kwargs['comp_tube_idx']
                 self.load_from_file(**kwargs)
             except Exception, e:
                 self.make_emptyFCS(error_message=str(e), **kwargs)
-        elif filepaths is not None:
-            raise Exception("Not implemneted yet!!!!!!!!!")
-            self.make_inferred_FCS(filepaths=filepaths)
-        elif db is not None:
-            self.load_from_db(db)
-        else:
-            self.make_emptyFCS(**kwargs)
 
     def load_from_file(self, **kwargs):
         """ Import FCS data from filepath

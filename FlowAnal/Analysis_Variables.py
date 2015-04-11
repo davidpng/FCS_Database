@@ -19,6 +19,9 @@ __status__ = "Production"
 
 from FlowAnal.__init__ import package_data
 
+max_intensity = 2**18
+almost_max_intensity = max_intensity * 0.99
+
 # set global variables
 gate_coords = {'singlet': {
     'coords': [(0.01, 0.06), (0.60, 0.75), (0.93, 0.977), (0.988, 0.86),
@@ -31,7 +34,11 @@ gate_coords = {'singlet': {
         'x': 'SSC-H', 'y': 'FSC-H'},
     'viable_simple': {
         'coords': [(0, 0.1), (1, 0.1), (1, 1), (0, 1), (0, 0.1)],
-        'x': 'SSC-H', 'y': 'FSC-A', 'notes': 'Selects FSC-A > 0.1'}
+        'x': 'SSC-H', 'y': 'FSC-A', 'notes': 'Selects FSC-A > 0.1'},
+    'UL_linear': {'coords': [(0, 500), (0.8 * 500, 500),
+                             (almost_max_intensity * 0.9, almost_max_intensity),
+                             (0, almost_max_intensity), (0, 500)],
+                  'notes': 'Select upper left corner in linear space'}
 }
 
 comp_file = {'1': package_data('Spectral_Overlap_Lib_LSRA.txt'),

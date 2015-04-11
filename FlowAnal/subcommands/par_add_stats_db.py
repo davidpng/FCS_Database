@@ -21,7 +21,7 @@ from multiprocessing import Pool
 from FlowAnal.Analysis_Variables import gate_coords, comp_file
 from FlowAnal.FCS import FCS
 from FlowAnal.database.FCS_database import FCSdatabase
-from __init__ import add_filter_args, add_process_args
+from __init__ import add_filter_args, add_process_args, add_multiprocess_args
 
 log = logging.getLogger(__name__)
 
@@ -35,15 +35,9 @@ def build_parser(parser):
     parser.add_argument('-outdb', '--outdb', help='Output sqlite3 db for Flow meta data \
     [default: db/fcs_stats.db]',
                         default="db/fcs_stats.db", type=str)
-    parser.add_argument('-w', '--workers', help='Number of workers [default 32]',
-                        default=32, type=int)
-    parser.add_argument('-l', '--load', help='Number of .fcs files to process as group,  \
-    dependent on main memory size [default 300]',
-                        default=300, type=int)
-    parser.add_argument('-t', '--testing', help='Testing: run one load of workers',
-                        default=False, action='store_true')
     add_filter_args(parser)
     add_process_args(parser)
+    add_multiprocess_args(parser)
 
 
 def worker(in_list, **kwargs):
@@ -83,12 +77,15 @@ def action(args):
     for case, case_info in q.results.items():
         for case_tube_idx, relpath in case_info.items():
             q_list.append((path.join(args.dir, relpath), case_tube_idx))
+            if args.n is not None and len(q_list) > args.n:
+                break
 
     log.info("Length of q_list is {}".format(len(q_list)))
 
     # Setup lists
     n = args.load  # length of sublists
-    sublists = [q_list[i:i+n] for i in range(0, len(q_list), n)]
+    sublists = [q_list[i:i+n]
+                for i in range(0, len(q_list), n)]
     log.info("Number of sublists to process: {}".format(len(sublists)))
 
     # Setup args
@@ -109,6 +106,3 @@ def action(args):
             del fFCS
             print "Case_tubes: {} of {} have been processed\r".format(i, len(q_list)),
         del results
-
-        if args.testing is True:
-            break  # run loop once then break if testing
