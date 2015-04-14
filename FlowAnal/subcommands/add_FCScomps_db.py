@@ -38,6 +38,12 @@ def build_parser(parser):
                         default=[".."], nargs='+', type=str)
     parser.add_argument('-file', '--fcs-file', help='Single file to process',
                         default=None, type=str)
+    parser.add_argument('-plot', '--plot', help='Plot out the comp info',
+                        default=False, action='store_true')
+    parser.add_argument('-add-gate', '--add-gate', help='Use a gate to clean up',
+                        default=False, action='store_true')
+    parser.add_argument('-model', '--model', help='Model to use for fitting',
+                        default='RANSAC', type=str)
     add_multiprocess_args(parser)
 
 
@@ -48,16 +54,19 @@ def worker(x, **kwargs):
                filepath=filepath,
                comp_tube_idx=x[0],
                import_dataframe=True)
+    a = Process_Single_Antigen(fFCS)
 
-    if fFCS.empty is False:
-        a = Process_Single_Antigen(fFCS)
+    if a.empty is False:
         try:
-            a.Calculate_Comp()
+            a.Calculate_Comp(add_gate=kwargs['add_gate'], model=kwargs['model'])
+            if kwargs['plot'] is True:
+                a.plot()
         except Exception, e:
+            print "ERROR: {}".format(str(e))
             a.flag = 'Could not fit'
             a.error_message = str(e)
 
-    del(fFCS)
+    fFCS.clear_FCS_data()
     del(a.FCS)
     return a
 
@@ -80,30 +89,44 @@ def action(args):
                                              pattern='*.fcs',
                                              exclude=args.ex,
                                              **vars(args)).filenames
-        if args.n is not None:
-            comp_files = comp_files[args.n]
     else:
         comp_files = [args.fcs_file]
-    comp_files = zip(range(comp_files), comp_files)
+    comp_files = zip(range(len(comp_files)), comp_files)
 
     # Setup lists
     sublists = [comp_files[i:(i + args.load)]
                 for i in range(0, len(comp_files), args.load)]
     log.info("Number of sublists to process: {}".format(len(sublists)))
 
-    vargs = {'dir': args.dir}
+    vargs = {'dir': args.dir, 'plot': args.plot, 'add_gate': args.add_gate,
+             'model': args.model}
 
     i = 0
     for sublist in sublists:
-        p = Pool(args.workers)
-        results = [p.apply_async(worker, args=(case_info, ), kwds=vargs)
-                   for case_info in sublist]
-        p.close()
+        if args.workers > 1:
+            p = Pool(args.workers)
+            results = [p.apply_async(worker, args=(case_info, ), kwds=vargs)
+                       for case_info in sublist]
+            p.close()
+        else:
+            results = [worker(case_info, **vargs)
+                       for case_info in sublist]
 
         for f in results:
+            if args.workers > 1:
+                a = f.get()
+            else:
+                a = f
+            if a.empty is False:
+                try:
+                    a.push_db(out_db)
+                except Exception, e:
+                    log.info('Failed to push [{}] because of [{}]'.format(a.filepath,
+                                                                          str(e)))
+                del a
             i += 1
-            a = f.get()
-            a.push_db(out_db)
-            del a
             print "Case_tubes: {} of {} have been processed\r".format(i, len(comp_files)),
         del results
+    print "\n"
+
+    # TODO: Need to make a version that plots out relevant data and the fit lines with text of slope and score

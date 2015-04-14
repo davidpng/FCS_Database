@@ -96,7 +96,7 @@ class FCS(object):
         empty_FCS(FCS=self, error_message=error_message,
                   filepath=self.__filepath, version=self.__version, **kwargs)
 
-    def cluster(self, **kwargs):
+    def make_clusters(self, **kwargs):
         """ Cluster FCS data """
 
         cluster_FCS(FCS=self, **kwargs)
@@ -210,14 +210,20 @@ class FCS(object):
 
         self.data.to_csv(file, sep='\t', index=False)
 
-    def clear_FCS_cache(self):
+    def clear_FCS_data(self):
         """ clears FCS data cache
         Use with caution, no other functions can run after this has been executed
         """
-        try:
+        if hasattr(self, 'data'):
             del self.data
-        except:
-            log.info("FCS.data does not exist")
+
+    def get_fluorophore_channels(self):
+
+        cols_i = [i for i, x in enumerate(self.parameters.columns)
+                  if x.upper()[0:3] not in ['FSC', 'SSC', 'TIM']]
+        cols = self.parameters.columns.values[cols_i]
+
+        return (cols_i, cols)
 
 if __name__ == '__main__':
     import os

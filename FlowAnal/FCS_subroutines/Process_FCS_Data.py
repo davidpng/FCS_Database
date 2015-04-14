@@ -17,8 +17,9 @@ import pandas as pd
 import numpy as np
 from scipy.interpolate import interp1d
 from matplotlib.path import Path
-from Auto_Comp_Tweak import Auto_Comp_Tweak
+# from Auto_Comp_Tweak import Auto_Comp_Tweak
 from Auto_Singlet import GMM_doublet_detection
+from FlowAnal.FCS_subroutines.loadFCS import parse_channel_name
 
 import logging
 log = logging.getLogger(__name__)
@@ -159,7 +160,7 @@ class Process_FCS_Data(object):
 
     """
 
-    def __init__(self, FCS, compensation_file, saturation_upper_range=1000,
+    def __init__(self, FCS, compensation_file=None, saturation_upper_range=1000,
                  rescale_lim=(-0.15, 1), strict=True, comp_flag = "table",
                  singlet_flag="fixed", viable_flag="fixed", gates1d=[],
                  **kwargs):
@@ -190,8 +191,10 @@ class Process_FCS_Data(object):
                                  columns=self.columns,
                                  dtype=np.float32)  # create a dataframe with columns
 
-        #Saturation Gate might need to go here
-        #sat_gate = self._SaturationGate()
+        # print self.data.iloc[0:5, :]
+
+        # Saturation Gate might need to go here
+        # sat_gate = self._SaturationGate()
         self.data = self._LogicleRescale(T=2**18, M=4, W=0.5, A=0)
         self.FCS.data = self.data  # update FCS.data
 
@@ -221,26 +224,41 @@ class Process_FCS_Data(object):
         self.FCS.data = self.data  # update FCS.data
         del self.data
 
-    def __compensation_switch(self, comp_mode, compensation_file,
+    def __compensation_switch(self, comp_mode, compensation_file=None,
                               **kwargs):
 
         """defines viable gating modes"""
+        cols_i, cols = self.FCS.get_fluorophore_channels()
+
         if comp_mode == 'none':
             self.data = self.FCS.data
-        elif comp_mode == "auto":
-            Tweaked = Auto_Comp_Tweak(self)
-            self.comp_matrix = Tweaked.comp_matrix
-            self.data = Tweaked.data
-            # data is not compensated at this point!
-        elif comp_mode == "table":
-            self.overlap_matrix = self._load_overlap_matrix(compensation_file)
+        else:
+            if comp_mode == "auto":
+                pass
+                # Tweaked = Auto_Comp_Tweak(self)
+                # self.comp_matrix = Tweaked.comp_matrix
+                # self.data = Tweaked.data
+                # # data is not compensated at this point!
+            elif comp_mode == "table" and compensation_file is not None:
+                self.overlap_matrix = self._load_overlap_matrix(compensation_file)
+            elif comp_mode == 'single_antigen' and 'dbh' in kwargs:
+                self.overlap_matrix = self._find_overlap_matrix(kwargs['dbh'])
+            else:
+                raise(ValueError,
+                      "Compenstation Mode {} is Undefined".format(comp_mode))
+
+            print pd.DataFrame(self._load_overlap_matrix(compensation_file),
+                               columns=cols,
+                               index=cols)
+            print pd.DataFrame(self.overlap_matrix, columns=cols, index=cols)
+
             # simple inversion of the overlap matrix
             self.comp_matrix = self._make_comp_matrix(self.overlap_matrix)
-            # apply compensation (returns a numpy array)
-            self.data = np.dot(self.FCS.data, self.comp_matrix)
-        else:
-            raise(ValueError,"Compenstation Mode {} is Undefined".format(comp_mode))
 
+            # apply compensation (returns a numpy array)
+            self.data = self.FCS.data.copy()
+            self.data[cols] = np.dot(self.FCS.data[cols],
+                                     self.comp_matrix)
 
     def __singlet_switch(self, singlet_mode, **kwargs):
         """defines singlet gating modes"""
@@ -257,21 +275,21 @@ class Process_FCS_Data(object):
             self.FCS.singlet_remain = np.sum(singlet_mask)
             self.data = self.data[singlet_mask]
         else:
-            raise(ValueError,"Singlet Mode: {} is Undefined".format(singlet_mode))
+            raise(ValueError, "Singlet Mode: {} is Undefined".format(singlet_mode))
 
     def __viable_switch(self, viable_mode, **kwargs):
         """defines viable gating modes"""
         if viable_mode == 'none':
             self.FCS.viable_remain = self.FCS.data.shape[0]
         elif viable_mode == "auto":
-            raise(NotImplementedError,"Auto Viability Gating has not been implemented")
+            raise(NotImplementedError, "Auto Viability Gating has not been implemented")
         elif viable_mode == "fixed" and 'gate_coords' in kwargs:
             viable_mask = Gate_2D(self.data, 'SSC-H', 'FSC-H',
                                   self.coords['viable']['coords'])
             self.FCS.viable_remain = np.sum(viable_mask)
             self.data = self.data[viable_mask]
         else:
-            raise(ValueError,"Viablity Mode: {} is Undefined".format(viable_mode))
+            raise(ValueError, "Viablity Mode: {} is Undefined".format(viable_mode))
 
     def __auto_singlet_gating(self, **kwargs):
         return GMM_doublet_detection(data=self.data,
@@ -287,7 +305,7 @@ class Process_FCS_Data(object):
         return output
 
     def __Rescale(self, high=1.0, low=-0.15,
-                  exclude=['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'Time']):
+                  exclude=['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'TIME']):
         """This function only modifies a subset of X_input[mask], therefore
         it is better to pass X_input by reference
         """
@@ -321,7 +339,7 @@ class Process_FCS_Data(object):
         """
         limits X_input to all events between 0 and 1
         """
-        tmp = X_input.drop(['Time'], axis=1).copy()
+        tmp = X_input.drop(['TIME'], axis=1).copy()
         reagents = [x for x in tmp.columns.values
                     if x not in ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H']]
 
@@ -348,7 +366,7 @@ class Process_FCS_Data(object):
         Pass compensation_file as a dictionary if there are different spectral
         overlap libaries for difference cytometers
         """
-        columns = list(self.columns)
+        cols_i, columns = self.FCS.get_fluorophore_channels()
         if isinstance(compensation_file, str):
             spectral_overlap_file = compensation_file
         elif isinstance(compensation_file, dict):
@@ -361,20 +379,24 @@ class Process_FCS_Data(object):
             raise TypeError('Provided compensation_file is not of type str or dict')
         spectral_overlap_library = pd.read_table(spectral_overlap_file, comment='#', sep='\t',
                                                  header=0, index_col=0).dropna(axis=0, how='all')
+        spectral_overlap_library.columns = [parse_channel_name(x.upper())[0] for x in
+                                            spectral_overlap_library.columns.values]
         Undescribed = set(columns)-set(spectral_overlap_library.columns)
+
         if Undescribed:
             if self.strict:  # if strict == true, then error out with Undescrbied antigens
                 raise IOError('Antigens: ' + ','.join(Undescribed) + ' are not described in the library')
             else:  #try to fix by replacing with defaults (be careful!, these spillovers might not work well)
                 Defaults = ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'FL01', 'FL02', 'FL03',
-                            'FL04', 'FL05', 'FL06', 'FL07', 'FL08', 'FL09', 'FL10', 'Time']
+                            'FL04', 'FL05', 'FL06', 'FL07', 'FL08', 'FL09', 'FL10', 'TIME']
                 for ukn in Undescribed:
                     i = columns.index(ukn)
                     columns[i] = Defaults[i]
         else:
             pass    # Undescribed is an empty set and we can use columns directly
 
-        overlap_matrix = spectral_overlap_library[columns].values   # create a matrix from columns
+        # create a matrix from columns (include only fluorophore channels)
+        overlap_matrix = spectral_overlap_library[columns].values[4:14, :]
         return overlap_matrix.T
 
     def _make_comp_matrix(self, overlap_matrix):
@@ -384,10 +406,9 @@ class Process_FCS_Data(object):
         TODO: Make sure all values in overlap matrix are less than 1
         i.e. can't have more than 100% comp or spillover
         """
-        if overlap_matrix.shape[0] != overlap_matrix.shape[1]:  # check to make sure matrix is invertable
-            raise ValueError('spectral overlap matrix is not square')
-        if overlap_matrix.shape[0] != np.trace(overlap_matrix):
-            print overlap_matrix
+        if overlap_matrix.shape[0] != overlap_matrix.shape[1]:
+            raise ValueError('Spectral overlap matrix is not square')
+        if overlap_matrix.shape[0] != round(np.trace(overlap_matrix)):
             raise ValueError('Diagonals of the spectral overlap matrix are not one')
         if not np.isfinite(np.linalg.cond(overlap_matrix)):
             print overlap_matrix
@@ -395,7 +416,48 @@ class Process_FCS_Data(object):
         else:
             return np.linalg.inv(overlap_matrix)
 
-    def _SaturationGate(self, X_input, limit, exclude=['Time', 'time']):
+    def _find_overlap_matrix(self, db):
+        """
+        Query db to find most appropriate spillover coefficients, then return inverse
+        """
+
+        cols_i, cols = self.FCS.get_fluorophore_channels()
+        # all_cols = ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H'] + cols.tolist() + ['TIME']
+        matl = []
+
+        df_all = db.query(getComp=True, Channel_Names=cols, cdate=self.FCS.date,
+                          cytnum=self.FCS.cytnum).results
+        df = df_all.loc[df_all.old == 'False', :]
+
+        dfg = df.groupby(['Channel_Name'])
+        for g, dfgi in dfg:
+            if dfgi.shape[0] == 10:
+                tmp = dfgi[['xt_Channel_Number', 'm', 'score']].copy()
+
+                # R^2 needs to be atleast 0.1
+                tmp.loc[tmp.score <= 0.1, 'm'] = 0
+
+                tmp.columns.values[1] = g
+                tmp.set_index('xt_Channel_Number', inplace=True, drop=True)
+
+                matl.append(tmp)
+            else:
+                print dfg
+                dfgg = dfgi.groupby(['xt_Channel_Number'])
+                print dfgg['m'].filter(N > 1000).median()
+                quit()
+
+        mat = pd.concat(matl, axis=1)
+
+        # Add top
+        # top = pd.DataFrame(np.hstack([np.identity(4), np.zeros((4, 11))]),
+        #                    columns=all_cols)
+        # mat = pd.concat([top, mat])
+        # mat.loc[14, :] = [0] * 14 + [1]
+        mat = mat[cols].values
+        return mat
+
+    def _SaturationGate(self, X_input, limit, exclude=['TIME', 'time']):
         """
         Finds values between zero AND greater than 2^18-'limit'
         mask defines the columns where we will look for these values (typically exclude 'time')
@@ -436,7 +498,7 @@ class Process_FCS_Data(object):
             log = kwargs.get("log_param")
         else:
             log = [x for x in self.data.columns.values
-                   if x not in lin + ['Time']]
+                   if x not in lin + ['TIME']]
 
         output = self.data.copy()
 
@@ -447,120 +509,12 @@ class Process_FCS_Data(object):
 
         return output
 
-    def __LogicleTransform(self, input_array, T=2**18, M=4.0, W=1, A=1.0):
-        """
-        interpolated inverse of the biexponential function
-
-        ul = np.log10(2**18+10000)
-        x = np.logspace(0, ul, 10000)
-        x = x[::-1] - 400000
-        # x = np.arange(-200000, 2**18+10000, 50)
-        """
-        xn = np.linspace(-2**19, 0, 20000)
-        #set up a linear range from -2**19 to zero
-        xp = np.logspace(0, np.log10(2**18+10000), 10000)
-        #set up a log range from 0 to 2**18+10000
-        x = np.concatenate([xn, xp])
-        y = self.__BiexponentialFunction(x, T, M, W, A)
-        output = interp1d(y.T, x.T, bounds_error=False, fill_value=np.nan)
-        return output(input_array)  # NOTE: This fails if values fall outside the defined range
-
-    def __rtsafe(self, w, b):
-        """
-        Modified from 'Numerical recipes: the art of scientific computing'
-        solves the following equation for d : w = 2ln(d/b) / (b+d)
-        where d = (0,b)
-        """
-
-        #the functions
-        def gFunction(d):                           #This defines the function we are 'rooting' for
-            return (w*(b+d) + 2*(np.log(d)-np.log(b)))
-        def derivFunction(d):                       #Derivative of g
-            return (w+2/d)
-
-        X_ACCURACY = 0.0000001
-        MAX_IT = 1000
-
-        lowerLimit = 0.0  #defines upper and lower limits where to find the roots
-        upperLimit = np.float(b)
-
-        if ((gFunction(lowerLimit)>0) & (gFunction(upperLimit)>0)) | ((gFunction(lowerLimit)<0) & (gFunction(upperLimit)<0)):
-            raise NameError('Root must be bracketed') # if the f(d) at both ends have the same sign, there is no root
-
-        if gFunction(lowerLimit)<0:
-            xLow = lowerLimit
-            xHigh = upperLimit
-        else:
-            xLow = upperLimit
-            xHigh = lowerLimit
-
-        root = np.float(lowerLimit + upperLimit)/2      #sets the intial guess for root at midpoint
-        dxOld = np.abs(upperLimit - lowerLimit)    #differenance from previous guess
-        dx = dxOld                              #no reason - define dx just in case
-        g = gFunction(root)                     #intitial function value at root_0
-        dg = derivFunction(root)                #intial derivative value at root_0
-
-        for i in range(0,MAX_IT):
-            if (((root-xHigh)*dg-g)*((root-xLow)*dg-g) > 0)|(abs(2*g) > abs(dxOld*dg)):
-                #Bisect method
-                dxOld = dx
-                dx = (xHigh-xLow)/2
-                root = xLow + dx
-            else:
-                #Newton method
-                dxOld = dx
-                dx = g/dg
-                root = root - dx
-
-            if (abs(dx) < X_ACCURACY):
-                return root #stop condition and return root
-
-            g = gFunction(root)         #reinitialize g to new root
-            dg = derivFunction(root)    #reinitialize dg to new derivative
-
-            if g < 0: #move the xLow or xHigh to the new search area
-                xLow = root
-            else:
-                xHigh = root
-
-    def __BiexponentialFunction(self, input_array, T, M, W, A):
-        """
-        LOGICLE performs logicle transform of flow data
-            T = top of scale data
-            M = total plot width in asymptotic decades
-            W = width of linearization                              = 3
-           A = number of additional decades of negative data values =0
-
-        This function references: Moore, W et al. "Update for the Logicle Data Scale Including
-        Operational Code Implementation" Cytometry Part A. 81A 273-277, 2012
-        """
-        input_array = input_array/float(T)
-
-        b = (M+A)*np.log(10)
-        w = np.float(W)/np.float(M+A)
-
-        d = self.__rtsafe(w, b)
-        if (d < 0) | (d > b):
-            raise NameError('d must satisfy 0 < d < b')
-
-        x2 = np.float(A)/np.float(M+A)
-        x1 = x2+w
-        x0 = x1+w
-
-        c_a = np.exp((b+d)*x0)
-        f_a = -np.exp(b*x1)+c_a*np.exp(-d*x1)
-        a = T/(np.exp(b)-c_a*np.exp(-d)+f_a)
-        f = f_a*a
-        c = c_a*a
-
-        return (a*np.e**(b*input_array) - c*np.e**(-d*input_array)+f)
-
     def __patch(self):
         """
         This function is a temporary patch that flips the flurophore parameters of self.data
         """
         mask = [x for x in self.data.columns
-                if x not in ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'Time']]
+                if x not in ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'TIME']]
         #print "the mask is :"
         #print mask
         #print self.data[mask]

@@ -30,6 +30,9 @@ class SingleComp(Base):
     old = Column(String(5))
     filename = Column(String(100), nullable=False)
 
+Index('ix_SingleComp', SingleComp.date, SingleComp.cytnum,
+      SingleComp.Channel_Name, SingleComp.old, unique=True)
+
 
 class PmtTubeCases(Base):
     __tablename__ = 'PmtTubeCases'

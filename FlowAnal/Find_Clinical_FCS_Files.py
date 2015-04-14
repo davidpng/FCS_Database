@@ -16,7 +16,7 @@ class Find_Clinical_FCS_Files(object):
     """
     Finds all FCS files matching a pattern NN-NNNNN in a given directory
     """
-    def __init__(self, directory=None, Filelist_Path=None, exclude=[], n_files=None,
+    def __init__(self, directory=None, Filelist_Path=None, exclude=[], n=None,
                  pattern='[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9]*.fcs',
                  **kwargs):
         """
@@ -25,7 +25,7 @@ class Find_Clinical_FCS_Files(object):
         """
         self.directory = directory
         self.excludes = exclude
-        self.n_files = n_files
+        self.n_files = n
         self.file_list = Filelist_Path
         self.pattern = pattern
 
@@ -38,8 +38,6 @@ class Find_Clinical_FCS_Files(object):
             log.info('Looking for filepaths in directory %s' % self.directory)
             self.filenames = self.__find_files()
             if self.file_list is not None:
-                # do only if Filelist_Path included and directory is not a txt
-                # file
                 self.write_found_files(self.file_list)
         else:
             raise "Must specify directory or file path"
@@ -56,33 +54,24 @@ class Find_Clinical_FCS_Files(object):
         filenames = []
         filenum = 0
         filecount = 0
-        done = False
-
-        # find all directories in given self.directory
-        sub_directories = os.listdir(self.directory)
 
         # remove sub directories in the exclude list
-        sub_directories = list(set(sub_directories)-set(self.excludes)) + ['.']
-        print("Sub-directories to be searched: {}".format(sub_directories))
-        for sub_dirs in sub_directories:
-            # search individual sub_directories
-            for dirpath, dirnames, files in os.walk(os.path.join(self.directory, sub_dirs)):
-                # for files that match the XX-XXXXX pattern
-                filteredlist = fnmatch.filter(files, self.pattern)
-                filenum += len(files)
-                for f in filteredlist:
-                    # and add it to the filenames list
-                    filenames.append(os.path.join(dirpath, f))
-                    filecount += 1
-                    # then update the status count
-                    # print("FileCount: {:06d} of {:06d}\r".format(filecount, filenum)),
-                print "FileCount: {:06d} of {:06d}\r".format(filecount, filenum),
+        for dirpath, _, files in os.walk(self.directory):
+            if dirpath in self.excludes:
+                continue
 
-                # update screen/filecount
-                if self.n_files is not None and filecount > self.n_files:
-                    done = True
-                    break
-            if done is True:
+            filenum += len(files)
+
+            filteredlist = fnmatch.filter(files, self.pattern)
+            filecount += len(filteredlist)
+
+            filenames.extend(os.path.join(dirpath, f)
+                             for f in filteredlist)
+
+            print "FileCount: {:06d} of {:06d}\r".format(filecount, filenum),
+
+            # update screen/filecount
+            if self.n_files is not None and filecount > self.n_files:
                 break
         print "\n"
 

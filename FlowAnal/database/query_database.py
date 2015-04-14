@@ -44,7 +44,8 @@ class queryDB(object):
 
         # Choose query message based on kwargs
         qmethods = ['getfiles',  'getTubeInfo',
-                    'getCreationDate', 'getCases', 'pick_cti']
+                    'getCreationDate', 'getCases', 'pick_cti',
+                    'getComp']
         qmethod = [m for m in qmethods
                    if (m in kwargs.keys() and kwargs[m] is True)]
 
@@ -248,15 +249,27 @@ class queryDB(object):
 
         return results
 
-    # def __getComp(self, cur_Channel_Name, cur_date):
+    def __getComp(self, Channel_Names, cdate, cytnum, **kwargs):
 
-    #     q1 = self.session.query(func.strftime('%s', SingleComp.date)).\
-    #          filter(func.strftime('%s', cur_date) <= func.strftime('%s', SingleComp.date)).\
-    #          filter(SingleComp.Channel_Name == cur_Channel_Name).\
-    #          filter(SingleComp.N >= 1000)
+        q1 = self.session.query(SingleComp.Channel_Name,
+                                func.max(func.date(SingleComp.date)).label('date')).\
+             filter(func.strftime('%s', cdate) >= \
+                    func.strftime('%s', SingleComp.date)).\
+             filter(SingleComp.Channel_Name.in_(Channel_Names)).\
+             filter(SingleComp.N >= 1000).\
+             filter(SingleComp.old == 'False').\
+             filter(SingleComp.cytnum == cytnum).\
+             group_by(SingleComp.Channel_Name).\
+             subquery()
 
-    #                             select strftime('%s', '2015-02-20 20:10:00') - strftime('%s', date) from SingleComp where (strftime('%s', '2015-02-20 20:10:00') - strftime('%s', date)) > 0 and N > 1000 and Channel_Name = 'CD3 PE-TR' limit 100;
+        self.q = self.session.query(SingleComp).\
+                 join(q1, and_(func.date(SingleComp.date) == q1.c.date,
+                               SingleComp.Channel_Name == q1.c.Channel_Name)).\
+                 filter(SingleComp.Channel_Name.in_(Channel_Names)).\
+                 filter(SingleComp.cytnum == cytnum)
 
+        df = self.__q2df()
+        return df
 
     def __getCases(self, case_tube_idxs_list,
                    aslist=False, n=1000, **kwargs):

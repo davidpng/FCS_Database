@@ -52,11 +52,11 @@ def worker(in_list, **kwargs):
                                  gate_coords=gate_coords,
                                  strict=False, **kwargs)
         fFCS.extract_FCS_histostats()
-        fFCS.clear_FCS_cache()
     except:
         fFCS.flag = 'stats_extraction_fail'
         fFCS.error_message = str(sys.exc_info()[0])
 
+    fFCS.clear_FCS_data()
     return fFCS
 
 

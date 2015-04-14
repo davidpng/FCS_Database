@@ -71,7 +71,7 @@ def add_process_args(parser):
     parser.add_argument('--comp_flag', '--comp-flag',
                         help='Comp Mode',
                         default='table',
-                        choices=['table', 'none'],
+                        choices=['table', 'none', 'single_antigen'],
                         type=str)
     parser.add_argument('--singlet_flag', '--singlet-flag',
                         help='Singlet gate mode',

@@ -20,7 +20,7 @@ __status__ = "Production"
 from FlowAnal.__init__ import package_data
 
 max_intensity = 2**18
-almost_max_intensity = max_intensity * 0.99
+almost_max_intensity = max_intensity * 0.95
 
 # set global variables
 gate_coords = {'singlet': {
@@ -35,9 +35,9 @@ gate_coords = {'singlet': {
     'viable_simple': {
         'coords': [(0, 0.1), (1, 0.1), (1, 1), (0, 1), (0, 0.1)],
         'x': 'SSC-H', 'y': 'FSC-A', 'notes': 'Selects FSC-A > 0.1'},
-    'UL_linear': {'coords': [(0, 500), (0.8 * 500, 500),
-                             (almost_max_intensity * 0.9, almost_max_intensity),
-                             (0, almost_max_intensity), (0, 500)],
+               'UL_linear': {'coords': [(0, 1e1), (0.9 * 1e1, 1e1),
+                             (almost_max_intensity * 0.95, almost_max_intensity),
+                                        (0, almost_max_intensity), (0, 1e1)],
                   'notes': 'Select upper left corner in linear space'}
 }
 

@@ -26,6 +26,9 @@ import logging
 log = logging.getLogger(__name__)
 
 
+channel_fixes = {'CD71': {'APC': 'APC-A700'}}
+
+
 def parse_channel_name(unparsed_name):
     """ Standardize channel names.
 
@@ -33,13 +36,18 @@ def parse_channel_name(unparsed_name):
     Return: (Channel_Name, antigen, fluorophore)
     """
 
+    unparsed_name = unparsed_name.upper()
+
     # handling for empty antigen names
-    unparsed_name = unparsed_name.replace("Pacific Blue", "PB")  # "Pacific_Blue"
-    unparsed_name = unparsed_name.replace("PE-Texas Red", "PE-TR")  # "PE-Texas_Red"
-    unparsed_name = unparsed_name.replace("cyto Kappa", "cyto_Kappa")
-    unparsed_name = unparsed_name.replace("cyto Lambda", "cyto_Lambda")
-    unparsed_name = unparsed_name.replace("SYTO 16", "Syto16")
+    unparsed_name = unparsed_name.replace("PACIFIC BLUE", "PB")  # "Pacific_Blue"
+    unparsed_name = unparsed_name.replace("PE-TEXAS RED", "PE-TR")  # "PE-Texas_Red"
+    unparsed_name = unparsed_name.replace("CYTO KAPPA", "CYTO_KAPPA")
+    unparsed_name = unparsed_name.replace("CYTO LAMBDA", "CYTO_LAMBDA")
+    unparsed_name = unparsed_name.replace("SYTO 16", "SYTO16")
     unparsed_name = unparsed_name.replace("CD ", "CD")
+    unparsed_name = unparsed_name.replace("APC ", "APC-")
+    unparsed_name = unparsed_name.replace("PE ", "PE-")
+    unparsed_name = unparsed_name.replace("V450 PB", "V450")
 
     parsed_name = unparsed_name.split(" ", 1)
 
@@ -49,6 +57,13 @@ def parse_channel_name(unparsed_name):
     elif len(parsed_name) == 2:
         antigen = parsed_name[0].replace("-H", "").strip().upper()
         fluorophore = parsed_name[1].strip("-H").strip().upper()
+
+        # fixes
+        if antigen in channel_fixes.keys() and \
+           fluorophore in channel_fixes[antigen].keys():
+            pass
+            # fluorophore = channel_fixes[antigen][fluorophore]
+
         unparsed_name = ' '.join([antigen, fluorophore])
     elif len(parsed_name) == 1:
         if parsed_name[0][0:2] == 'CD':

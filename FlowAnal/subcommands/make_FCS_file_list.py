@@ -16,7 +16,7 @@ def build_parser(parser):
                         help='Output filelist of found FCS files', type=str)
     parser.add_argument('-exclude', '--ex', help='List of directories to exclude',
                         default=[".."], nargs='+', type=str)
-    parser.add_argument('-n', '--n_files',
+    parser.add_argument('-n', '--n',
                         help='For testing purposes only find N files',
                         default=None, type=int)
 

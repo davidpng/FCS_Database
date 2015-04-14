@@ -35,18 +35,17 @@ def build_parser(parser):
     parser.add_argument('-cmethod', '--cluster-method', default='flowPeaks',
                         choices=['flowPeaks'], type=str,
                         help='Which clustering method to use')
+    parser.add_argument('-name', '--name', default='test', type=str)
+    parser.add_argument('-n', '--n', default=None, type=int,
+                        help='Number of files to process')
     add_filter_args(parser)
     add_process_args(parser)
 
 
-def action(args):
-    # Connect to database
-    db = FCSdatabase(db=args.db, rebuild=False)
+def process_cases(res, args, dbh):
 
-    # Create query
-    q = db.query(exporttype='dict_dict', getfiles=True, **vars(args))
-
-    for case, case_info in q.results.items():
+    i = 0
+    for case, case_info in res.items():
         for case_tube_idx, relpath in case_info.items():
             log.info("Case: %s, Case_tube_idx: %s, File: %s" % (case, case_tube_idx, relpath))
             filepath = path.join(args.dir, relpath)
@@ -54,16 +53,36 @@ def action(args):
             fFCS = FCS(filepath=filepath, import_dataframe=True)
             outfile = 'output/' + '_'.join([case, str(case_tube_idx),
                                             args.vizmode,
-                                            fFCS.date.strftime("%Y%m%d")]) + '.png'
+                                            fFCS.date.strftime("%Y%m%d"),
+                                            args.name]) + '.png'
 
             fFCS.comp_scale_FCS_data(compensation_file=comp_file,
                                      gate_coords=gate_coords,
-                                     strict=False, **vars(args))
+                                     strict=False, dbh=dbh,
+                                     **vars(args))
             if args.export_data:
                 fFCS.data_to_txt()
 
             if args.cluster:
-                fFCS.cluster(**vars(args))
+                fFCS.make_clusters(**vars(args))
 
             fFCS.visualize_2D(outfile=outfile,
                               **vars(args))
+
+            i += 1
+            if args.n is not None and i == args.n:
+                return
+
+
+def action(args):
+    # Connect to database
+    dbh = FCSdatabase(db=args.db, rebuild=False)
+
+    # Create query
+    q = dbh.query(exporttype='dict_dict', getfiles=True, **vars(args))o
+
+    # Process cases
+    process_cases(q.results, args, dbh)
+
+
+

@@ -43,7 +43,7 @@ def action(args):
     # Collect files/dirs
     Finder = Find_Clinical_FCS_Files(Filelist_Path=args.file_list)
     if args.n is not None:
-        Finder.filenames = Finder.filenames[args.n]
+        Finder.filenames = Finder.filenames[0:args.n]
 
     # Connect to database (and rebuild)
     db = FCSdatabase(db=args.db_filepath, rebuild=True)
@@ -68,4 +68,5 @@ def action(args):
             except:
                 print "Skipping FCS %s because of unknown error related to: %s" % \
                     (f, sys.exc_info()[0])
-            print("{:6d} Cases processed\r".format(case_tube_idx)),
+            print("{:6d} Cases processed\r".format(case_tube_idx + 1)),
+    print "\n"
