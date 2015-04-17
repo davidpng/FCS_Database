@@ -22,6 +22,7 @@ class SingleComp(Base):
     Antigen = Column(String(10), ForeignKey('Antigens.Antigen'))
     Fluorophore = Column(String(10), ForeignKey('Fluorophores.Fluorophore'))
     Channel_Name = Column(String(20), nullable=False)
+    Channel_Number = Column(Integer, nullable=False)
     xt_Channel_Number = Column(Integer, nullable=False, primary_key=True)
     m = Column(Float)
     b = Column(Float)
@@ -29,9 +30,11 @@ class SingleComp(Base):
     score = Column(Float)
     old = Column(String(5))
     filename = Column(String(100), nullable=False)
+    dirname = Column(String(255), nullable=False)
 
 Index('ix_SingleComp', SingleComp.date, SingleComp.cytnum,
-      SingleComp.Channel_Name, SingleComp.old, unique=True)
+      SingleComp.Channel_Name, SingleComp.old, SingleComp.xt_Channel_Number,
+      SingleComp.filename, SingleComp.dirname, unique=True)
 
 
 class PmtTubeCases(Base):

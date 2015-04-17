@@ -435,7 +435,7 @@ class Process_FCS_Data(object):
                 tmp = dfgi[['xt_Channel_Number', 'm', 'score']].copy()
 
                 # R^2 needs to be atleast 0.1
-                tmp.loc[tmp.score <= 0.1, 'm'] = 0
+                tmp.loc[tmp.score < 0.05, 'm'] = 0
 
                 tmp.columns.values[1] = g
                 tmp.set_index('xt_Channel_Number', inplace=True, drop=True)

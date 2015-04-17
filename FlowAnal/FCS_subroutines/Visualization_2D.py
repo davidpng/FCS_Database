@@ -32,14 +32,15 @@ display_schema = {'comp': {'grid': (9, 4),
                                           2: {1: (7, 12), 2: (4, 8), 3: (9, 6),
                                               4: (10, 6), 5: (4, 14), 6: (5, 6)}},
                                 'lim': (0, 1, 0, 1)},
-                  'SingleAntigen': {'grid': (1, 10),
-                                    'size': (16, 4),
+                  'SingleAntigen': {'grid': (2, 10),
+                                    'size': (16, 5),
                                     'plots': None,
                                     'lim': None}}
 
 
 class Visualization_2D(object):
-    def __init__(self, FCS, outfile, outfiletype, schema_choice='comp', comp_lines=None, gate=None, **kwargs):
+    def __init__(self, FCS, outfile, outfiletype,
+                 schema_choice='comp', comp_lines=None, gate=None, **kwargs):
         self.FCS = FCS
         self.filename = outfile
         self.filetype = outfiletype
@@ -57,7 +58,9 @@ class Visualization_2D(object):
     def make_plot_schema(self, schema_choice, **kwargs):
         if schema_choice == 'SingleAntigen':
             tmp = {1: {x: (x+4, kwargs['col_i']+1)
-                       for x in range(1, 11)}}
+                       for x in range(1, 11)},
+                   2: {1: (1, 2), 2: (4, 1),
+                       3: (1, kwargs['col_i']+1), 4: (4, kwargs['col_i']+1)}}
             display_schema[schema_choice]['plots'] = tmp
 
     def setup_plotting(self, schema, dpi=500):
@@ -113,33 +116,50 @@ class Visualization_2D(object):
         if limits is None:
             xlims = np.percentile(x_pts, [1, 99]) * np.array([0.8, 1.2])
             ylims = np.percentile(y_pts, [1, 99]) * np.array([0.8, 1.2])
-            limits = (min(xlims[0], ylims[0], 1), max(xlims[1], ylims[1])) * 2
+            limits = (min(xlims[0], ylims[0]), max(xlims[1], ylims[1])) * 2
 
-        if self.comp_lines is not None:
-            (m, b, score) = self.comp_lines.loc[self.comp_lines.xt_Channel_Number == (x-1),
+        if self.comp_lines is not None and \
+           (x - 1) in self.comp_lines[0].xt_Channel_Number.values:
+            scores = []
+            slopes = []
+            names = []
+            cm = mplt.cm.ScalarMappable(norm=mplt.colors.Normalize(vmin=0,
+                                                                   vmax=len(self.comp_lines)-1),
+                                        cmap='YlOrRd')
+            (mplt.colors.Colormap('YlOrRd', len(self.comp_lines)))
+            for i, comp_line_i in enumerate(self.comp_lines):
+                (m, b, score) = comp_line_i.loc[comp_line_i.xt_Channel_Number == (x-1),
                                                 ['m', 'b', 'score']].values[0]
 
-            x_range = (limits[0] * m + b, limits[1] * m + b)
-            y_range = (limits[0], limits[1])
-            if logit is False:
-                plt.plot(x_range,
-                         y_range,
-                         c='red', linestyle='--')
-            else:
-                x_range = np.linspace(x_range[0], x_range[1])
-                y_range = np.linspace(y_range[0], y_range[1])
-                for i in range(len(x_range)-1):
-                    plt.plot(x_range[i:(i+2)],
-                             y_range[i:(i+2)],
-                             c='red', linestyle='--')
+                x_range = (limits[0] * m + b, limits[1] * m + b)
+                y_range = (limits[0], limits[1])
+                if logit is False:
+                    plt.plot(x_range,
+                             y_range,
+                             c=cm.to_rgba(i), linestyle='--')
+                else:
+                    x_range = np.linspace(x_range[0], x_range[1])
+                    y_range = np.linspace(y_range[0], y_range[1])
+                    for j in range(len(x_range)-1):
+                        plt.plot(x_range[j:(j+2)],
+                                 y_range[j:(j+2)],
+                                 c=cm.to_rgba(i), linestyle='--')
+                scores.append(score)
+                slopes.append(m)
+                names.append(''.join([str(comp_line_i[xn][0])[0]
+                                      for xn in ['model', 'downsample_on_y', 'gate']]))
 
-            plt.text(0.96, 0.05, s=r'R$^2$={:+.2f}'.format(score), fontsize=4,
+            plt.text(0.96, 0.05, s=r'R$^2$={}'.format(','.join(['{:+.2f}'.format(si)
+                                                                for si in scores])),
+                     fontsize=4, horizontalalignment='right', verticalalignment='bottom',
+                     transform=ax.transAxes)
+            plt.text(0.96, 0.105, s='Slope={}'.format(','.join(['{:+.3f}'.format(si)
+                                                                for si in slopes])),
+                     fontsize=4, horizontalalignment='right', verticalalignment='bottom',
+                     transform=ax.transAxes)
+            plt.text(0.96, 0.16, s='Methods={}'.format(','.join(names)), fontsize=4,
                      horizontalalignment='right', verticalalignment='bottom',
                      transform=ax.transAxes)
-            plt.text(0.96, 0.105, s='Slope={:+.3f}'.format(m), fontsize=4,
-                     horizontalalignment='right', verticalalignment='bottom',
-                     transform=ax.transAxes)
-            # TODO: Need to fix this so that coords do not extend to or below 0
 
         if self.gate is not None and x_lb in self.gate:
             # NOTE: this is customized only for antibody titer plots
@@ -151,14 +171,17 @@ class Visualization_2D(object):
             ax.add_patch(patch)
 
         if logit is True:
-            x_pts[np.where(x_pts <= 0)] = 1
-            y_pts[np.where(y_pts <= 0)] = 1
-            ax.set_xscale('log')
-            ax.set_yscale('log')
+            if x_lb not in ['FSC-H', 'FSC-A', 'SSC-A']:
+                x_pts[np.where(x_pts <= 0)] = 1
+                ax.set_xscale('log')
+            if y_lb not in ['FSC-H', 'FSC-A', 'SSC-A']:
+                y_pts[np.where(y_pts <= 0)] = 1
+                ax.set_yscale('log')
 
         ax.set_xlim(limits[0], limits[1])
         ax.set_ylim(limits[2], limits[3])
-        # ax.set_xticks([limits[0], round(limits[1])])
         ax.set_yticks([])
         ax.tick_params(axis='both', which='major', labelsize=4)
-        ax.set_aspect('equal', adjustable='box')
+
+        if logit is False or (x <= 3 and y <= 3) or (x > 3 and y > 3):
+            ax.set_aspect('equal', adjustable='box')

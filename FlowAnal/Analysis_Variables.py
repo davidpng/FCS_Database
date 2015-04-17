@@ -46,3 +46,27 @@ comp_file = {'1': package_data('Spectral_Overlap_Lib_LSRA.txt'),
              '3': package_data('Spectral_Overlap_Lib_LSRB.txt')}
 
 test_fcs_fn = "12-00031_Myeloid 1.fcs"
+
+tubes = {
+    'Myeloid 1a': {'Antigen': ('CD15', 'CD33', 'CD19', 'CD117', 'CD13', 'HLA-DR',
+                               'CD38', 'CD34', 'CD71', 'CD45'),
+                   'Channel_Number': (5, 6, 7, 8, 9, 10, 11, 12, 13, 14),
+                   'Fluorophore': ('FITC', 'PE', 'PE-CF594', 'PE-CY5', 'PE-CY7',
+                                   'PB', 'A594', 'APC', 'APC-A700', 'APC-CY7')},
+    'Myeloid 1b': {'Antigen': ('CD15', 'CD33', 'CD19', 'CD117', 'CD13', 'HLA-DR',
+                               'CD38', 'CD34', 'CD71', 'CD45'),
+                   'Channel_Number': (5, 6, 7, 8, 9, 10, 11, 12, 13, 14),
+                   'Fluorophore': ('FITC', 'PE', 'PE-CF594', 'PE-CY5', 'PE-CY7',
+                                   'PB', 'A594', 'APC', 'APC-A700', 'APC-H7')},
+    'Myeloid 1c': {'Antigen': ('CD15', 'CD33', 'CD19', 'CD117', 'CD13', 'HLA-DR',
+                               'CD38', 'CD34', 'CD71', 'CD45'),
+                   'Channel_Number': (5, 6, 7, 8, 9, 10, 11, 12, 13, 14),
+                   'Fluorophore': ('FITC', 'PE', 'PE-TR', 'PE-CY5', 'PE-CY7',
+                                   'PB', 'A594', 'APC', 'APC-A700', 'APC-CY7')},
+    'Myeloid 1c': {'Antigen': ('CD15', 'CD33', 'CD19', 'CD117', 'CD13', 'HLA-DR',
+                               'CD38', 'CD34', 'CD71', 'CD45'),
+                   'Channel_Number': (5, 6, 7, 8, 9, 10, 11, 12, 13, 14),
+                   'Fluorophore': ('FITC', 'PE', 'PE-TR', 'PE-CY5', 'PE-CY7',
+                                   'PB', 'A594', 'APC', 'APC-A700', 'APC-H7')}
+}
+

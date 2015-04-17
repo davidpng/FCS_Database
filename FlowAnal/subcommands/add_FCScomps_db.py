@@ -14,8 +14,10 @@ __status__ = "Production"
 
 import logging
 from os import path
+import sys
 import shutil
 from multiprocessing import Pool
+import traceback
 
 from FlowAnal.Find_Clinical_FCS_Files import Find_Clinical_FCS_Files
 from FlowAnal.FCS import FCS
@@ -42,27 +44,44 @@ def build_parser(parser):
                         default=False, action='store_true')
     parser.add_argument('-add-gate', '--add-gate', help='Use a gate to clean up',
                         default=False, action='store_true')
+    parser.add_argument('-fit', '--fit', help='Calculate compensation',
+                        default=False, action='store_true')
     parser.add_argument('-model', '--model', help='Model to use for fitting',
                         default='RANSAC', type=str)
+    parser.add_argument('-precluster', '--precluster', help='Precluster cluster method',
+                        default=None, type=str, choices=['comp_gate'])
     add_multiprocess_args(parser)
 
 
 def worker(x, **kwargs):
     filepath = path.join(kwargs['dir'], x[1])
     log.debug("Comp_tube_idx: %s, File: %s" % (x[0], x[1]))
-    fFCS = FCS(ftype='comp',
-               filepath=filepath,
-               comp_tube_idx=x[0],
-               import_dataframe=True)
-    a = Process_Single_Antigen(fFCS)
+    if kwargs['fit'] is True or kwargs['plot'] is True:
+        fFCS = FCS(ftype='comp',
+                   filepath=filepath,
+                   comp_tube_idx=x[0],
+                   import_dataframe=True)
+    else:
+        fFCS = FCS(ftype='comp',
+                   filepath=filepath,
+                   comp_tube_idx=x[0],
+                   import_dataframe=False)
+
+    if 'precluster' in kwargs:
+        fFCS.make_clusters(cluster_method=kwargs['precluster'], **kwargs)
+    quit()
+
+    a = Process_Single_Antigen(fFCS, dir=kwargs['dir'])
 
     if a.empty is False:
         try:
-            a.Calculate_Comp(add_gate=kwargs['add_gate'], model=kwargs['model'])
+            if kwargs['fit'] is True:
+                a.fit_Comp()
             if kwargs['plot'] is True:
                 a.plot()
         except Exception, e:
-            print "ERROR: {}".format(str(e))
+            traceback.print_exc(file=sys.stdout)
+            raise
             a.flag = 'Could not fit'
             a.error_message = str(e)
 
@@ -99,7 +118,7 @@ def action(args):
     log.info("Number of sublists to process: {}".format(len(sublists)))
 
     vargs = {'dir': args.dir, 'plot': args.plot, 'add_gate': args.add_gate,
-             'model': args.model}
+             'model': args.model, 'fit': args.fit, 'precluster': args.precluster}
 
     i = 0
     for sublist in sublists:
@@ -128,5 +147,3 @@ def action(args):
             print "Case_tubes: {} of {} have been processed\r".format(i, len(comp_files)),
         del results
     print "\n"
-
-    # TODO: Need to make a version that plots out relevant data and the fit lines with text of slope and score

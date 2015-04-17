@@ -45,7 +45,7 @@ class queryDB(object):
         # Choose query message based on kwargs
         qmethods = ['getfiles',  'getTubeInfo',
                     'getCreationDate', 'getCases', 'pick_cti',
-                    'getComp']
+                    'getComp', 'getSingleComp']
         qmethod = [m for m in qmethods
                    if (m in kwargs.keys() and kwargs[m] is True)]
 
@@ -382,6 +382,20 @@ class queryDB(object):
 
         self.__add_mods_to_query(**kwargs)
 
+        df = self.__q2df()
+        return df
+
+    def __getSingleComp(self, **kwargs):
+        """
+        Gets SingleComp
+
+        Notable attributes:
+        .results -- stores the result of query in dataframe
+
+        """
+        log.info('Looking for SingleComps')
+        # Build query
+        self.q = self.session.query(SingleComp)
         df = self.__q2df()
         return df
 
