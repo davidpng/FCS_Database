@@ -79,7 +79,7 @@ def action(args):
     dbh = FCSdatabase(db=args.db, rebuild=False)
 
     # Create query
-    q = dbh.query(exporttype='dict_dict', getfiles=True, **vars(args))o
+    q = dbh.query(exporttype='dict_dict', getfiles=True, **vars(args))
 
     # Process cases
     process_cases(q.results, args, dbh)

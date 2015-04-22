@@ -15,11 +15,12 @@ class cluster_FCS(object):
     def __init__(self, FCS, cluster_method='flowPeaks', **kwargs):
 
         self.FCS = FCS
+        self.filepath = FCS.filepath
 
         if cluster_method == 'flowPeaks':
             self.run_flowPeaks(**kwargs)
         elif cluster_method == 'comp_gate':
-            self.Comp_Gate(**kwargs)
+            self.Comp_Gate(self.filepath, **kwargs)
 
     def run_flowPeaks(self, params=['FSC-A',
                                     'SSC-H',
@@ -42,7 +43,7 @@ class cluster_FCS(object):
         cluster[cluster < 0] = -1
         self.FCS.cluster = cluster
 
-    def Comp_Gate(self, **kwargs):
+    def Comp_Gate(fp, **kwargs):
 
         log.info('Gating for comp calc')
         flowCore = importr('flowCore')
@@ -50,21 +51,18 @@ class cluster_FCS(object):
         flowClust = importr('flowClust')
         importr('parallel')
 
-        a = flowCore.read_FCS(self.FCS.filepath)
+        a = flowCore.read_FCS(fp)
         f_sg = flowStats.singletGate(a, area="FSC-A", height="FSC-H",
                                      wider_gate=True, maxit=10,
                                      prediction_level=0.9999)
         a_sg = flowCore.Subset(a, f_sg)
-        f_SvF = flowClust.flowClust(x=a_sg, varNames=ro.StrVector(("SSC-H", "FSC-A")),
-                                    K=ro.IntVector(range(1, 9)), B=100)
-        x = np.asarray(flowClust.criterion(f_SvF, "BIC"))
+        f_SvF = flowClust.tmixFilter('f_SvF', parameters=ro.StrVector(("SSC-H", "FSC-A")),
+                                     K=ro.IntVector(range(1, 9)), B=100, level=0.95)
+        f_SvF.do_slot_assign('z.cutoff', ro.FloatVector([0.6]))
+        res = flowCore.filter(a_sg, f_SvF)
+        x = np.asarray(flowClust.criterion(res, "BIC"))
         x = x - min(x)
         nc = np.where(x / max(x) >= 0.9)[0][0]
-        print dir(f_SvF)
-        quit()
-        f_SvF = f_SvF[[nc]]
-        res = flowClust.filter(a, f_SvF)
-        cluster = np.asarray(flowClust.Map(res))
-        print res
+        cluster = np.asarray(flowClust.Map(res[nc]))
         print cluster
-        quit()
+

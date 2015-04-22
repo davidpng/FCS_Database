@@ -127,19 +127,19 @@ EOF
     REQFILE=requirements-pgres.txt
 fi
 
-# Install HDF5
-cd src
-wget http://www.hdfgroup.org/ftp/HDF5/current/src/hdf5-1.8.14.tar.gz
-tar -xf hdf5-1.8.14.tar.gz
-cd hdf5-1.8.14
-./configure --prefix=$venv --enable-fortran --enable-cxx
-make
-# make check
-make install
-make check-install
-cd ..
-export HDF5_DIR=$venv
-export HDF5_VERSION=1.8.14
+# # Install HDF5
+# cd src
+# wget http://www.hdfgroup.org/ftp/HDF5/current/src/hdf5-1.8.14.tar.gz
+# tar -xf hdf5-1.8.14.tar.gz
+# cd hdf5-1.8.14
+# ./configure --prefix=$venv --enable-fortran --enable-cxx
+# make
+# # make check
+# make install
+# make check-install
+# cd ..
+# export HDF5_DIR=$venv
+# export HDF5_VERSION=1.8.14
 cat >> $VENV/bin/activate <<EOF
 export LD_LIBRARY_PATH=$venv
 EOF
@@ -171,7 +171,7 @@ EOF
 # make install
 # cd ..
 
-cd ..  # Return to root
+#cd ..  # Return to root
 
 # install python packages from pipy or wheels
 grep -v -E '^#|git+|^-e' $REQFILE | while read pkg; do

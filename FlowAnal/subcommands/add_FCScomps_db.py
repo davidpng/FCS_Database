@@ -30,9 +30,8 @@ log = logging.getLogger(__name__)
 def build_parser(parser):
     parser.add_argument('dir', help='Directory with Comp FCS files [required]',
                         type=str)
-    parser.add_argument('-db', '--db', help='Input sqlite3 db for Flow meta data \
-    [default: db/fcs.db]',
-                        default="db/fcs.db", type=str)
+    parser.add_argument('-db', '--db', help='Input sqlite3 db for Flow meta data',
+                        default=None, type=str)
     parser.add_argument('-outdb', '--outdb', help='Output sqlite3 db for Flow meta data \
     [default: db/fcs_stats.db]',
                         default=None, type=str)
@@ -91,16 +90,18 @@ def worker(x, **kwargs):
 
 
 def action(args):
-    # Connect to database
-    log.info("Loading database input %s" % args.db)
-    db = FCSdatabase(db=args.db, rebuild=False)
 
-    if args.outdb is not None:
-        # Copy database to out database
-        shutil.copyfile(args.db, args.outdb)
-        out_db = FCSdatabase(db=args.outdb, rebuild=False)
-    else:
-        out_db = db
+    if args.db is not None:
+        # Connect to database
+        log.info("Loading database input %s" % args.db)
+        db = FCSdatabase(db=args.db, rebuild=False)
+
+        if args.outdb is not None:
+            # Copy database to out database
+            shutil.copyfile(args.db, args.outdb)
+            out_db = FCSdatabase(db=args.outdb, rebuild=False)
+        else:
+            out_db = db
 
     # Find files
     if args.fcs_file is None:
