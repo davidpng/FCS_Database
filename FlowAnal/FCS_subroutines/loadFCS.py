@@ -45,9 +45,13 @@ def parse_channel_name(unparsed_name):
     unparsed_name = unparsed_name.replace("CYTO LAMBDA", "CYTO_LAMBDA")
     unparsed_name = unparsed_name.replace("SYTO 16", "SYTO16")
     unparsed_name = unparsed_name.replace("CD ", "CD")
+    unparsed_name = unparsed_name.replace("CD0", "CD")
     unparsed_name = unparsed_name.replace("APC ", "APC-")
     unparsed_name = unparsed_name.replace("PE ", "PE-")
     unparsed_name = unparsed_name.replace("V450 PB", "V450")
+    unparsed_name = unparsed_name.replace(",", "_")
+    unparsed_name = unparsed_name.replace("/", "_")
+    unparsed_name = unparsed_name.replace("/", "_")
 
     parsed_name = unparsed_name.split(" ", 1)
 

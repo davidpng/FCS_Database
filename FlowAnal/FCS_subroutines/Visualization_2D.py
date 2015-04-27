@@ -40,7 +40,7 @@ display_schema = {'comp': {'grid': (9, 4),
 
 class Visualization_2D(object):
     def __init__(self, FCS, outfile, outfiletype,
-                 schema_choice='comp', comp_lines=None, gate=None, **kwargs):
+                 schema_choice='comp', comp_lines=[], gate=None, **kwargs):
         self.FCS = FCS
         self.filename = outfile
         self.filetype = outfiletype
@@ -96,20 +96,16 @@ class Visualization_2D(object):
             indices = np.random.choice(range(self.FCS.data.shape[0]), int(n),
                                        replace=False)
             dat = self.FCS.data.iloc[indices, :]
+            if hasattr(self.FCS, 'cluster') is True:
+                cols = self.FCS.cluster[indices]
         else:
             dat = self.FCS.data
+            if hasattr(self.FCS, 'cluster') is True:
+                cols = self.FCS.cluster
 
-        x_pts = dat[[x-1]].values
-        y_pts = dat[[y-1]].values
-
-        if hasattr(self.FCS, 'cluster') is True:
-            cols = self.FCS.cluster[indices]
-        plt.scatter(x=x_pts, y=y_pts, s=1,
-                    marker='.',
-                    c=cols,
-                    edgecolor='',
-                    alpha=0.5,
-                    cmap=mplt.cm.Set1)  # lw=0
+        x_pts = np.ravel(dat[[x-1]].values)
+        y_pts = np.ravel(dat[[y-1]].values)
+        fsc_pts = np.ravel(dat[[2]].values)
 
         plt.xlabel(x_lb)
         plt.ylabel(y_lb)
@@ -118,48 +114,101 @@ class Visualization_2D(object):
             ylims = np.percentile(y_pts, [1, 99]) * np.array([0.8, 1.2])
             limits = (min(xlims[0], ylims[0]), max(xlims[1], ylims[1])) * 2
 
-        if self.comp_lines is not None and \
+        if self.comp_lines and \
            (x - 1) in self.comp_lines[0].xt_Channel_Number.values:
-            scores = []
-            slopes = []
-            names = []
-            cm = mplt.cm.ScalarMappable(norm=mplt.colors.Normalize(vmin=0,
-                                                                   vmax=len(self.comp_lines)-1),
-                                        cmap='YlOrRd')
-            (mplt.colors.Colormap('YlOrRd', len(self.comp_lines)))
+            legs = []
+
+            # Setup colors
+            if hasattr(self.FCS, 'cluster'):
+                crange = (min(self.FCS.cluster), max(self.FCS.cluster))
+                cn = len(np.unique(self.FCS.cluster))
+                cm_name = 'Set1'
+            else:
+                crange = (0, len(self.comp_lines)-1)
+                cn = len(self.comp_lines)
+                cm_name = 'YlOrRd'
+
+            cm_sm = mplt.cm.ScalarMappable(norm=mplt.colors.Normalize(vmin=crange[0],
+                                                                      vmax=crange[1]),
+                                           cmap=cm_name)
+            (mplt.colors.Colormap(cm_name, cn))
+
+            # Setup linestyles
+            linestyles = np.asarray(['--', '-', '-.', ':'])
+            cluster_count = {}
+
+            # Make fit lines
             for i, comp_line_i in enumerate(self.comp_lines):
-                (m, b, score) = comp_line_i.loc[comp_line_i.xt_Channel_Number == (x-1),
-                                                ['m', 'b', 'score']].values[0]
-
-                x_range = (limits[0] * m + b, limits[1] * m + b)
-                y_range = (limits[0], limits[1])
-                if logit is False:
-                    plt.plot(x_range,
-                             y_range,
-                             c=cm.to_rgba(i), linestyle='--')
+                (m, m2, b,
+                 score, cluster, N) = comp_line_i.loc[comp_line_i.xt_Channel_Number == (x-1),
+                                                      ['m', 'm2', 'b', 'score',
+                                                       'cluster', 'N']].values[0]
+                if cluster is None:
+                    cluster = i
+                cluster = int(cluster)
+                if cluster in cluster_count:
+                    cluster_count[cluster] += 1
                 else:
-                    x_range = np.linspace(x_range[0], x_range[1])
-                    y_range = np.linspace(y_range[0], y_range[1])
-                    for j in range(len(x_range)-1):
-                        plt.plot(x_range[j:(j+2)],
-                                 y_range[j:(j+2)],
-                                 c=cm.to_rgba(i), linestyle='--')
-                scores.append(score)
-                slopes.append(m)
-                names.append(''.join([str(comp_line_i[xn][0])[0]
-                                      for xn in ['model', 'downsample_on_y', 'gate']]))
+                    cluster_count[cluster] = 0
 
-            plt.text(0.96, 0.05, s=r'R$^2$={}'.format(','.join(['{:+.2f}'.format(si)
-                                                                for si in scores])),
-                     fontsize=4, horizontalalignment='right', verticalalignment='bottom',
-                     transform=ax.transAxes)
-            plt.text(0.96, 0.105, s='Slope={}'.format(','.join(['{:+.3f}'.format(si)
-                                                                for si in slopes])),
-                     fontsize=4, horizontalalignment='right', verticalalignment='bottom',
-                     transform=ax.transAxes)
-            plt.text(0.96, 0.16, s='Methods={}'.format(','.join(names)), fontsize=4,
-                     horizontalalignment='right', verticalalignment='bottom',
-                     transform=ax.transAxes)
+                # Get coords
+                i_s = np.random.choice(range(len(y_pts)),
+                                       size=min(len(y_pts), 1000),
+                                       replace=False)
+                ys = y_pts[i_s]
+                if m2 is not None:
+                    xs = ys * m + fsc_pts[i_s]*m2 + b
+                else:
+                    xs = ys * m + b
+                order = np.argsort(ys)
+                ys = ys[order]
+                xs = xs[order]
+
+                leg_name = ''.join([str(comp_line_i[xn][0])[0]
+                                    for xn in ['model', 'downsample_on_y', 'gate', 'cluster']])
+
+                leg_h, = plt.plot(xs, ys,
+                                  c=cm_sm.to_rgba(cluster),
+                                  linestyle=linestyles[cluster_count[cluster]],
+                                  label='| '.join([leg_name,
+                                                   '{:+.3f}'.format(m),
+                                                   '{:+.2f}'.format(score),
+                                                   '{:.0f}'.format(N)]))
+                # for y in np.logspace(limits[0], limits[1], num=nbin * 2):
+                #     y_range.append(y)
+                #     if m2 is not None:
+                #         j = np.mean(fsc_pts[np.where((y_pts >= y - y_bin/2) &
+                #                                      (y_pts <= y + y_bin/2))])
+                #         x_range.append(y*m + j*m2 + b)
+                #     else:
+                #         x_range.append(i*m + b)
+                # for j in range(len(x_range)-1):
+                #     leg_h, = plt.plot(x_range[j:(j+2)],
+                #                       y_range[j:(j+2)],
+                #                       c=cm_sm.to_rgba(cluster),
+                #                       linestyle=linestyles[cluster_count[cluster]],
+                #                       label='| '.join([leg_name,
+                #                                        '{:+.3f}'.format(m),
+                #                                        '{:+.2f}'.format(score),
+                #                                        '{:.0f}'.format(N)]))
+                legs.append(leg_h)
+
+            plt.legend(handles=legs, fontsize=1.5,
+                       bbox_to_anchor=(0.96, 0.04), bbox_transform=ax.transAxes,
+                       loc='lower right')
+            colors = list(cm_sm.to_rgba(x) for x in cols)
+            plt.scatter(x=x_pts, y=y_pts, s=1,
+                        marker='.',
+                        c=colors,
+                        edgecolor='',
+                        alpha=0.5)
+        else:
+            plt.scatter(x=x_pts, y=y_pts, s=1,
+                        marker='.',
+                        c=cols,
+                        edgecolor='',
+                        alpha=0.5,
+                        cmap=mplt.cm.Set1)  # lw=0
 
         if self.gate is not None and x_lb in self.gate:
             # NOTE: this is customized only for antibody titer plots

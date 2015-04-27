@@ -1,4 +1,3 @@
-#  from rpy2.robjects.packages import importr
 import rpy2.robjects as ro
 from rpy2.robjects.packages import importr
 import pandas.rpy.common as com
@@ -8,6 +7,9 @@ import os
 import logging
 log = logging.getLogger(__name__)
 import string
+
+priors = {'lymphs': (5.5e4, 6.5e4),
+          'myeloid': (1.15e4, 1.5e5)}
 
 
 class cluster_FCS(object):
@@ -20,7 +22,8 @@ class cluster_FCS(object):
         if cluster_method == 'flowPeaks':
             self.run_flowPeaks(**kwargs)
         elif cluster_method == 'comp_gate':
-            self.Comp_Gate(self.filepath, **kwargs)
+            self.Comp_Gate(fp=self.filepath,
+                           **kwargs)
 
     def run_flowPeaks(self, params=['FSC-A',
                                     'SSC-H',
@@ -43,26 +46,62 @@ class cluster_FCS(object):
         cluster[cluster < 0] = -1
         self.FCS.cluster = cluster
 
-    def Comp_Gate(fp, **kwargs):
+    def Comp_Gate(self, fp, min_clust_N=200, **kwargs):
 
         log.info('Gating for comp calc')
         flowCore = importr('flowCore')
         flowStats = importr('flowStats')
         flowClust = importr('flowClust')
+        openCyto = importr('openCyto')
         importr('parallel')
 
         a = flowCore.read_FCS(fp)
-        f_sg = flowStats.singletGate(a, area="FSC-A", height="FSC-H",
-                                     wider_gate=True, maxit=10,
+
+        # Viability
+        f_vb = openCyto.mindensity(a, channel='FSC-A',
+                                   gate_range=ro.IntVector((0, 7e4)))
+        a_vb = flowCore.Subset(a, f_vb)
+        gate_vb = flowCore.filter(a, f_vb)
+        gate_vb = np.asarray(gate_vb.do_slot('subSet'), dtype=bool)
+
+        # Singlet
+        f_sg = flowStats.singletGate(a_vb, area="FSC-A", height="FSC-H",
+                                     wider_gate=True, maxit=20,
                                      prediction_level=0.9999)
-        a_sg = flowCore.Subset(a, f_sg)
-        f_SvF = flowClust.tmixFilter('f_SvF', parameters=ro.StrVector(("SSC-H", "FSC-A")),
-                                     K=ro.IntVector(range(1, 9)), B=100, level=0.95)
-        f_SvF.do_slot_assign('z.cutoff', ro.FloatVector([0.6]))
-        res = flowCore.filter(a_sg, f_SvF)
+        a_sg = flowCore.Subset(a_vb, f_sg)
+        gate_sg = flowCore.filter(a, f_sg)
+        gate_sg = np.asarray(gate_sg.do_slot('subSet'), dtype=bool)
+
+        # Pop cluster
+        res = flowClust.flowClust(a_sg, varNames=ro.StrVector(("SSC-H", "FSC-A")),
+                                  K=ro.IntVector(range(1, 11)), B=100, level=0.75,
+                                  z_cutoff=0.6)
+
+        # pick cluster
         x = np.asarray(flowClust.criterion(res, "BIC"))
         x = x - min(x)
-        nc = np.where(x / max(x) >= 0.9)[0][0]
-        cluster = np.asarray(flowClust.Map(res[nc]))
-        print cluster
+        x = x / max(x)
+        y = x[1:len(x)] - x[0:(len(x)-1)]
+        if len(x) == 0:
+            raise "Cluster found only {} clusters".format(len(x))
+        elif len(x) == 1:
+            nc = 0
+        else:
+            tmp = np.where(y < 0.03)[0]
+            if len(tmp) == 0:
+                nc = len(res) - 1
+            else:
+                nc = max(tmp[0] + 1,
+                         1)
+        res = res[nc]
 
+        cluster = np.asarray(flowClust.Map(res))
+        cluster[cluster < 0] = 0
+        clusters_to_elim = np.where(np.bincount(cluster, minlength=nc+1) < min_clust_N)[0]
+        cluster[np.in1d(cluster, clusters_to_elim) | (cluster == 0)] = -1
+
+        # Climb back to original
+        cluster2 = np.empty(shape=len(gate_sg), dtype=np.int)
+        cluster2.fill(-2)
+        cluster2[gate_vb & gate_sg] = cluster
+        self.FCS.cluster = cluster2

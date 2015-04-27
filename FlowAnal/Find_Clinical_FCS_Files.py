@@ -55,8 +55,8 @@ class Find_Clinical_FCS_Files(object):
         filenum = 0
         filecount = 0
 
-        # remove sub directories in the exclude list
-        for dirpath, _, files in os.walk(self.directory):
+        for dirpath, _, files in os.walk(self.directory, topdown=True):
+            # remove sub directories in the exclude list
             if dirpath in self.excludes:
                 continue
 

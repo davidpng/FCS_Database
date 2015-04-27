@@ -49,42 +49,43 @@ def build_parser(parser):
                         default='RANSAC', type=str)
     parser.add_argument('-precluster', '--precluster', help='Precluster cluster method',
                         default=None, type=str, choices=['comp_gate'])
+    parser.add_argument('-noFSC', '--do-not-use-FSC', dest='fit_w_FSC',
+                        help='Include FSC in model fitting?',
+                        default=True, action='store_false')
+    parser.add_argument('-best-cluster', '--best-cluster', help='Pick best cluster',
+                        default=False, action='store_true')
+    parser.add_argument('-name', '--name', type=str, default='test')
     add_multiprocess_args(parser)
 
 
 def worker(x, **kwargs):
     filepath = path.join(kwargs['dir'], x[1])
     log.debug("Comp_tube_idx: %s, File: %s" % (x[0], x[1]))
-    if kwargs['fit'] is True or kwargs['plot'] is True:
-        fFCS = FCS(ftype='comp',
-                   filepath=filepath,
-                   comp_tube_idx=x[0],
-                   import_dataframe=True)
-    else:
-        fFCS = FCS(ftype='comp',
-                   filepath=filepath,
-                   comp_tube_idx=x[0],
-                   import_dataframe=False)
+    import_dataframe = kwargs['fit'] or kwargs['plot']
 
-    if 'precluster' in kwargs:
-        fFCS.make_clusters(cluster_method=kwargs['precluster'], **kwargs)
-    quit()
+    fFCS = FCS(ftype='comp',
+               filepath=filepath,
+               comp_tube_idx=x[0],
+               import_dataframe=import_dataframe)
 
     a = Process_Single_Antigen(fFCS, dir=kwargs['dir'])
 
     if a.empty is False:
         try:
+            if 'precluster' in kwargs:
+                a.FCS.make_clusters(cluster_method=kwargs['precluster'],
+                                    **kwargs)
             if kwargs['fit'] is True:
-                a.fit_Comp()
+                a.fit_Comp(**kwargs)
             if kwargs['plot'] is True:
-                a.plot()
+                a.plot(name=kwargs['name'])
         except Exception, e:
             traceback.print_exc(file=sys.stdout)
-            raise
+            a.empty = True
             a.flag = 'Could not fit'
             a.error_message = str(e)
 
-    fFCS.clear_FCS_data()
+    a.FCS.clear_FCS_data()
     del(a.FCS)
     return a
 
@@ -119,7 +120,8 @@ def action(args):
     log.info("Number of sublists to process: {}".format(len(sublists)))
 
     vargs = {'dir': args.dir, 'plot': args.plot, 'add_gate': args.add_gate,
-             'model': args.model, 'fit': args.fit, 'precluster': args.precluster}
+             'model': args.model, 'fit': args.fit, 'precluster': args.precluster,
+             'fit_w_FSC': args.fit_w_FSC, 'name': args.name}
 
     i = 0
     for sublist in sublists:
