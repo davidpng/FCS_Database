@@ -217,8 +217,7 @@ class Process_Single_Antigen(object):
 
         meta = self.meta
         meta.set_index(['xt_Channel_Number'], drop=False, inplace=True)
-        res = pd.DataFrame(np.vstack(res), index=self.cols_i,
-                           columns=['m', 'm2', 'b', 'N', 'score'])
+        res = pd.DataFrame(np.vstack(res), index=self.cols_i, columns=['m', 'm2', 'b', 'N', 'score'])
         self.res = pd.concat((self.meta, res), axis=1)
         self.res.reset_index(inplace=True, drop=True)
 

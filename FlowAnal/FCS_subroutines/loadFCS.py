@@ -41,6 +41,8 @@ def parse_channel_name(unparsed_name):
     # handling for empty antigen names
     unparsed_name = unparsed_name.replace("PACIFIC BLUE", "PB")  # "Pacific_Blue"
     unparsed_name = unparsed_name.replace("PE-TEXAS RED", "PE-TR")  # "PE-Texas_Red"
+    unparsed_name = unparsed_name.replace("CY5-5", "CY55")  # "PE-Texas_Red"
+    unparsed_name = unparsed_name.replace("AM-CYAN", "AMCYAN")
     unparsed_name = unparsed_name.replace("CYTO KAPPA", "CYTO_KAPPA")
     unparsed_name = unparsed_name.replace("CYTO LAMBDA", "CYTO_LAMBDA")
     unparsed_name = unparsed_name.replace("SYTO 16", "SYTO16")

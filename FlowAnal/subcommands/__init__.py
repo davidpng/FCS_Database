@@ -21,6 +21,9 @@ def add_filter_args(parser):
     parser.add_argument('-antigens', '--antigens', help='List of antigens to select',
                         nargs='+', action='store',
                         default=None, type=str)
+    parser.add_argument('-fluorophores', '--fluorophores', help='List of fluorophores to select',
+                        nargs='+', action='store',
+                        default=None, type=str)
     parser.add_argument('-Channel_Name', '--Channel-Name',
                         help='List of Channel_Name\'s to select',
                         nargs='+', action='store',

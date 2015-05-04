@@ -15,9 +15,8 @@ __status__ = "Production"
 import logging
 import os
 import pandas as pd
-import numpy as np
 import fnmatch
-import datetime
+import shutil
 
 from FlowAnal.database.FCS_database import FCSdatabase
 log = logging.getLogger(__name__)
@@ -32,12 +31,21 @@ def build_parser(parser):
     [default: db/fcs.db]',
                         default="db/fcs.db", type=str)
     parser.add_argument('-n', '--n', type=int, default=None)
+    parser.add_argument('-outdb', '--outdb', help='Output sqlite3 db [default: None]',
+                        default=None, type=str)
 
 
 def action(args):
+
+    # Copy database
+    if args.outdb is not None:
+        shutil.copyfile(args.db, args.outdb)
+    else:
+        args.outdb = args.db
+
     # Connect to database
     log.info("Loading database input %s" % args.db)
-    db = FCSdatabase(db=args.db, rebuild=False)
+    db = FCSdatabase(db=args.outdb, rebuild=False)
 
     # Get file list
     fps = []
@@ -49,6 +57,7 @@ def action(args):
                 fps.append(os.path.join(dirpath, f))
 
     bead_dfs = []
+    ultra_dfs = []
     for i, fp in enumerate(fps):
             log.debug("Files processed: {} of {}\r".format(i, len(fps))),
             fullpath = os.path.join(args.dir, fp)
@@ -56,27 +65,28 @@ def action(args):
                 a = load_beadQC_from_csv(fullpath)
                 if a.bead_type == '8peaks':
                     bead_dfs.append(a.df)
+                elif a.bead_type == 'ultra':
+                    ultra_dfs.append(a.df)
             except Exception as ex:
+
                 log.info('Exception [{}]: FP {} failed because of {}'.format(ex.__class__,
                                                                              fp, ex.message))
             if args.n is not None and i > args.n:
                 break
 
+    # 8 peaks
     bead_df = pd.concat(bead_dfs)
     bead_df.reset_index(inplace=True, drop=True)
-
-    def pop2fluo(x):
-        y = x.split('-')
-        if len(y) == 2:
-            return y[0]
-        else:
-            return '-'.join(y[0:(len(y)-1)])
-
-    bead_df.Populations = bead_df.Populations.apply(pop2fluo)
     bead_df.set_index(['Populations', 'cyt', 'date'], inplace=True)
     bead_df = bead_df.stack()
     bead_df.index.rename(['Fluorophore', 'cytnum', 'date', 'peak'], inplace=True)
     bead_df.name = 'MFI'
     bead_df = bead_df.reset_index()
-    bead_df['date'] = pd.DatetimeIndex(bead_df.date).date.astype(str)   # Gave up because dates are too hard
+    bead_df['date'] = pd.DatetimeIndex(bead_df.date).date.astype(str)
     db.add_df(df=bead_df, table='Beads8peaks')
+
+    ultra_df = pd.concat(ultra_dfs)
+    ultra_df.reset_index(inplace=True, drop=True)
+    ultra_df.columns = ['Fluorophore', 'Mean', 'CV', 'cytnum', 'date']
+    ultra_df['date'] = pd.DatetimeIndex(ultra_df.date).date.astype(str)
+    db.add_df(df=ultra_df, table='BeadsUltra')

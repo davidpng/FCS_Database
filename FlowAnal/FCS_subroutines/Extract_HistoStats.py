@@ -8,14 +8,15 @@ from FCS data
 """
 from scipy.stats import pearsonr
 from matplotlib.path import Path
-
 import pandas as pd
 import numpy as np
-
 import logging
 import itertools
-
 log = logging.getLogger(__name__)
+
+from FlowAnal.FCS_subroutines.Process_Single_Antigen import UL_gate
+
+coords = UL_gate(bottom=0.4, top=0.95*1)
 
 
 class Extract_HistoStats(object):
@@ -82,7 +83,7 @@ class Extract_HistoStats(object):
         N.B. - This is a subfunction of the FCS object
 	    """
         # set up the reagent list
-        exclude = ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'Time']
+        exclude = ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'TIME']
         reagents = [i for i in self.FCS.data.columns if i not in exclude]
 
         # make an empty list to append
@@ -107,7 +108,6 @@ class Extract_HistoStats(object):
 
     def __UL_gating(self, x_ax, y_ax):
         # describes an upper left corner gate
-        coords = [(0.0, 0.7), (0.6, 0.7), (0.9, 1.0), (0.0, 1.0), (0.0, 0.7)]
         gate = Path(coords, closed=True)
         projection = np.array(self.FCS.data[[x_ax, y_ax]])
         index = gate.contains_points(projection)

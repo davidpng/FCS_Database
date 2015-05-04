@@ -55,7 +55,8 @@ class queryDB(object):
                    if (m in kwargs.keys() and kwargs[m] is True)]
 
         mmethods = ['getPmtStats', 'getTubeStats',
-                    'getPmtCompCorr', 'getPmtHistos', 'getbeads']
+                    'getPmtCompCorr', 'getPmtHistos', 'getbeads_8peaks',
+                    'getbeads_ultra']
         mmethod = [m for m in mmethods
                    if (m in kwargs.keys() and kwargs[m] is True)]
 
@@ -170,7 +171,7 @@ class queryDB(object):
         else:
             raise "Unknown type"
 
-    def __getbeads(self, **kwargs):
+    def __getbeads_8peaks(self, **kwargs):
         """        Collect bead data based on kwargs
         """
         log.info('Collecting bead QC data')
@@ -187,12 +188,24 @@ class queryDB(object):
             log.info('Looking for cytnum #%s' % ", ".join(cytnum_to_select))
             self.q = self.q.filter(Beads8peaks.cytnum.in_(cytnum_to_select))
 
-        # if 'daterange' in kwargs and kwargs['daterange'] is not None:
-        #     log.info('Looking for daterange: [%s, %s]' % (kwargs['daterange'][0],
-        #                                                   kwargs['daterange'][1]))
-        #     date_start = datetime.strptime(kwargs['daterange'][0], '%Y-%m-%d')
-        #     date_end = datetime.strptime(kwargs['daterange'][1], '%Y-%m-%d')
-        #     self.q = self.q.filter(func.date(Beads8peaks.date).between(date_start, date_end))
+        return self.compile_query()
+
+    def __getbeads_ultra(self, **kwargs):
+        """        Collect bead data based on kwargs
+        """
+        log.info('Collecting bead QC data')
+
+        self.q = self.session.query(BeadsUltra)
+
+        if 'fluorophores' in kwargs and kwargs['fluorophores'] is not None:
+            fluo_to_select = [unicode(x) for x in kwargs['fluorophores']]
+            log.info('Looking for fluorophores (%s)' % ", ".join(fluo_to_select))
+            self.q = self.q.filter(BeadsUltra.Fluorophore.in_(fluo_to_select))
+
+        if 'cytnum' in kwargs and kwargs['cytnum'] is not None:
+            cytnum_to_select = [unicode(x) for x in kwargs['cytnum']]
+            log.info('Looking for cytnum #%s' % ", ".join(cytnum_to_select))
+            self.q = self.q.filter(BeadsUltra.cytnum.in_(cytnum_to_select))
 
         return self.compile_query()
 

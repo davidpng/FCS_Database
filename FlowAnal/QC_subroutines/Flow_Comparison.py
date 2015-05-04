@@ -63,11 +63,13 @@ class Flow_Comparison2D(object):
 
 class Flow_Comparison(object):
     """ Compare QC data across samples """
-    def __init__(self, args, dbcon):
+    def __init__(self, args, dbcon, **kwargs):
         if args.comparison == 'global':
             self.Global_Comparisons(args, dbcon)
         elif args.comparison == 'peaks':
             self.Peak_Comparisons(args, dbcon)
+        elif args.comparison == 'gated_peaks':
+            self.Gated_Peak_Comparison(args, dbcon, **kwargs)
         else:
             raise ValueError('Comparison {} is not valid'.format(args.comparison))
 
@@ -172,6 +174,10 @@ class Flow_Comparison(object):
         sample_comps = pd.merge(sample_comps, a_df, left_on=['ctiA', 'ctiB'],
                                 right_on=['ctiA', 'ctiB'], how='left')
         sample_comps.to_csv(''.join([args.outp, name, 'emd.txt']), sep="\t")
+
+    def Gated_Peak_Comparison(self, args, dbcon, **kwargs):
+        """ start here """
+        print 'hi'
 
     def Peak_Comparisons(self, args, dbcon, **kwargs):
         """ Identify peaks across one variable and compare peak locations by Deming Regression """

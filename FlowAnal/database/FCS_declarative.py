@@ -299,6 +299,22 @@ class Beads8peaks(Base):
     peak = Column(String(2), nullable=False)  # primary_key=True)
     MFI = Column(Float)
 
+Index('ix_Beads8peaks_all', Beads8peaks.cytnum, Beads8peaks.Fluorophore,
+      Beads8peaks.peak, Beads8peaks.date)
+
+
+class BeadsUltra(Base):
+    __tablename__ = 'BeadsUltra'
+    id = Column(Integer, primary_key=True)
+    Fluorophore = Column(String(20), nullable=False)  # , primary_key=True)
+    cytnum = Column(String(3), nullable=False)  # primary_key=True)
+    date = Column(String(20), nullable=False)  # primary_key=True)
+    Mean = Column(Integer)
+    CV = Column(Float)
+
+Index('ix_BeadsUltra_all', BeadsUltra.cytnum, BeadsUltra.Fluorophore,
+      BeadsUltra.date)
+
 
 class PmtHistos(Base):
     __tablename__ = 'PmtHistos'

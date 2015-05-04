@@ -32,7 +32,9 @@ class FCSstats_to_database(object):
         self.FCS = FCS
         self.db = db
 
-        if hasattr(self.FCS, 'flag') and self.FCS.flag != 'GOOD':
+        if hasattr(self.FCS, 'flag') and \
+           self.FCS.flag is not None and \
+           self.FCS.flag != 'GOOD':
             db.set_flag(self.FCS.case_tube_idx,
                         self.FCS.flag,
                         self.FCS.error_message)

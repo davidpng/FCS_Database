@@ -24,6 +24,9 @@ class cluster_FCS(object):
         elif cluster_method == 'comp_gate':
             self.Comp_Gate(fp=self.filepath,
                            **kwargs)
+        elif cluster_method == 'lymph_gate':
+            self.Lymph_Gate(fp=self.filepath,
+                            **kwargs)
 
     def run_flowPeaks(self, params=['FSC-A',
                                     'SSC-H',
@@ -53,7 +56,7 @@ class cluster_FCS(object):
         flowStats = importr('flowStats')
         flowClust = importr('flowClust')
         openCyto = importr('openCyto')
-        importr('parallel')
+        # importr('parallel')
 
         a = flowCore.read_FCS(fp)
 
@@ -104,4 +107,44 @@ class cluster_FCS(object):
         cluster2 = np.empty(shape=len(gate_sg), dtype=np.int)
         cluster2.fill(-2)
         cluster2[gate_vb & gate_sg] = cluster
+        self.FCS.cluster = cluster2
+
+    def Lymph_Gate(self, fp, min_clust_N=200, **kwargs):
+
+        log.info('Gating for Lymph gate')
+        flowCore = importr('flowCore')
+        flowStats = importr('flowStats')
+        openCyto = importr('openCyto')
+        flowClust = importr('flowClust')
+
+        a = flowCore.read_FCS(fp)
+
+        # Viability
+        f_vb = openCyto.mindensity(a, channel='FSC-A',
+                                   gate_range=ro.IntVector((0, 7e4)))
+        a_vb = flowCore.Subset(a, f_vb)
+        gate_vb = flowCore.filter(a, f_vb)
+        gate_vb = np.asarray(gate_vb.do_slot('subSet'), dtype=bool)
+
+        # Singlet
+        f_sg = flowStats.singletGate(a_vb, area="FSC-A", height="FSC-H",
+                                     wider_gate=True, maxit=20,
+                                     prediction_level=0.9999)
+        a_sg = flowCore.Subset(a_vb, f_sg)
+        gate_sg = flowCore.filter(a, f_sg)
+        gate_sg = np.asarray(gate_sg.do_slot('subSet'), dtype=bool)
+
+        # Pop cluster
+        f_lymph = flowCore.rectangleGate(filterId="lymph_gate",
+                                         _gate=ro.ListVector({'SSC-H': ro.IntVector((0, 1.1e4)),
+                                                              'FSC-A': ro.IntVector((5e4,
+                                                                                     1.3e5))}))
+        a_lymph = flowCore.Subset(a_sg, f_lymph)
+        gate_lymph = flowCore.filter(a, f_lymph)
+        gate_lymph = np.asarray(gate_lymph.do_slot('subSet'), dtype=bool)
+
+        # Climb back to original
+        cluster2 = np.empty(shape=len(gate_sg), dtype=np.int)
+        cluster2.fill(-1)
+        cluster2[gate_vb & gate_sg & gate_lymph] = 1
         self.FCS.cluster = cluster2

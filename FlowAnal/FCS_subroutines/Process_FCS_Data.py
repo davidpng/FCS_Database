@@ -247,10 +247,10 @@ class Process_FCS_Data(object):
                 raise(ValueError,
                       "Compenstation Mode {} is Undefined".format(comp_mode))
 
-            print pd.DataFrame(self._load_overlap_matrix(compensation_file),
-                               columns=cols,
-                               index=cols)
-            print pd.DataFrame(self.overlap_matrix, columns=cols, index=cols)
+            # print pd.DataFrame(self._load_overlap_matrix(compensation_file),
+            #                    columns=cols,
+            #                    index=cols)
+            # print pd.DataFrame(self.overlap_matrix, columns=cols, index=cols)
 
             # simple inversion of the overlap matrix
             self.comp_matrix = self._make_comp_matrix(self.overlap_matrix)
